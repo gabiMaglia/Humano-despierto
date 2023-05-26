@@ -1,0 +1,6 @@
+@media (min-width: 991px) {
+  #navbarNav {
+    display: flex;
+    justify-content: space-between;
+  }
+}
