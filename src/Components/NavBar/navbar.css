@@ -1,6 +1,44 @@
+.navCont {
+  max-width: 1480px;
+  margin-inline: auto;
+}
+.navbar {
+  background-color: var(--main-bg-color);
+}
+.logo {
+  transform: scale(0.5);
+  opacity: 0.9;
+  width: 100%;
+}
+
+.nav-link {
+  font-size: 20px;
+}
+.social-icon:hover {
+  transition: color 0.2s ease-in;
+  color: var(--hoover-color-1) !important;
+}
+.big-logo {
+  display: none;
+}
+
+@media (min-width: 680px) {
+  .logo {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+}
+
 @media (min-width: 991px) {
   #navbarNav {
     display: flex;
     justify-content: space-between;
+  }
+  .big-logo {
+    display: block;
+  }
+  .logo {
+    transform: scale(0.8);
+    opacity: 0.9;
   }
 }
