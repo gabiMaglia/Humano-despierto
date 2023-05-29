@@ -1,0 +1,38 @@
+.card-cont {
+  min-height: 85dvh;
+  display: grid;
+  place-content: center;
+  gap: 6rem;
+  padding: 2rem;
+}
+.herocont {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: max(10rem, 1rem);
+  margin-top: -6.5rem;
+}
+.logo-pic {
+  width: 100%;
+}
+.imgCont {
+  width: 16rem;
+}
+.title {
+  display: flex;
+  flex-direction: column;
+  line-height: 72px;
+  align-items: self-end;
+}
+.title strong {
+  letter-spacing: auto;
+  font-size: 52px;
+  color: white;
+  flex: 1;
+}
+.frase {
+  font-size: 24px;
+  color: white;
+  text-justify: inter-word;
+}

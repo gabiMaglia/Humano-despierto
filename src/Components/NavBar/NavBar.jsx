@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 
 import logo from "../../assets/logo_aplha.gif";
 
-const NavBar = () => {
+const NavBar = (props) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleToggle = () => {
@@ -13,11 +13,11 @@ const NavBar = () => {
   };
 
   return (
-    <nav className="navbar container-fluid navbar-expand-lg sticky-top navbar-dark g-0 m-0 p-0 pb-5 ">
+    <nav className={props.position}>
       <div className="navCont ">
-        <a href="#top" className="navbar-brand logo big-logo g-0 m-0 p-0 ">
+        {/* <a href="#top" className="navbar-brand logo big-logo ">
           <img src={logo} alt="Humano Despierto" />
-        </a>
+        </a> */}
         <button
           className="navbar-toggler "
           type="button"
@@ -32,7 +32,7 @@ const NavBar = () => {
           className={`collapse navbar-collapse ${isOpen ? "show" : ""}`}
           id="navbarNav"
         >
-          <ul className=" navbar-nav ">
+          <ul className="navbar-nav local-nav">
             <li className="nav-item">
               <NavLink to="/" className="nav-link">
                 Inicio

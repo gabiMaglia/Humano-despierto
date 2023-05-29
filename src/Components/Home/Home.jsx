@@ -1,11 +1,13 @@
 import React from "react";
 import "./home.css";
-import Card from "./Cards/IntroCard/Card";
+import LogoCard from "./Cards/LogoCard/LogoCard";
+import IntroCard from "./Cards/Card/IntroCard";
 
 const Home = () => {
   return (
     <main>
-      <Card />
+      <LogoCard />
+      <IntroCard />
     </main>
   );
 };

@@ -15,7 +15,7 @@ function App() {
     <div className="App">
       {" "}
       <BrowserRouter>
-        <NavBar />
+        <NavBar position="navbar container-fluid navbar-expand-lg  navbar-dark g-0 m-0 p-0 pb-5 " />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/sobre-mi" element={<About />} />
