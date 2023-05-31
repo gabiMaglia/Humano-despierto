@@ -1,0 +1,56 @@
+#intro-card-cont {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  min-height: 58dvh;
+  padding: 2rem 1rem;
+}
+.cont {
+  max-width: 1024px;
+  margin-inline: auto;
+}
+.text-cont {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.text-cont strong,
+.text-cont p {
+  color: black;
+}
+
+.img-cont {
+  width: 100%;
+  padding: 3rem;
+}
+.img-intro {
+  width: 520px;
+  border-radius: 12px;
+}
+
+h2 {
+  text-align: center;
+}
+
+.cursos-cont {
+  max-width: 720px;
+  margin-inline: auto;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  align-items: stretch;
+  align-content: stretch;
+  align-items: stretch;
+}
+
+.curso-card {
+  flex: 1;
+}
+.curso-card img {
+  width: 80px;
+}
+.curso-card p {
+  font-size: 13px;
+  font-weight: 800;
+  color: black;
+}

@@ -1,0 +1,30 @@
+.intro-card-cont {
+  min-height: 85dvh;
+  display: grid;
+  margin-top: -5rem;
+  place-content: center;
+}
+.title {
+  display: flex;
+  flex-direction: column;
+  line-height: 25rem;
+  align-items: center;
+}
+.title strong {
+  font-size: 64px;
+  font-weight: 900;
+  color: white;
+}
+.frase {
+  font-size: 24px;
+  color: white;
+  text-justify: inter-word;
+}
+
+.t-stroke {
+  color: transparent;
+  -moz-text-stroke-width: 2px;
+  -webkit-text-stroke-width: 2px;
+  -moz-text-stroke-color: #000000;
+  -webkit-text-stroke-color: #211a7e;
+}
