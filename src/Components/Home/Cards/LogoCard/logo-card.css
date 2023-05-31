@@ -1,38 +1,30 @@
-.card-cont {
+.intro-card-cont {
   min-height: 85dvh;
   display: grid;
+  margin-top: -5rem;
   place-content: center;
-  gap: 6rem;
-  padding: 2rem;
-}
-.herocont {
-  display: flex;
-  flex-direction: row-reverse;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: max(10rem, 1rem);
-  margin-top: -6.5rem;
-}
-.logo-pic {
-  width: 100%;
-}
-.imgCont {
-  width: 16rem;
 }
 .title {
   display: flex;
   flex-direction: column;
-  line-height: 72px;
-  align-items: self-end;
+  line-height: 25rem;
+  align-items: center;
 }
 .title strong {
-  letter-spacing: auto;
-  font-size: 52px;
+  font-size: 64px;
+  font-weight: 900;
   color: white;
-  flex: 1;
 }
 .frase {
   font-size: 24px;
   color: white;
   text-justify: inter-word;
+}
+
+.t-stroke {
+  color: transparent;
+  -moz-text-stroke-width: 2px;
+  -webkit-text-stroke-width: 2px;
+  -moz-text-stroke-color: #000000;
+  -webkit-text-stroke-color: #211a7e;
 }

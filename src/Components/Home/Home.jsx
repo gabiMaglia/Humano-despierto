@@ -1,14 +1,15 @@
 import React from "react";
-import "./home.css";
 import LogoCard from "./Cards/LogoCard/LogoCard";
 import IntroCard from "./Cards/Card/IntroCard";
 
+import "./home.css";
+
 const Home = () => {
   return (
-    <main>
+    <>
       <LogoCard />
       <IntroCard />
-    </main>
+    </>
   );
 };
 

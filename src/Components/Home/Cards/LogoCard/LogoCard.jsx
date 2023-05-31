@@ -1,16 +1,13 @@
 import React from "react";
 import "./logo-card.css";
-import logo from "../../../../assets/logo_aplha.gif";
+
 const LogoCard = () => {
   return (
-    <section className="card-cont">
+    <section className="intro-card-cont">
       <div className="herocont">
-        <div className="imgCont">
-          <img className="logo-pic" src={logo} alt="Humano Despierto" />
-        </div>
         <h1 className="title">
-          <strong>Humano</strong>
-          <strong>Despierto</strong>
+          <strong className="t-stroke t-shadow">Humano</strong>
+          <strong className="t-stroke t-shadow">Despierto</strong>
         </h1>
       </div>
       <p className="frase">

@@ -1,16 +1,16 @@
-/* .navbar {
+.navbar {
   position: sticky;
   top: 0;
-} */
+  background-color: rgba(0, 0, 0, 0.5);
+}
 .navCont {
   width: 100%;
   display: flex;
   align-items: baseline;
-  padding: 2.5rem 5rem;
+  padding: 1rem 5rem;
   padding-bottom: 0;
 }
 .logo {
-  transform: scale(0.8);
   width: 120px;
   height: 120px;
 }

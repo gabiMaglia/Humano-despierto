@@ -2,8 +2,9 @@ import { React, useState } from "react";
 import "./navbar.css";
 import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
-
 import logo from "../../assets/logo_aplha.gif";
+import ExpandMoreIcon from "@mui/material/IconButton";
+import ExpandLessIcon from "@mui/material/IconButton";
 
 const NavBar = (props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,20 +14,18 @@ const NavBar = (props) => {
   };
 
   return (
-    <nav className={props.position}>
+    <nav className="navbar container-fluid navbar-expand-lg navbar-dark g-0 m-0 p-0 ">
       <div className="navCont ">
-        {/* <a href="#top" className="navbar-brand logo big-logo ">
-          <img src={logo} alt="Humano Despierto" />
-        </a> */}
+        <a className="navbar-brand logo" href="#top">
+          <img src={logo} alt="" />
+        </a>
         <button
           className="navbar-toggler "
           type="button"
           aria-label="Toggle navigation"
           onClick={handleToggle}
         >
-          <a href="#top" className="navbar-brand logo g-0 m-0 p-0 ">
-            <img src={logo} alt="Humano Despierto" />
-          </a>
+          <ExpandLessIcon />
         </button>
         <div
           className={`collapse navbar-collapse ${isOpen ? "show" : ""}`}
