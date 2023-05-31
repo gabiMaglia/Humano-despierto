@@ -43,6 +43,11 @@ const NavBar = (props) => {
               </NavLink>
             </li>
             <li className="nav-item">
+              <NavLink to="/charlas-free" className="nav-link">
+                Charlas Gratuitas
+              </NavLink>
+            </li>
+            <li className="nav-item">
               <NavLink to="/cursos" className="nav-link">
                 Cursos
               </NavLink>

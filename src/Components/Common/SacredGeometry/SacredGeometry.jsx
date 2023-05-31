@@ -17,6 +17,8 @@ const useStyles = makeStyles((theme) => ({
     position: "absolute",
     width: "100%",
     backgroundImage: `url(${spaceImage})`,
+    backgroundRepeat: 'no-repeat',
+    backgroundSize:'cover' ,
     height: window.innerHeight,
     "&:before": {
       // OSCURECIDO

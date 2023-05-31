@@ -9,14 +9,14 @@
   max-width: 1024px;
   margin-inline: auto;
 }
-.text-cont {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+.row {
+display: flex;
+align-items: center;
 }
-.text-cont strong,
-.text-cont p {
-  color: black;
+
+
+.intro {
+  padding: 1rem;
 }
 
 .img-cont {
@@ -31,6 +31,7 @@
 h2 {
   text-align: center;
 }
+
 
 .cursos-cont {
   max-width: 720px;

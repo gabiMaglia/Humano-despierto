@@ -9,22 +9,17 @@ import registros from "../../../../assets/Terapias/registros.webp";
 import tarot from "../../../../assets/Terapias/tarot.webp";
 
 import gemo from "../../../../assets/img/gemoterapia.jpg";
-const MeCard = () => {
+
+const IntroCard = () => {
   return (
     <section id="intro-card-cont">
       <div className="cont">
         <article className="row">
-          <div className="text-cont col-6">
+          <div className="text-cont intro col-6">
             <h2>
               Solamente hay una pequeña parte del Universo que sabrás con
               certeza que puede ser mejorada… Y esa parte eres tu
             </h2>
-            <p>
-              <strong>Soy Humano Despierto</strong> Hace muchos años, casi desde
-              que tengo memoria en realidad, comencé una búsqueda de los “por
-              qué” a infinidad de preguntas que surgían en mi. Así comenzó un
-              enamoramiento con el Universo y sus misterios.
-            </p>
           </div>
           <div className="img-cont col-6">
             <img className="img-intro" src={gemo} alt="gemo" />
@@ -32,6 +27,12 @@ const MeCard = () => {
         </article>
         <button>Conoceme!</button>
         <article className="row">
+            <p>
+              <strong>Soy Humano Despierto</strong> Hace muchos años, casi desde
+              que tengo memoria en realidad, comencé una búsqueda de los “por
+              qué” a infinidad de preguntas que surgían en mi. Así comenzó un
+              enamoramiento con el Universo y sus misterios.
+            </p>
           <div className="text-cont charlas col-12 ">
             <h2>Charlas, Talleres y Cursos</h2>
             <p>
@@ -76,4 +77,4 @@ const MeCard = () => {
   );
 };
 
-export default MeCard;
+export default IntroCard;
