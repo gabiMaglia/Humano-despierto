@@ -4,14 +4,15 @@ import SacredGeometry from "../../../Common/SacredGeometry/SacredGeometry";
 
 const LogoCard = () => {
   return (
-    <section className="intro-card-cont">
+    <section className="section-cont">
       <SacredGeometry />
-
-      <div className="herocont">
-        <h1 className="title">
-          <strong className="t-stroke t-shadow">Humano</strong>
-          <strong className="t-stroke t-shadow">Despierto</strong>
-        </h1>
+      <div className="intro-card-cont">
+        <div className="herocont">
+          <h1 className="title pb-5">
+            <strong className="t-stroke t-shadow">Humano</strong>
+            <strong className="t-stroke t-shadow">Despierto</strong>
+          </h1>
+        </div>
       </div>
       <p className="frase">
         Tu misión es comprender, tu propósito, ser feliz.

@@ -16,9 +16,10 @@ const useStyles = makeStyles((theme) => ({
     zIndex: -1,
     position: "absolute",
     width: "100%",
+    marginTop: "-5rem",
     backgroundImage: `url(${spaceImage})`,
-    backgroundRepeat: 'no-repeat',
-    backgroundSize:'cover' ,
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "cover",
     height: window.innerHeight,
     "&:before": {
       // OSCURECIDO
@@ -29,7 +30,7 @@ const useStyles = makeStyles((theme) => ({
       right: 0,
       bottom: 0,
       left: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.62)",
+      backgroundColor: "rgba(0, 0, 0, 0.82)",
     },
   },
 }));

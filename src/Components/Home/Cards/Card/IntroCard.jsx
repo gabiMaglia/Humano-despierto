@@ -15,25 +15,27 @@ const IntroCard = () => {
     <section id="intro-card-cont">
       <div className="cont">
         <article className="row">
-          <div className="text-cont intro col-6">
+          <div className="text-cont intro col">
             <h2>
               Solamente hay una pequeña parte del Universo que sabrás con
               certeza que puede ser mejorada… Y esa parte eres tu
             </h2>
           </div>
-          <div className="img-cont col-6">
+          <div className="img-cont">
             <img className="img-intro" src={gemo} alt="gemo" />
           </div>
+          <button>Conoceme!</button>
         </article>
-        <button>Conoceme!</button>
         <article className="row">
-            <p>
-              <strong>Soy Humano Despierto</strong> Hace muchos años, casi desde
-              que tengo memoria en realidad, comencé una búsqueda de los “por
-              qué” a infinidad de preguntas que surgían en mi. Así comenzó un
-              enamoramiento con el Universo y sus misterios.
-            </p>
-          <div className="text-cont charlas col-12 ">
+          <p>
+            <strong>Soy Humano Despierto</strong> Hace muchos años, casi desde
+            que tengo memoria en realidad, comencé una búsqueda de los “por qué”
+            a infinidad de preguntas que surgían en mi. Así comenzó un
+            enamoramiento con el Universo y sus misterios.
+          </p>
+        </article>
+        <article>
+          <div className="text-cont charlas col ">
             <h2>Charlas, Talleres y Cursos</h2>
             <p>
               Tendrás videos de cada clase, material de lectura obligatoria y
