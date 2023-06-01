@@ -9,13 +9,11 @@ import Footer from "./Components/Footer/Footer";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
-import SacredGeometry from "./Components/Common/SacredGeometry/SacredGeometry";
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
         <header>
-          <SacredGeometry />
           <NavBar />
         </header>
         <main>
