@@ -1,7 +1,7 @@
 .intro-card-cont {
   min-height: 85dvh;
+  margin-top: -6rem;
   display: grid;
-  margin-top: -5rem;
   place-content: center;
 }
 .title {
@@ -17,8 +17,10 @@
 }
 .frase {
   font-size: 24px;
+  font-weight: 600;
   color: white;
-  text-justify: inter-word;
+  margin-top: -2rem;
+  margin-bottom: 3rem;
 }
 
 .t-stroke {

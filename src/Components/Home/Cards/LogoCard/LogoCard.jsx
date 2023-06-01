@@ -14,8 +14,8 @@ const LogoCard = () => {
         </h1>
       </div>
       <p className="frase">
-        Tu misión es comprender, tu propósito ser feliz.{" "}
-        <em>No te distraigas!</em>
+        Tu misión es comprender, tu propósito, ser feliz.
+        <em> No te distraigas!</em>
       </p>
     </section>
   );
