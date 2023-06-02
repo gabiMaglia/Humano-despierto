@@ -2,9 +2,7 @@ import { React, useState } from "react";
 import "./navbar.css";
 import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
-import logo from "../../assets/img/IALOGOS/3.jpg";
-import ExpandMoreIcon from "@mui/material/IconButton";
-import ExpandLessIcon from "@mui/material/IconButton";
+import logo from "../../assets/img/IALOGOS/3.png";
 
 const NavBar = (props) => {
   const [isOpen, setIsOpen] = useState(false);

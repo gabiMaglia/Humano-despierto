@@ -1,5 +1,5 @@
 .section-cont {
-  min-height: 50rem;
+  height: 87vh;
   display: flex;
   flex-direction: column;
   place-content: center;
@@ -34,6 +34,17 @@
   -webkit-text-stroke-width: 2px;
   -moz-text-stroke-color: #000000;
   -webkit-text-stroke-color: #211a7e;
+}
+
+.go-down-icon {
+  bottom: 0;
+  background-color: var(--navBarColor);
+  border: none;
+  border-color: transparent;
+  color: white;
+}
+.go-down-icon:hover {
+  color: var(--hoover-color-1);
 }
 
 @keyframes aparecer {

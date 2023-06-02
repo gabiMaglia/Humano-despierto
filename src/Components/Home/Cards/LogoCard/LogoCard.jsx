@@ -18,6 +18,12 @@ const LogoCard = () => {
         Tu misión es comprender, tu propósito, ser feliz.
         <em> No te distraigas!</em>
       </p>
+
+      <a href="#intro-card-cont">
+        <button className="material-symbols-outlined btn btn-outline-black  position-absolute w-100 go-down-icon">
+          keyboard_double_arrow_down
+        </button>
+      </a>
     </section>
   );
 };

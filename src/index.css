@@ -1,3 +1,8 @@
+html {
+  scroll-behavior: smooth;
+  height: 100vh;
+}
+
 body {
   background-color: var(--main-bg-color);
   margin: 0;
@@ -15,6 +20,6 @@ code {
 :root {
   --main-bg-color: #10152f;
   --footer-bg-color: #10152f;
-
+  --navBarColor: #010101;
   --hoover-color-1: #a940fc;
 }

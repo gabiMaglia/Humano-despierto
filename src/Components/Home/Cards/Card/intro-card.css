@@ -12,21 +12,28 @@
 }
 article .row {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
 }
 
 .intro {
   padding: 1rem;
+  max-width: 420px;
+}
+.intro h2::first-letter {
+  font-size: 7rem; /* Tamaño de la primera letra */
+  line-height: 1; /* Altura de línea ajustada */
+  float: left; /* Flotar la primera letra */
+  padding-right: 4px; /* Espacio adicional a la derecha de la primera letra */
 }
 
 .img-cont {
-  width: 100%;
+  margin-inline: auto;
+  max-width: 520px;
 }
 .img-intro {
   padding: 1rem;
-  max-width: 520px;
   display: block;
   margin-inline: auto;
   border-radius: 22px;

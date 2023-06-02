@@ -15,7 +15,7 @@ const IntroCard = () => {
     <section id="intro-card-cont">
       <div className="cont">
         <article className="row">
-          <div className="text-cont intro col">
+          <div className="text-cont intro col m-auto">
             <h2>
               Solamente hay una pequeña parte del Universo que sabrás con
               certeza que puede ser mejorada… Y esa parte eres tu
@@ -24,8 +24,8 @@ const IntroCard = () => {
           <div className="img-cont">
             <img className="img-intro" src={gemo} alt="gemo" />
           </div>
-          <button>Conoceme!</button>
         </article>
+        <button>Conoceme!</button>
         <article className="row">
           <p>
             <strong>Soy Humano Despierto</strong> Hace muchos años, casi desde
