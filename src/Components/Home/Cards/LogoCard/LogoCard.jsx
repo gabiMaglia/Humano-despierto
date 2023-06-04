@@ -9,14 +9,16 @@ const LogoCard = () => {
       <div className="intro-card-cont">
         <div className="herocont">
           <h1 className="title pb-5">
-            <strong className="t-stroke t-shadow">Humano</strong>
-            <strong className="t-stroke t-shadow">Despierto</strong>
+            <strong className="t-stroke">Humano</strong>
+            <strong className="t-stroke ">Despierto</strong>
           </h1>
         </div>
       </div>
       <p className="frase">
-        Tu misión es comprender, tu propósito, ser feliz.
-        <em> No te distraigas!</em>
+        <em> Tu misión es comprender, tu propósito ser feliz!!.</em>
+        <br />
+
+        <strong> No te distraigas</strong>
       </p>
 
       <a href="#intro-card-cont">

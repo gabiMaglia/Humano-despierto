@@ -1,36 +1,42 @@
-.navbar {
+#navbar {
   position: sticky;
   top: 0;
   text-align: center;
-  /* background-image: url("../../assets/img/magia\ blanca.jpg"); */
   filter: grayscale(30%);
-  /* opacity: 0.5; */
   max-height: 6rem;
   z-index: 2;
+  background-color: black;
+  padding: 0 2rem !important;
 }
 .navCont {
+  display: flex;
   width: 100%;
 }
 .navbar-toggler,
 .navbar-toggler-icon {
-  background-color: black;
   border: none;
   border-color: transparent;
 }
-.navbar-collapse {
-  height: 100%;
-  background-color: black;
-  flex-direction: column;
+.navbar-toggler {
+  width: 45px;
+  margin-right: 2rem !important;
+}
 
+.navbar-collapse {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   width: 100vw;
+  background-color: black;
+  margin-left: -2rem;
+  padding-bottom: 3rem;
 }
 .logo {
   margin-inline: auto;
-  width: 120px;
   height: 6rem;
 }
 #imgLogo {
-  width: 64%;
+  width: 80px;
 }
 .local-nav {
   gap: 2rem;
@@ -57,18 +63,30 @@
 }
 
 @media (min-width: 991px) {
-  #navbarNav {
+  #navbar {
+    background-color: rgba(0, 0, 0, 0);
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
   }
   .navCont {
-    display: flex;
-    padding: 1rem 3rem;
+    flex-direction: row;
+    justify-content: space-between !important;
+    padding: 0 3rem;
     padding-bottom: 0;
   }
+  .logo {
+    margin-inline: 0;
+  }
   .navbar-collapse {
-    flex-direction: row;
     background-color: transparent;
+    justify-content: center;
+    margin-top: -1.5rem;
+    position: absolute;
+    width: auto;
+    margin-left: 0;
+    top: 40px;
+    left: 20%;
+    right: 20%;
   }
 
   /* .big-logo {

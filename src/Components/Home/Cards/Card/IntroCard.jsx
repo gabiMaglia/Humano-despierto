@@ -8,7 +8,8 @@ import numerologia from "../../../../assets/Terapias/numerologia.webp";
 import registros from "../../../../assets/Terapias/registros.webp";
 import tarot from "../../../../assets/Terapias/tarot.webp";
 
-import gemo from "../../../../assets/img/gemoterapia.jpg";
+import gemo from "../../../../assets/img/IALOGOS/20.jpg";
+import { Button } from "@mui/material";
 
 const IntroCard = () => {
   return (
@@ -17,25 +18,26 @@ const IntroCard = () => {
         <article className="row">
           <div className="text-cont intro col m-auto">
             <h2>
-              Solamente hay una pequeña parte del Universo que sabrás con
-              certeza que puede ser mejorada… Y esa parte eres tu
+              <strong>S</strong>olamente hay una pequeña parte del Universo que
+              sabrás con certeza que puede ser mejorada… Y esa parte eres tu
             </h2>
           </div>
           <div className="img-cont">
             <img className="img-intro" src={gemo} alt="gemo" />
           </div>
-        </article>
-        <button>Conoceme!</button>
-        <article className="row">
-          <p>
-            <strong>Soy Humano Despierto</strong> Hace muchos años, casi desde
-            que tengo memoria en realidad, comencé una búsqueda de los “por qué”
-            a infinidad de preguntas que surgían en mi. Así comenzó un
-            enamoramiento con el Universo y sus misterios.
+          <p className="quien-soy-text mt-3">
+            Soy Humano Despierto Hace muchos años, casi desde que tengo memoria
+            en realidad, comencé una búsqueda de los “por qué” a infinidad de
+            preguntas que surgían en mi. Así comenzó un enamoramiento con el
+            Universo y sus misterios.
           </p>
+          <Button variant="inherit" className="conoceme-btn mt-5">
+            Conoceme!
+          </Button>
         </article>
-        <article>
-          <div className="text-cont charlas col ">
+        <article className="row"></article>
+        <article id="charlas-cursos-cont">
+          <div className="text-cont charlas ">
             <h2>Charlas, Talleres y Cursos</h2>
             <p>
               Tendrás videos de cada clase, material de lectura obligatoria y
@@ -47,12 +49,14 @@ const IntroCard = () => {
             <div className="curso-card">
               <img src={brujas} alt="Tarot y Numerología" />
               <p>Tarot y Numerología</p>
-              <button>Conocer Mas</button>
+              <Button className="" variant="inherit">
+                Conocer Mas
+              </Button>
             </div>
             <div className="curso-card">
               <img src={registros} alt="Registros Akashicos" />
               <p>Registros Akashicos</p>
-              <button>Conocer Mas</button>
+              <Button variant="inherit">Conocer Mas</Button>
             </div>
             <div className="curso-card">
               <img
@@ -60,17 +64,17 @@ const IntroCard = () => {
                 alt="Desbloqueo Emocional y Sanación Vincular"
               />
               <p>Desbloqueo Emocional y Sanación Vincular</p>
-              <button>Conocer Mas</button>
+              <Button variant="inherit">Conocer Mas</Button>
             </div>
             <div className="curso-card">
               <img src={tarot} alt="tarot" />
               <p>Tarot</p>
-              <button>Conocer Mas</button>
+              <Button variant="inherit">Conocer Mas</Button>
             </div>
             <div className="curso-card">
               <img src={numerologia} alt="numerologia" />
               <p>Numerologia</p>
-              <button>Conocer Mas</button>
+              <Button variant="inherit">Conocer Mas</Button>
             </div>
           </div>
         </article>

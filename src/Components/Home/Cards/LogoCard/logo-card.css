@@ -1,4 +1,5 @@
 .section-cont {
+  font-family: "Baumans", truetype;
   height: 87vh;
   display: flex;
   flex-direction: column;
@@ -15,18 +16,21 @@
   align-items: center;
 }
 .title strong {
-  font-size: 64px;
-  font-weight: 900;
+  font-size: 48px;
+  /* font-weight: 900; */
   color: white;
+  text-shadow: 2px 2px 443px rgba(0, 0, 100, 1);
+  text-shadow: 2222222px 2222px 9999999px rgb(255, 255, 255);
 }
 .frase {
   opacity: 0; /* Inicialmente oculto */
   animation: aparecer 5s ease-in-out 2s forwards; /* Duración de 1 segundo, retardo de 2 segundos */
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 400;
   color: white;
   margin-top: 12rem;
   margin-inline: auto;
+  text-align: center;
 }
 .t-stroke {
   color: transparent;
@@ -58,8 +62,9 @@
 
 @media screen and (min-width: 998px) {
   .frase {
-    font-size: 24px;
+    font-size: 20px;
   }
-  .intro-card-cont {
+  .title strong {
+    font-size: 76px;
   }
 }

@@ -1,3 +1,8 @@
+/* font-family: "Baumans", cursive;
+font-family: "Lato", sans-serif;
+font-family: "Open Sans", sans-serif;
+font-family: "Roboto Slab", serif; */
+
 html {
   scroll-behavior: smooth;
   height: 100vh;
@@ -6,7 +11,7 @@ html {
 body {
   background-color: var(--main-bg-color);
   margin: 0;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Roboto Slab", serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden !important;
