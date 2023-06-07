@@ -1,0 +1,25 @@
+{
+  "files": {
+    "main.css": "/static/css/main.ae2f0e55.css",
+    "main.js": "/static/js/main.005d3911.js",
+    "static/js/787.168a7856.chunk.js": "/static/js/787.168a7856.chunk.js",
+    "static/media/space.jpg": "/static/media/space.c80c48fda8fdcdd2ce4e.jpg",
+    "static/media/3.png": "/static/media/3.33720b9087d68bf0dd02.png",
+    "static/media/patricia.jpg": "/static/media/patricia.99e09f6a7d5f7fa497b6.jpg",
+    "static/media/20.jpg": "/static/media/20.177cfb452a0db2be84f1.jpg",
+    "static/media/magia blanca.jpg": "/static/media/magia blanca.712d6e4b4a990bf94e05.jpg",
+    "static/media/tarot.webp": "/static/media/tarot.8ed9bbd95995210b8601.webp",
+    "static/media/registros.webp": "/static/media/registros.8ea570694e3a11d8d543.webp",
+    "static/media/numerologia.webp": "/static/media/numerologia.ba8b0e22425b25f5e578.webp",
+    "static/media/brujas.webp": "/static/media/brujas.ed57f9c24999be0aeba4.webp",
+    "index.html": "/index.html",
+    "static/media/emociones.webp": "/static/media/emociones.255be4c68dcd789aab33.webp",
+    "main.ae2f0e55.css.map": "/static/css/main.ae2f0e55.css.map",
+    "main.005d3911.js.map": "/static/js/main.005d3911.js.map",
+    "787.168a7856.chunk.js.map": "/static/js/787.168a7856.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ae2f0e55.css",
+    "static/js/main.005d3911.js"
+  ]
+}
