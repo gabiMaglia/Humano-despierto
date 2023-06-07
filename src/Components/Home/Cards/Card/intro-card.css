@@ -1,8 +1,8 @@
 #intro-card-cont {
-  padding: 2rem 3rem;
   background-color: white;
   min-height: 50dvh;
-  padding: 2rem 2rem;
+  padding-inline: 2rem;
+  padding-bottom: 10rem;
 }
 .cont {
   display: flex;
@@ -52,6 +52,7 @@ h2 {
 }
 .quien-soy-text {
   padding-top: 2rem;
+  padding-bottom: 2rem;
   text-align: center;
   font-size: 18px;
   padding-inline: 0.5rem;
@@ -59,7 +60,12 @@ h2 {
 }
 
 .conoceme-btn {
-  width: 100%;
+  background-color: grey !important;
+  color: white !important;
+  width: 100% !important;
+}
+.conoceme-btn:hover {
+  background-color: black !important;
 }
 #charlas-cursos-cont {
   text-align: center;

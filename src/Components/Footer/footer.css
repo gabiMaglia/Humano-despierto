@@ -1,3 +1,7 @@
 footer {
-  background-color: var(--footer-bg-color);
+  background-color: rgb(0, 0, 3);
+}
+
+.textLinks {
+  margin-inline: 1rem;
 }

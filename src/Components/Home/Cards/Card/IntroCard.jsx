@@ -3,7 +3,7 @@ import "./intro-card.css";
 
 import brujas from "../../../../assets/Terapias/brujas.webp";
 import emociones from "../../../../assets/Terapias/emociones.webp";
-import energia from "../../../../assets/Terapias/energia.webp";
+
 import numerologia from "../../../../assets/Terapias/numerologia.webp";
 import registros from "../../../../assets/Terapias/registros.webp";
 import tarot from "../../../../assets/Terapias/tarot.webp";
@@ -31,9 +31,11 @@ const IntroCard = () => {
             preguntas que surgían en mi. Así comenzó un enamoramiento con el
             Universo y sus misterios.
           </p>
-          <Button variant="inherit" className="conoceme-btn mt-5">
-            Conoceme!
-          </Button>
+          <a className="w-100" href="#">
+            <Button variant="inherit" className="conoceme-btn mt-5">
+              Conoceme!
+            </Button>
+          </a>
         </article>
         <article className="row"></article>
         <article id="charlas-cursos-cont">

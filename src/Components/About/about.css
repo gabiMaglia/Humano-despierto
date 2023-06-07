@@ -1,0 +1,21 @@
+.about-me-cont {
+  background-color: white;
+  min-height: 108dvh;
+}
+header {
+  background-image: url("../../assets/img/magia blanca.jpg");
+  background-position: center;
+  height: 310px;
+  width: 100%;
+}
+
+@media screen and (min-width: 621px) {
+}
+
+/* FIX */
+
+@media screen and (max-width: 621px) {
+  header {
+    background-size: cover;
+  }
+}

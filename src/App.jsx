@@ -13,9 +13,8 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <header>
-          <NavBar />
-        </header>
+        <NavBar />
+
         <main>
           <Routes>
             <Route path="/" element={<Home />} />

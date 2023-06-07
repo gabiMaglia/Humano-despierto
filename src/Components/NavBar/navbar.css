@@ -5,7 +5,7 @@
   filter: grayscale(30%);
   max-height: 6rem;
   z-index: 2;
-  background-color: black;
+  background-color: black !important;
   padding: 0 2rem !important;
 }
 .navCont {

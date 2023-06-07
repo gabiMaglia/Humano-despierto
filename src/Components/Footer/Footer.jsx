@@ -10,38 +10,33 @@ import {
   FaGithub,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
+import { Button } from "@mui/material";
 const Footer = () => {
   return (
     <>
       {/* <!-- Footer --> */}
-      <footer className="text-center text-lg-start text-muted  ">
+      <footer className="text-center text-lg-start text-muted  d-flex flex-column">
         {/* <!-- Section: Social media --> */}
-        <section className="d-flex justify-content-center justify-content-lg-between p-4  border-bottom">
+        <section className=" d-flex text-white  justify-content-lg-between  p-4 mb-2 border-bottom">
           {/* <!-- Left --> */}
-          <div className="me-5 d-none d-lg-block">
-            <span>Podes encontrarme:</span>
-          </div>
-          {/* <!-- Left --> */}
-
-          {/* <!-- Right --> */}
-          <div>
-            <a href="/" className="me-4 text-reset">
-              <FaFacebookF />
-            </a>
-            <a href="/" className="me-4 text-reset">
-              <FaTwitter />
-            </a>
-            <a href="/" className="me-4 text-reset">
+          <div className="d-flex w-100 justify-content-between ">
+            <a href="/" className=" text-reset">
               <FaGoogle />
             </a>
-            <a href="/" className="me-4 text-reset">
-              <FaInstagram />
-            </a>
-            <a href="/" className="me-4 text-reset">
+            <a href="/" className=" text-reset">
               <FaLinkedin />
             </a>
-            <a href="/" className="me-4 text-reset">
+            <a href="/" className=" text-reset">
               <FaGithub />
+            </a>
+            <a href="/" className=" text-reset">
+              <FaFacebookF />
+            </a>
+            <a href="/" className=" text-reset">
+              <FaTwitter />
+            </a>
+            <a href="/" className=" text-reset">
+              <FaInstagram />
             </a>
           </div>
           {/* <!-- Right --> */}
@@ -49,14 +44,14 @@ const Footer = () => {
         {/* <!-- Section: Social media --> */}
 
         {/* <!-- Section: Links  --> */}
-        <section className="">
-          <div className="text-center text-md-start mt-5">
+        <section>
+          <div className="mt-5 mb-5 textlinks">
             {/* <!-- Grid row --> */}
-            <div className="row mt-3 d-flex">
+            <div className="row textLinks mt-3 d-flex">
               {/* <!-- Grid column --> */}
-              <div className="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
+              <div className="col-md-3 text-left col-lg-4 col-xl-3 mx-auto mb-4">
                 {/* <!-- Content --> */}
-                <h6 className="text-uppercase fw-bold mb-4">
+                <h6 className="text-uppercase  text-white fw-bold mb-4">
                   <i className="fas fa-gem me-3"></i>Quien soy?
                 </h6>
                 <p>
@@ -69,33 +64,43 @@ const Footer = () => {
               {/* <!-- Grid column --> */}
 
               {/* <!-- Grid column --> */}
-              <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+              <div className="col-md-3 col-lg-2  text-white col-xl-2 mx-auto mb-4">
                 {/* <!-- Links --> */}
                 <h6 className="text-uppercase fw-bold mb-4">Mapa del sitio</h6>
-                <ul className="navbar-nav">
+                <ul className="navbar-nav linkList w-100 ">
                   <li className="nav-item">
                     <NavLink to="/" className="nav-link">
-                      Inicio
+                      <Button className="w-100" variant="outlined">
+                        Inicio
+                      </Button>
                     </NavLink>
                   </li>
                   <li className="nav-item">
                     <NavLink to="/sobre-mi" className="nav-link">
-                      Acerca de mi
+                      <Button className="w-100" variant="outlined">
+                        Acerca de mi
+                      </Button>
                     </NavLink>
                   </li>
                   <li className="nav-item">
                     <NavLink to="/cursos" className="nav-link">
-                      Cursos
+                      <Button className="w-100" variant="outlined">
+                        Cursos
+                      </Button>
                     </NavLink>
                   </li>
                   <li className="nav-item">
                     <NavLink to="/mutanta" className="nav-link">
-                      Mutanta
+                      <Button className="w-100" variant="outlined">
+                        Mutanta
+                      </Button>
                     </NavLink>
                   </li>
                   <li className="nav-item">
                     <NavLink to="/contacto" className="nav-link">
-                      Contacto
+                      <Button className="w-100" variant="outlined">
+                        Contacto
+                      </Button>
                     </NavLink>
                   </li>
                 </ul>
@@ -103,7 +108,7 @@ const Footer = () => {
               {/* <!-- Grid column --> */}
 
               {/* <!-- Grid column --> */}
-              <div className="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4">
+              <div className="col-md-4 text-center  text-white col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4">
                 {/* <!-- Links --> */}
                 <h6 className="text-uppercase fw-bold mb-4">Contacto</h6>
                 <p>
@@ -125,10 +130,7 @@ const Footer = () => {
         {/* <!-- Section: Links  --> */}
 
         {/* <!-- Copyright --> */}
-        <div
-          className="text-end p-4"
-          // style="background-color: rgba(0, 0, 0, 0.05);"
-        >
+        <div className="text-end text-white p-4 border-top ">
           © 2023 Copyright:
           <em> Soy Humano Despierto</em>
         </div>
