@@ -2,14 +2,52 @@
   background-color: white;
   min-height: 108dvh;
 }
-header {
+
+#header {
   background-image: url("../../assets/img/magia blanca.jpg");
   background-position: center;
   height: 310px;
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 3rem;
+}
+
+#header h1 {
+  font-size: 48px;
+  /* background: rgba(0, 0, 0, 0.2); */
+  font-weight: 800;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000,
+    -1px 1px 0 #000, 1px 1px 0 #000;
+  /* -webkit-text-stroke: 1px rgba(0, 0, 0, 0.7); */
+}
+
+.art-cont {
+  padding: 1rem 3rem;
+  padding-bottom: 10rem;
+}
+
+.img-about {
+  margin-inline: auto;
+}
+
+.introTitle h2 {
+}
+
+.introTitle h3 {
+  font-size: 24px;
+}
+
+fieldset legend {
+  font-size: 17px;
+  text-align: center;
 }
 
 @media screen and (min-width: 621px) {
+  #header h1 {
+    font-size: 58px;
+  }
 }
 
 /* FIX */

@@ -31,7 +31,7 @@ const IntroCard = () => {
             preguntas que surgían en mi. Así comenzó un enamoramiento con el
             Universo y sus misterios.
           </p>
-          <a className="w-100" href="#">
+          <a className="w-100" href="/#">
             <Button variant="inherit" className="conoceme-btn mt-5">
               Conoceme!
             </Button>
