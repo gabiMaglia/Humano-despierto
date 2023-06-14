@@ -3,7 +3,7 @@
   top: 0;
   text-align: center;
   filter: grayscale(30%);
-  max-height: 6rem;
+  max-height: 4.5rem;
   z-index: 2;
   background-color: black !important;
   padding: 0 2rem !important;
@@ -18,8 +18,9 @@
   border-color: transparent;
 }
 .navbar-toggler {
-  width: 45px;
-  margin-right: 2rem !important;
+  height: 4rem;
+  width: 55px;
+  margin-right: 0.7rem !important;
 }
 
 .navbar-collapse {
@@ -29,6 +30,8 @@
   width: 100vw;
   background-color: black;
   margin-left: -2rem;
+  padding-top: 4rem;
+  margin-top: -2rem;
   padding-bottom: 3rem;
 }
 .logo {
@@ -77,6 +80,9 @@
   .logo {
     margin-inline: 0;
   }
+  #imgLogo {
+    width: 110px;
+  }
   .navbar-collapse {
     background-color: transparent;
     justify-content: center;
@@ -84,7 +90,6 @@
     position: absolute;
     width: auto;
     margin-left: 0;
-    top: 40px;
     left: 20%;
     right: 20%;
   }

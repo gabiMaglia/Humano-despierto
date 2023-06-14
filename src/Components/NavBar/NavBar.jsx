@@ -18,19 +18,19 @@ const NavBar = (props) => {
     >
       <div className="navCont ">
         <button
-          className="navbar-toggler g-0 p-0 m-0"
+          className="navbar-toggler"
           type="button"
           aria-label="Toggle navigation"
           onClick={handleToggle}
         >
-          <span class="navbar-toggler-icon g-0 p-0 m-0 w-100 "></span>
+          <span className="navbar-toggler-icon g-0 p-0 m-0 w-100 "></span>
         </button>
 
         <a className="navbar-brand logo" href="#top">
           <img id="imgLogo" src={logo} alt="" />
         </a>
 
-        <ul className="navbar-nav d-flex flex-row p-3 social">
+        <ul className="navbar-nav d-flex flex-row p-2 social">
           <li className="nav-item">
             <NavLink to="#" className="nav-link social-icon">
               <FaInstagram />

@@ -16,27 +16,45 @@
 
 #header h1 {
   font-size: 48px;
-  /* background: rgba(0, 0, 0, 0.2); */
   font-weight: 800;
   text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000,
     -1px 1px 0 #000, 1px 1px 0 #000;
-  /* -webkit-text-stroke: 1px rgba(0, 0, 0, 0.7); */
 }
-
+.img-intro {
+  max-width: 380px;
+  max-height: 300px !important;
+  min-height: 300px !important;
+}
 .art-cont {
   padding: 1rem 3rem;
   padding-bottom: 10rem;
 }
 
-.img-about {
+/* .img-about {
   margin-inline: auto;
 }
 
 .introTitle h2 {
+} */
+.about_text-cont {
+  display: flex;
+  justify-content: center;
 }
-
 .introTitle h3 {
   font-size: 24px;
+}
+#carouselAbout {
+  max-width: 600px;
+  margin-inline: auto;
+  margin-bottom: 10rem;
+  margin-top: 3rem;
+}
+.carousel-item img {
+  width: 100%;
+  max-width: 420px;
+  max-height: 280px !important;
+  min-height: 220px !important;
+  margin-inline: auto;
 }
 
 fieldset legend {

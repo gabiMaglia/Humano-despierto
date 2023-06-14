@@ -1,11 +1,13 @@
 .section-cont {
   font-family: "Baumans", truetype;
-  height: 87vh;
+  /* min-height: 84svh; */
   display: flex;
   flex-direction: column;
   place-content: center;
 }
-
+.blancSpace {
+  height: 3rem;
+}
 .title {
   opacity: 0; /* Inicialmente oculto */
   animation: aparecer 3s ease-in-out 2s forwards; /* Duración de 1 segundo, retardo de 2 segundos */
@@ -28,9 +30,10 @@
   font-size: 14px;
   font-weight: 400;
   color: white;
-  margin-top: 12rem;
+  margin-top: 20svh;
   margin-inline: auto;
   text-align: center;
+  padding-bottom: 1svh;
 }
 .t-stroke {
   color: transparent;
