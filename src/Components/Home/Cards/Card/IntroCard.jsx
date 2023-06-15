@@ -4,12 +4,32 @@ import "./intro-card.css";
 import brujas from "../../../../assets/Terapias/brujas.webp";
 import emociones from "../../../../assets/Terapias/emociones.webp";
 
-import numerologia from "../../../../assets/Terapias/numerologia.webp";
-import registros from "../../../../assets/Terapias/registros.webp";
 import tarot from "../../../../assets/Terapias/tarot.webp";
 
 import gemo from "../../../../assets/img/IALOGOS/20.jpg";
 import { Button } from "@mui/material";
+
+
+
+
+const images = [
+  {
+    url: brujas,
+    title: 'brujas',
+    width: '40%',
+  },
+  {
+    url: emociones,
+    title: 'emociones',
+    width: '30%',
+  },
+  {
+    url: tarot,
+    title: 'tarot',
+    width: '30%',
+  },
+];
+
 
 const IntroCard = () => {
   return (
@@ -48,7 +68,16 @@ const IntroCard = () => {
           </div>
 
           <div className="cursos-cont">
-            <div className="curso-card">
+            <div>
+              {
+                images.map((image) => {
+                 return  <img key={image.title}  src={image.url} alt="" className="img-intro" />
+                
+                })
+              }
+            </div>
+
+            {/* <div className="curso-card">
               <img src={brujas} alt="Tarot y Numerología" />
               <p>Tarot y Numerología</p>
               <Button className="" variant="inherit">
@@ -77,7 +106,7 @@ const IntroCard = () => {
               <img src={numerologia} alt="numerologia" />
               <p>Numerologia</p>
               <Button variant="inherit">Conocer Mas</Button>
-            </div>
+            </div> */}
           </div>
         </article>
       </div>

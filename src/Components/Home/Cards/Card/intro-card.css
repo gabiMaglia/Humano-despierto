@@ -4,6 +4,7 @@
   padding-inline: 2rem;
   padding-bottom: 10rem;
 }
+
 .cont {
   display: flex;
   flex-direction: column;
@@ -41,6 +42,8 @@ article.row {
 }
 .img-intro {
   width: 100%;
+
+  border: 1px solid black;
   padding: 1rem;
   display: block;
   margin-inline: auto;
