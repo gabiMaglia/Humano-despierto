@@ -61,7 +61,7 @@ const NavBar = (props) => {
           </li>
           <li className="nav-item">
             <NavLink onClick={handleToggle} to="/charlas" className="nav-link">
-              Charlas Gratis
+              Charlas
             </NavLink>
           </li>
           <li className="nav-item">
@@ -70,14 +70,15 @@ const NavBar = (props) => {
             </NavLink>
           </li>
           <li className="nav-item">
-            <NavLink onClick={handleToggle} to="/mutanta" className="nav-link">
-              Mutanta
-            </NavLink>
-          </li>
-          <li className="nav-item">
             <NavLink onClick={handleToggle} to="/contacto" className="nav-link">
               Contacto
             </NavLink>
+          </li>
+          <li className="nav-item">
+           
+            <a  onClick={handleToggle} href='/' target="blank" className="nav-link">
+              Mutanta
+            </a>
           </li>
         </ul>
       </div>

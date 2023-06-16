@@ -1,0 +1,30 @@
+{
+  "files": {
+    "main.css": "/static/css/main.7f2d7a7a.css",
+    "main.js": "/static/js/main.8b136042.js",
+    "static/js/787.168a7856.chunk.js": "/static/js/787.168a7856.chunk.js",
+    "static/media/tarot.jpg": "/static/media/tarot.d7bae16b28649720d425.jpg",
+    "static/media/space.jpg": "/static/media/space.c80c48fda8fdcdd2ce4e.jpg",
+    "static/media/3.png": "/static/media/3.33720b9087d68bf0dd02.png",
+    "static/media/patricia.jpg": "/static/media/patricia.99e09f6a7d5f7fa497b6.jpg",
+    "static/media/astrologia.png": "/static/media/astrologia.ebb23de6c0f050b24877.png",
+    "static/media/8.jpeg": "/static/media/8.6ec90646f33c3d0a0362.jpeg",
+    "static/media/9.jpeg": "/static/media/9.337c7501bc9ebf149a36.jpeg",
+    "static/media/11.jpeg": "/static/media/11.5b2776b9e1b8b0164227.jpeg",
+    "static/media/3.jpg": "/static/media/3.f68ab4dddfcc41b03421.jpg",
+    "static/media/20.jpg": "/static/media/20.177cfb452a0db2be84f1.jpg",
+    "static/media/2.jpg": "/static/media/2.13254909bc84d0b87db2.jpg",
+    "static/media/contacto.jpg": "/static/media/contacto.0eb6af6dbe462d02e6fa.jpg",
+    "static/media/magia blanca.jpg": "/static/media/magia blanca.712d6e4b4a990bf94e05.jpg",
+    "static/media/healthmind.jpg": "/static/media/healthmind.23e7caaa57d3a1a6e941.jpg",
+    "static/media/6.jpg": "/static/media/6.5837bf16c23a16882965.jpg",
+    "index.html": "/index.html",
+    "main.7f2d7a7a.css.map": "/static/css/main.7f2d7a7a.css.map",
+    "main.8b136042.js.map": "/static/js/main.8b136042.js.map",
+    "787.168a7856.chunk.js.map": "/static/js/787.168a7856.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.7f2d7a7a.css",
+    "static/js/main.8b136042.js"
+  ]
+}

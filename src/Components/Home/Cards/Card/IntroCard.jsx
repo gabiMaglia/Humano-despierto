@@ -1,10 +1,10 @@
 import React from "react";
 import "./intro-card.css";
 
-import brujas from "../../../../assets/Terapias/brujas.webp";
-import emociones from "../../../../assets/Terapias/emociones.webp";
+import astrologia from "../../../../assets/Terapias/astrologia.png";
+import emociones from "../../../../assets/Terapias/healthmind.jpg";
 
-import tarot from "../../../../assets/Terapias/tarot.webp";
+import tarot from "../../../../assets/Terapias/tarot.jpg";
 
 import gemo from "../../../../assets/img/IALOGOS/20.jpg";
 import { Button } from "@mui/material";
@@ -14,19 +14,19 @@ import { Button } from "@mui/material";
 
 const images = [
   {
-    url: brujas,
-    title: 'brujas',
-    width: '40%',
+    url: emociones,
+    title: 'Neuroalquimia',
+  
   },
   {
-    url: emociones,
-    title: 'emociones',
-    width: '30%',
+    url: astrologia,
+    title: 'Astrologia',
+   
   },
   {
     url: tarot,
-    title: 'tarot',
-    width: '30%',
+    title: 'Tarot',
+    
   },
 ];
 
@@ -68,14 +68,14 @@ const IntroCard = () => {
           </div>
 
           <div className="cursos-cont">
-            <div>
+          
               {
                 images.map((image) => {
-                 return  <img key={image.title}  src={image.url} alt="" className="img-intro" />
+                 return  (<div className="cursos_img-cont"><img key={image.title}  src={image.url} alt="" className="cursos_img-intro" /> <p className="cursos_nombre">{image.title}</p> </div>)
                 
                 })
               }
-            </div>
+        
 
             {/* <div className="curso-card">
               <img src={brujas} alt="Tarot y Numerología" />
