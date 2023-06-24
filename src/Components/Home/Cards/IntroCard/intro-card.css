@@ -1,0 +1,134 @@
+.intro_card-cont {
+display: flex;
+flex-wrap: wrap;
+padding: 4rem 1rem;
+gap: 3.5rem;
+background-color: var(--background);
+}
+
+.intro {
+  text-align: center;
+  max-width: 420px;
+  min-width: 300px;
+  padding-bottom: 3rem;
+}
+.intro h2 {
+ 
+  font-size: 28px;
+  font-weight: 400;
+}
+.intro h2 strong {
+  font-weight: 800;
+  font-size: 38px;
+}
+
+
+.intro_img-cont {
+  margin-inline: auto;
+  background-color: black;
+  border: double 10px black;
+}
+.intro_img-intro {
+  width: 100%;
+  border: 1px solid black;
+  padding: 0rem;
+  display: block;
+  margin-inline: auto;
+  border-radius: 22px;
+  min-width: 200px!important;
+}
+
+.quien-soy-text {
+  background-color: var(--accent);
+  color:var(--font);
+  font-size: 18px;
+  line-height: 20.5px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+
+
+}
+
+.conoceme-btnc {
+  margin-inline: auto;
+}
+.conoceme-btn {
+
+}
+.material-icons {
+
+  font-size: 18px;
+}
+.conoceme-btn:hover {
+  color: white !important;
+  background-color: rgba(0, 0, 0, 0.69) !important;
+}
+.conoceme-btn:hover .material-icons {
+  color: white !important;
+}
+
+
+@media (min-width: 772px) {
+
+  .intro_card-cont {
+
+    padding: 8rem 1rem;
+    gap: 4rem;
+    }
+  .intro {
+    text-align: left;
+    padding-bottom: 0rem;
+  }
+  .text-cont{
+    padding:auto ;
+  }
+  .text-img-box{
+     width: 100%;
+     max-width: 1280px;
+     display: flex!important;
+     justify-content: space-evenly;
+     
+    }
+    .quien-soy-text{
+    padding: auto;
+    padding-inline: 4rem 4rem!important;
+
+  }
+
+}
+@media (min-width: 991px) {
+  .intro_card-cont {
+
+    padding: 7rem 1rem;
+    gap: 7rem;
+    }
+  .intro {
+
+  }
+  .intro h2 {
+   
+    font-size: 38px;
+    font-weight: 400;
+  }
+  .intro h2 strong {
+    font-weight: 800;
+    font-size: 38px;
+  }
+  .text-center {
+  }
+  
+  .quien-soy-text {
+    /* margin-top:7rem!important; */
+    font-size: 24px;
+  }
+
+}
+@media (min-width: 1420px) {
+
+    .quien-soy-text{
+    padding-inline: 8rem 8rem!important;
+      
+  }
+
+}

@@ -8,13 +8,17 @@ import patriciaGrupo4 from "../../assets/img/terapias/3.jpg";
 import patriciaGrupo5 from "../../assets/img/terapias/2.jpg";
 import patriciaGrupo7 from "../../assets/img/terapias/11.jpeg";
 import { Button } from "@mui/material";
+import Header from "../Common/Header/Header";
 
 const About = () => {
   return (
+    
     <section className="about-me-cont  ">
-      <header id="header">
-        <h1 className="text-white">Conoceme</h1>
-      </header>
+     <Header
+      id="cursosHeader"
+      title="Acerca de mi"
+      style={{ filter: "hue-rotate(13deg)" }}
+    />
 
       <article className="art-cont pt-4">
         <div className="img-cont col">

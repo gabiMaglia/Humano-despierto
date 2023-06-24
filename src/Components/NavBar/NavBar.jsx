@@ -3,6 +3,7 @@ import "./navbar.css";
 import { FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 import logo from "../../assets/img/IALOGOS/3.png";
+import SearchBar from "../Common/SearchBar/SearchBar";
 
 const NavBar = (props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,15 +23,16 @@ const NavBar = (props) => {
           type="button"
           aria-label="Toggle navigation"
           onClick={handleToggle}
-        >
-          <span className="navbar-toggler-icon g-0 p-0 m-0 w-100 "></span>
+          >
+          <span className="navbar-toggler-icon g-0 p-0 m-0 "></span>
         </button>
 
         <a className="navbar-brand logo" href="#top">
           <img id="imgLogo" src={logo} alt="" />
         </a>
 
-        <ul className="navbar-nav d-flex flex-row p-2 social">
+        <ul className="navbar-nav d-flex flex-row p-3 social">
+          <SearchBar/>
           <li className="nav-item">
             <NavLink to="#" className="nav-link social-icon">
               <FaInstagram />
@@ -82,6 +84,7 @@ const NavBar = (props) => {
           </li>
         </ul>
       </div>
+   
     </nav>
   );
 };

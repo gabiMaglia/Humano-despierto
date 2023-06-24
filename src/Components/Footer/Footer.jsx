@@ -24,12 +24,6 @@ const Footer = () => {
               <FaGoogle />
             </a>
             <a href="/" className=" text-reset">
-              <FaLinkedin />
-            </a>
-            <a href="/" className=" text-reset">
-              <FaGithub />
-            </a>
-            <a href="/" className=" text-reset">
               <FaFacebookF />
             </a>
             <a href="/" className=" text-reset">

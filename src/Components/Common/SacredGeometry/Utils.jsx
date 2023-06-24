@@ -9,13 +9,13 @@ const pointOnCircle = (radius, radians, origin) => {
 // the width a shape needs to be able to fit side by side
 const perfectShapeWidth = (shapes) =>
   window.innerHeight > window.innerWidth
-    ? window.innerWidth / (shapes * 2)
-    : window.innerHeight / (shapes * 2);
+    ? (window.innerWidth/2) / (shapes * 2)
+    : (window.innerHeight/2) / (shapes * 2);
 
-const centerOfScreen = () => {
+const centerOfScreen = (width, height) => {
   return {
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2,
+    x: width / 2,
+    y: height / 2.3,
   };
 };
 

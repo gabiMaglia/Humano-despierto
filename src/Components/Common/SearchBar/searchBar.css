@@ -1,0 +1,83 @@
+
+
+
+
+
+
+.cursos_search-bar {
+	font-size: var(--font-size);
+	border: solid var(--) var(--f1me-color);
+	display: inline-block;
+	position: relative;
+    max-height: 2.5rem;
+	border-radius: var(--size);
+    padding: .4rem;
+}
+
+.cursos_search-barinput[type="text"] {
+        transition:  all 1s ease-in-out;
+        font-family: "Roboto Slab", serif;
+		font-weight: bold;
+		width: var(--size);
+		height: var(--size);
+		padding: var(--open-padding);
+		border: none;
+		box-sizing: border-box;
+		border-radius: var(--size);
+		transition: width var(--open-trans-time) cubic-bezier(0.68, -0.55, 0.27, 1.55)
+        var(--close-trans-time);
+    }
+    .cursos_search-bar:focus {
+        outline: none;
+       
+    }
+		.cursos_search-bar:focus,
+		.cursos_search-bar:not(:placeholder-shown) {
+			width: var(--open-width);
+			transition: width var(--open-trans-time) cubic-bezier(0.68, -0.55, 0.27, 1.55);
+			+ button[type="reset"] {
+				transform: rotate(-45deg) translateY(0);
+				transition: transform var(--close-trans-time) ease-out var(--open-trans-time);
+			}
+			+ .search-button[type="reset"]:after {
+				opacity: 1;
+				transition: top var(--close-trans-time) ease-out
+						(var(--open-trans-time) + var(--close-trans-time)),
+					right var(--close-trans-time) ease-out (var(--open-trans-time) + var(--close-trans-time)),
+					opacity var(--close-trans-time) ease (var(--open-trans-time) + var(--close-trans-time));
+			}
+		}
+	
+	.search-button[type="reset"] {
+		background-color: transparent;
+		width: var(--handle-height);
+		height: var(--handle-height);
+		border: 0;
+		padding: 0;
+		outline: 0;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: absolute;
+		top: (var(--)size / 2) - (var(--handle-height) / 2);
+		right: (var(--)size / 2) - (var(--handle-height) / 2);
+		transform: rotate(-45deg) translateY(var(--)size - var(--));
+		transition: transform var(--close-trans-time) ease-out var(--close-trans-time);
+    }
+    .search-button:before,
+    .search-button:after {
+        content: "";
+        
+			background-color: var(--frame-color);
+			width: var(--handle-width);
+			height: var(--handle-height);
+			position: absolute;
+		}
+		.search-button:after {
+			transform: rotate(90deg);
+			opacity: 0;
+			transition: transform var(--close-trans-time) ease-out,
+				opacity var(--close-trans-time) ease-out;
+		}
+	
+

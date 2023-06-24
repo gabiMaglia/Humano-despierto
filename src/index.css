@@ -9,7 +9,7 @@ html {
 }
 
 body {
-  background-color: var(--main-bg-color);
+  background-color: var(--white);
   margin: 0;
   font-family: "Roboto Slab", serif;
   -webkit-font-smoothing: antialiased;
@@ -22,9 +22,26 @@ code {
     monospace;
 }
 
-:root {
-  --main-bg-color: #10152f;
-  --footer-bg-color: #10152f;
-  --navBarColor: #010101;
-  --hoover-color-1: #a940fc;
+:root{
+  --white: #ffffff ;
+--main-bg-color: #10152f;
+--footer-bg-color: #10152f;
+--navBarColor: #010101;
+--hoover-color-1: #a940fc;
+
+--background: #FCF7FF ;
+--accent: #352C48;
+--font:#FCF7FF ;
+--secondary: #998AB5 ;
+/* searchbar */
+--font-size: 20px;
+--frame-color: #000000;
+--size: 1.5em;
+--open-width: 18em;
+--open-padding: 0.3em 2.1em 0.3em 0.4em;
+--frame-thickness: 0.3em;
+--handle-height: 1em;
+--open-trans-time: 800ms;
+--close-trans-time: 150ms;
 }
+

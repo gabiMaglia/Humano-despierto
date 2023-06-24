@@ -1,0 +1,10 @@
+.cursoCard {
+    height: 32rem;
+    width: 18rem;
+    border: 1px solid black;
+}
+
+
+.curso-img{
+    width: 100%;
+}

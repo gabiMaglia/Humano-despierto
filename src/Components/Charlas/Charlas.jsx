@@ -1,14 +1,17 @@
 import React from "react";
+import Header from "../Common/Header/Header";
 
 const Charlas = () => {
+  
   return (
-    <div>
-    
-      <header id="header">
-        <h1 className="text-white">Charlas</h1>
-      </header>
-    </div>
+    <Header
+    id="cursosHeader"
+    title="Charlas"
+    style={{ filter: "hue-rotate(33deg)" }}
+  />
   );
 };
 
 export default Charlas;
+
+

@@ -1,0 +1,118 @@
+#charlas-cursos-cont {
+    text-align: center;
+    padding-top: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5rem;
+    background-color: var(--background);
+    /* background-color: #998AB5; */
+  }
+  .charlas h2 {
+    padding-bottom: 1rem;
+  }
+  
+  .cursos-cont {
+    padding-inline: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 15rem;
+  }
+  .cursos_img-cont {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    opacity: 0.7;
+    /* filter: grayscale(0.87); */
+    transition: all 0.5s ease;
+    max-width: 220px;
+    /* background-color: var(--accent); */
+    color:var(--font);
+    
+  }
+  .text-img{
+   background-color:var(--accent);
+  }
+  .cursos_img-cont:hover {
+    z-index: 3;
+    opacity: 1;
+    /* filter: grayscale(0.3); */
+    transform: scale(1.01);
+  }
+  .cursos_img-intro {
+    border-radius: 6%;
+    width: 10rem;
+  }
+  .img-intro {
+    border: none;
+  }
+  .cursos_nombre {
+    z-index: 2;
+    font-size: 28px;
+    font-weight: 800;
+    color: white;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000,
+      -1px 1px 0 #000, 1px 1px 0 #000;
+  }
+
+
+  @media (min-width: 720px) {
+    #charlas-cursos-cont{
+      justify-content: space-between;
+      /* border: 1px solid black; */
+    }
+    .cursos-cont {
+    
+      margin-inline: auto;
+    }
+    .cursos_img-cont {
+      /* border: 1px solid black; */
+      margin-bottom: 1rem;
+     
+      max-width: none;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-evenly!important;
+     
+    }
+    .img-intro{
+      max-width: 100px!important;
+      padding: 1rem;
+
+    } 
+    .cursos-img{
+      flex: 1;
+    }
+    .cursos_img-intro{
+      width: 55%;
+      
+    }
+    .text-img{
+      flex: 1;
+      
+    }
+    .cursos_img-cont:nth-child(2) {
+      flex-direction: row-reverse;
+      
+    }
+  }
+  @media (min-width: 991px) {
+  
+    .img-cont {
+      margin-left: auto;
+    }
+  
+    .quien-soy-text {
+      font-size: 24px;
+    }
+    .cursos-cont {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-width: 1248px;
+    }
+  }
+  

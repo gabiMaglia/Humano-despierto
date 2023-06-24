@@ -3,27 +3,12 @@
   min-height: 108dvh;
 }
 
-#header {
-  background-image: url("../../assets/img/magia blanca.jpg");
-  background-position: center;
-  height: 310px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  padding-bottom: 3rem;
-}
 
-#header h1 {
-  font-size: 48px;
-  font-weight: 800;
-  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000,
-    -1px 1px 0 #000, 1px 1px 0 #000;
-}
 .img-intro {
   max-width: 380px;
+  min-width: 200px;
   max-height: 300px !important;
-  min-height: 300px !important;
+  min-height: 280px !important;
 }
 .art-cont {
   padding: 1rem 3rem;

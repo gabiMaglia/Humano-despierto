@@ -7,6 +7,7 @@
   z-index: 2;
   background-color: black !important;
   padding: 0 2rem !important;
+  transition:  all 1s ease-in-out;
 }
 .navCont {
   display: flex;
@@ -14,7 +15,14 @@
 }
 .navbar-toggler,
 .navbar-toggler-icon {
+  outline: none;
   border: none;
+  border-color: transparent;
+}
+.navbar-toggler:focus,
+.navbar-toggler-icon:focus {
+  border: none;
+  outline: none;
   border-color: transparent;
 }
 .navbar-toggler {
@@ -26,10 +34,11 @@
 .navbar-collapse {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100vw;
+  position: absolute;
+  z-index: -2;
+  width: 100%;
   background-color: black;
-  margin-left: -2rem;
+  margin-left: -2.2rem;
   padding-top: 4rem;
   margin-top: -2rem;
   padding-bottom: 3rem;
@@ -48,6 +57,9 @@
 }
 .nav-link {
   font-size: 18px;
+}
+.social{
+  margin-right: -2rem;
 }
 .social-icon:hover {
   transition: color 0.2s ease-in;
@@ -79,22 +91,21 @@
   }
   .logo {
     margin-inline: 0;
+
   }
+ 
   #imgLogo {
-    width: 110px;
+    width: 80px;
   }
   .navbar-collapse {
+    z-index: 2;
     background-color: transparent;
     justify-content: center;
-    margin-top: -1.5rem;
+    margin-top: -3rem;
     position: absolute;
     width: auto;
     margin-left: 0;
     left: 20%;
     right: 20%;
   }
-
-  /* .big-logo {
-    display: block;
-  } */
 }

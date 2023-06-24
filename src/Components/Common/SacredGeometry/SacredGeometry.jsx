@@ -16,11 +16,12 @@ const useStyles = makeStyles((theme) => ({
     zIndex: -1,
     position: "absolute",
     width: "100%",
-    marginTop: "-5rem",
+    height: '100%',
+    top: 0,
+    left: 0,
     backgroundImage: `url(${spaceImage})`,
     backgroundRepeat: "no-repeat",
     backgroundSize: "cover",
-    height: window.innerHeight,
     "&:before": {
       // OSCURECIDO
       content: '""',
@@ -30,17 +31,18 @@ const useStyles = makeStyles((theme) => ({
       right: 0,
       bottom: 0,
       left: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.82)",
+      backgroundColor: "rgba(0, 0, 0, 0.92)",
     },
   },
 }));
 
-const SacredGeometry = () => {
+const SacredGeometry = (props) => {
   const classes = useStyles();
-
-  const centralCoordinates = centerOfScreen();
+  const {boxWidth, boxHeaight} = props
+  
+  const centralCoordinates = centerOfScreen(boxWidth, boxHeaight );
   let shape2 = (
-    <Stage width={window.innerWidth} height={window.innerHeight}>
+    <Stage width={boxWidth} height={boxHeaight}>
       <Layer>
         <SeedOfLife center={centralCoordinates} />
       </Layer>
@@ -48,9 +50,10 @@ const SacredGeometry = () => {
   );
 
   let shape = (
-    <Stage width={window.innerWidth} height={window.innerHeight}>
+    <Stage width={boxWidth} height={boxHeaight}>
       <FlowerOfLife center={centralCoordinates} />
     </Stage>
+  
   );
 
   return <Box className={classes.root}>{shape}</Box>;
