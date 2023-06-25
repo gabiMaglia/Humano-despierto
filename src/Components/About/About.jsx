@@ -21,9 +21,9 @@ const About = () => {
     />
 
       <article className="art-cont pt-4">
-        <div className="img-cont col">
+        <div className="about-img-cont col">
           <img
-            className="img-intro"
+            className="about-img-intro"
             src={patriciaFoto}
             alt="Patricia Gonzales"
           />

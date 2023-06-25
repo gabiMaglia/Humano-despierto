@@ -27,12 +27,11 @@ background-color: var(--background);
   
   background-color: black;
   border: double 10px black;
-  margin-inline: .5rem!important;
+  margin-inline: auto!important;
 }
 .intro_img-intro {
   width: 100%;
   border: 1px solid black;
- 
   border-radius: 22px;
   min-width: 180px!important;
 

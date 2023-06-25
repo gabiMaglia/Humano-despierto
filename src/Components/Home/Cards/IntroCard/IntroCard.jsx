@@ -20,7 +20,7 @@ const IntroCard = () => {
             <strong>{intro.capitalFirstLetter}</strong>{intro.text}
           </h2>
         </div>
-        <div className="intro_img-cont col-xs">
+        <div className="intro_img-cont col-xs d-flex">
           <img className="intro_img-intro" src={gemo} alt="gemo" />
         </div>
       </article>

@@ -13,14 +13,14 @@ const Contacto = () => {
       title="Contacto"
       style={{ filter: "hue-rotate(0deg)" }}
     />
-      <section className="contact_page p-4 px-5 container-fluid section-container d-flex flex-row justify-content-center ">
+      <section className="contact_page p-5 px-5 container-fluid section-container d-flex flex-row justify-content-center">
         <article className="form-title">
-          <div className="img-cont mb-5">
-            <img className="img-intro" src={contact} alt="Contacta con migo" />
+          <div className="contacto-img-cont mb-4">
+            <img className="contacto-img-intro" src={contact} alt="Contacta con migo" />
           </div>
           <strong>
-            <h5>
-              Dejame tu mensaje y te respondere 
+            <h5 className="contacto-dejame-tu-mensaje">
+              Dejame tu consulta y tratare de responderte con brevedad.
             </h5>
           </strong>
         </article>

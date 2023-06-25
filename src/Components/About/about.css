@@ -1,18 +1,23 @@
 .about-me-cont {
-  background-color: white;
+ 
   min-height: 108dvh;
 }
+.about-img-cont{
+  display: flex;
+  justify-content: center;
+  /* border: px solid black; */
+}
 
-
-.img-intro {
+.about-img-intro {
+  padding: 1rem;
   max-width: 380px;
   min-width: 200px;
   max-height: 300px !important;
-  min-height: 280px !important;
+  /* min-height: 280px !important; */
 }
 .art-cont {
-  padding: 1rem 3rem;
-  padding-bottom: 10rem;
+ 
+  padding-bottom: 7rem;
 }
 
 /* .img-about {

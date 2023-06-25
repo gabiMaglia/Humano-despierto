@@ -1,27 +1,30 @@
 .contact_page {
+  display: flex;
   flex-wrap: wrap;
   text-align: center;
   gap: 1rem;
+  background-color: var(--background);
 }
-.img-cont {
+.contacto-img-cont {
   max-width: 500px;
   background-color: black;
   border: double 10px black;
 }
-.img-intro {
-
-
+.contacto-img-intro {
   max-width: 370px;
-  max-height: 300px !important;
+  max-height: 240px !important;
   min-height: 100px !important;
 }
-
+.contacto-dejame-tu-mensaje {
+  max-width: 300px;
+  padding-bottom: 1rem;
+}
 .form-title h2 {
   font-weight: 700;
   font-size: 50px;
   margin-bottom: 0.5rem;
 }
-.form-title  {
+.form-title {
   /* width: 100%; */
 }
 .form-title p {
@@ -61,19 +64,19 @@
 }
 
 .button_send {
-  max-width: 98% !important;
   color: black;
-  border-color: black!important;
+
+  border-color: black !important;
 }
 .button_send:hover {
   color: white;
-  border: none!important;
+  border: none !important;
   border-color: black;
   background: rgb(5, 4, 27);
   background: linear-gradient(
     90deg,
     rgba(2, 0, 36, 1) 0%,
-    rgba(27, 24, 43, 1) 96%,
+    rgba(27, 24, 43, 1) 100%,
     rgba(184, 191, 193, 0.9471989479385504) 100%
   );
 }
@@ -81,27 +84,25 @@
 @media screen and (min-width: 576px) {
   .contact_page {
     text-align: left;
-    max-width: 1024px;
+    max-width: 1248px;
+    margin-inline: auto;
   }
   .form-title {
     text-align: center;
   }
 }
 @media screen and (min-width: 974px) {
-
   .form-title h5 {
-   padding-top: 6rem;
+    padding-top: 6rem;
   }
 }
 @media screen and (min-width: 942px) {
-  .form-title{
+  .form-title {
     align-self: stretch;
     display: flex;
     flex-direction: column;
-    
   }
-  .contact_page{
+  .contact_page {
     gap: 3rem;
-
   }
 }
