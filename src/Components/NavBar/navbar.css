@@ -6,8 +6,8 @@
   max-height: 4.5rem;
   z-index: 2;
   background-color: black !important;
-  padding: 0 2rem !important;
-  transition:  all 1s ease-in-out;
+  /* padding: 0 2rem !important; */
+  /* transition:  all 1s ease-in-out; */
 }
 .navCont {
   display: flex;
@@ -27,7 +27,7 @@
 }
 .navbar-toggler {
   height: 4rem;
-  width: 55px;
+  width: 50px;
   margin-right: 0.7rem !important;
 }
 
@@ -38,7 +38,7 @@
   z-index: -2;
   width: 100%;
   background-color: black;
-  margin-left: -2.2rem;
+  /* margin-left: -1rem; */
   padding-top: 4rem;
   margin-top: -2rem;
   padding-bottom: 3rem;
@@ -46,6 +46,7 @@
 .logo {
   margin-inline: auto;
   height: 6rem;
+  padding-left: 1.5rem;
 }
 #imgLogo {
   width: 80px;
@@ -59,7 +60,7 @@
   font-size: 18px;
 }
 .social{
-  margin-right: -2rem;
+  /* margin-right: -2rem; */
 }
 .social-icon:hover {
   transition: color 0.2s ease-in;
@@ -77,7 +78,7 @@
 @media (min-width: 680px) {
 }
 
-@media (min-width: 991px) {
+@media (min-width: 1200px) {
   #navbar {
     background-color: rgba(0, 0, 0, 0);
     display: flex;
@@ -105,7 +106,7 @@
     position: absolute;
     width: auto;
     margin-left: 0;
-    left: 20%;
+    left: 15%;
     right: 20%;
   }
 }

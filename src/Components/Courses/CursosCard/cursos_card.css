@@ -1,10 +1,106 @@
+.cursos-cont-title {
+  margin-top: 4rem;
+  display: grid;
+  flex-direction: column;
+  place-content: center;
+
+  flex-wrap: wrap;
+  text-align: center;
+  /* border: 1px black solid; */
+}
+.cursos-cont-title-text {
+  max-width: 520px;
+}
+.cursos-cont-title {
+  display: flex;
+}
+.cursos-cont-selector {
+}
+.cursoCardCont {
+  margin-top: 4rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  margin-inline: auto;
+  padding: 3rem auto;
+  gap: 2em;
+  /* border: 1px solid black; */
+}
 .cursoCard {
-    height: 32rem;
-    width: 18rem;
-    border: 1px solid black;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 36rem;
+  width: 18rem;
+  margin: 1rem;
+  border: 1px solid black;
+  padding: 1rem;
+  border-radius: 2%;
+  background-color: var(--accent);
+  color: var(--font);
+  text-align: center;
+  border: 3px solid black;
 }
 
+.curso-img {
+  width: 100%;
+  border: 7px solid black;
+  border-radius: 8%;
+}
 
-.curso-img{
-    width: 100%;
+.curso-title-cont {
+}
+.curso-duracion-docente {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  /* flex-direction: column; */
+}
+.curso-descripcion {
+}
+.curso-duracion {
+  flex: 1;
+}
+.curso-docente {
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+    .cursos-cont-title {
+     
+    text-align: left;
+    margin-inline: auto;
+    flex-direction: row;
+    display: flex;
+    align-items: flex-start;
+    max-width: 1224px;
+    padding-inline: 5rem;
+  }
+  .cursoCardCont {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    max-width: 1224px;
+    margin-inline: auto;
+    padding: 3rem 2rem;
+    gap: 4rem;
+    /* border: 1px solid black; */
+  }
+  .cursos-cont-selector {
+    flex: 1;
+    text-align: right;
+    align-self: flex-end;
+    padding-bottom: 2.5rem;
+  }
+  .cursoCard {
+    width: 18rem;
+    margin: 1rem;
+    border: 1px solid black;
+  }
+  @media (min-width: 1216px) {
+    .cursoCardCont {
+      gap: 8rem;
+    }
+  }
 }

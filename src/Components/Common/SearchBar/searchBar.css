@@ -14,19 +14,7 @@
     padding: .4rem;
 }
 
-.cursos_search-barinput[type="text"] {
-        transition:  all 1s ease-in-out;
-        font-family: "Roboto Slab", serif;
-		font-weight: bold;
-		width: var(--size);
-		height: var(--size);
-		padding: var(--open-padding);
-		border: none;
-		box-sizing: border-box;
-		border-radius: var(--size);
-		transition: width var(--open-trans-time) cubic-bezier(0.68, -0.55, 0.27, 1.55)
-        var(--close-trans-time);
-    }
+
     .cursos_search-bar:focus {
         outline: none;
        

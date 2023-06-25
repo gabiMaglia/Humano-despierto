@@ -11,7 +11,7 @@ const Home = () => {
       <main className="home">
         <LogoCard />
         <IntroCard />
-        <CursosCard />
+        {/* <CursosCard /> */}
       </main>
     </>
   );

@@ -15,7 +15,7 @@ const NavBar = (props) => {
   return (
     <nav
       id="navbar"
-      className="container-fluid navbar-expand-lg navbar-dark  g-0 m-0 p-0 "
+      className="container-fluid navbar-expand-xl navbar-dark  g-0 m-0 p-0 "
     >
       <div className="navCont ">
         <button
@@ -32,7 +32,7 @@ const NavBar = (props) => {
         </a>
 
         <ul className="navbar-nav d-flex flex-row p-3 social">
-          <SearchBar/>
+          {/* <SearchBar/> */}
           <li className="nav-item">
             <NavLink to="#" className="nav-link social-icon">
               <FaInstagram />
@@ -58,12 +58,7 @@ const NavBar = (props) => {
           </li>
           <li className="nav-item">
             <NavLink onClick={handleToggle} to="/cursos" className="nav-link">
-              Cursos
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink onClick={handleToggle} to="/charlas" className="nav-link">
-              Charlas
+              Cursos y Charlas
             </NavLink>
           </li>
           <li className="nav-item">

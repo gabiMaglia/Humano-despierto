@@ -5,7 +5,10 @@ import emociones from "../../../../assets/Terapias/healthmind.jpg";
 
 import tarot from "../../../../assets/Terapias/tarot.jpg";
 
-
+const info = {
+  title: 'Charlas, Talleres y Cursos',
+  introduction:'Tendrás videos de cada clase, material de lectura obligatoria y material de lectura opcional para bajar.',
+} 
 const images = [
     {
       url: emociones,
@@ -25,20 +28,23 @@ const images = [
       description:
         "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Minus nihil amet sit minima, dignissimos quae odit nulla nobis iste ratione itaque perspiciatis autem qui dicta unde aspernatur quaerat dolore voluptatibus!",
     },
+    
   ];
 const CursosCard = () => {
     
   return (
     <article id="charlas-cursos-cont">
     <div className="text-cont charlas ">
-      <h2>Charlas, Talleres y Cursos</h2>
+      <h2>{info.title}</h2>
       <p className='px-5'>
-        Tendrás videos de cada clase, material de lectura obligatoria y
-        material de lectura opcional para bajar.
+       {info.introduction}
       </p>
     </div>
+    
 
+     
     <div className="cursos-cont">
+
       {images.map((image) => {
         return (
           

@@ -1,3 +1,7 @@
 #cursosCharlas{
     min-height: 86vh;
+    height: 100%;
+    background-color: var(--background);
+    
 }
+

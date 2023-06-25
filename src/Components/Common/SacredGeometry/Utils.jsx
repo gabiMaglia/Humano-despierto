@@ -15,7 +15,7 @@ const perfectShapeWidth = (shapes) =>
 const centerOfScreen = (width, height) => {
   return {
     x: width / 2,
-    y: height / 2.3,
+    y: height / 2.4,
   };
 };
 

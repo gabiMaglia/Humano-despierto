@@ -24,18 +24,18 @@ background-color: var(--background);
 
 
 .intro_img-cont {
-  margin-inline: auto;
+  
   background-color: black;
   border: double 10px black;
+  margin-inline: .5rem!important;
 }
 .intro_img-intro {
   width: 100%;
   border: 1px solid black;
-  padding: 0rem;
-  display: block;
-  margin-inline: auto;
+ 
   border-radius: 22px;
-  min-width: 200px!important;
+  min-width: 180px!important;
+
 }
 
 .quien-soy-text {
@@ -43,9 +43,10 @@ background-color: var(--background);
   color:var(--font);
   font-size: 18px;
   line-height: 20.5px;
-  min-height: 120px;
+  min-height: 200px;
   display: flex;
   align-items: center;
+  height: 10rem;
 
 
 }
@@ -73,12 +74,12 @@ background-color: var(--background);
 
   .intro_card-cont {
 
-    padding: 8rem 1rem;
+    padding: 6rem 1rem;
     gap: 4rem;
     }
   .intro {
     text-align: left;
-    padding-bottom: 0rem;
+    padding-bottom: 5rem;
   }
   .text-cont{
     padding:auto ;
@@ -93,6 +94,7 @@ background-color: var(--background);
     .quien-soy-text{
     padding: auto;
     padding-inline: 4rem 4rem!important;
+    height: 8rem;
 
   }
 
@@ -121,12 +123,15 @@ background-color: var(--background);
   .quien-soy-text {
     /* margin-top:7rem!important; */
     font-size: 24px;
+    height: 10rem;
   }
 
 }
 @media (min-width: 1420px) {
 
     .quien-soy-text{
+      margin-top: -1.8rem;
+      height: 10.5rem;
     padding-inline: 8rem 8rem!important;
       
   }
