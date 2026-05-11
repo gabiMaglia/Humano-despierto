@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Humano · Humano — Design System</title>
+<link rel="stylesheet" href="../hifi/landing.css"/>
+<link rel="stylesheet" href="tokens.css"/>
+<style>
+  body { min-height: 100vh; }
+  .ds {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 64px 40px 80px;
+    position: relative;
+    z-index: 2;
+  }
+  .ds-head {
+    text-align: center;
+    padding-bottom: 40px;
+    border-bottom: 1px dashed var(--line);
+    margin-bottom: 56px;
+  }
+  .ds-head h1 {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 6vw, 80px);
+    font-weight: 500;
+    letter-spacing: 2px;
+    margin: 0 0 12px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .ds-head h1 em {
+    font-family: var(--font-quote);
+    font-style: italic;
+    color: var(--lila);
+    font-weight: 400;
+  }
+  .ds-head p {
+    font-family: var(--font-quote);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 580px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  .ds-toc {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+  .ds-toc a {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .ds-toc a:hover { border-color: var(--gold); color: var(--gold); }
+
+  .ds-section { margin-bottom: 80px; }
+  .ds-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 14px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-section-head h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    margin: 0;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  .ds-section-head .num {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+
+  /* Color tokens */
+  .ds-palette {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .ds-swatch {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ds-swatch-color {
+    aspect-ratio: 1.4;
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-swatch-meta {
+    padding: 10px 12px;
+    background: var(--surface-elev);
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .ds-swatch-meta strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .ds-swatch-meta span {
+    color: var(--ink-faint);
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  /* Type */
+  .ds-type {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .ds-type-row {
+    display: grid;
+    grid-template-columns: 140px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    padding: 18px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .ds-type-lbl {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .ds-type-spec {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
+  /* Glyphs */
+  .ds-glyphs {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+  }
+  .ds-glyph {
+    aspect-ratio: 1;
+    background: var(--surface-elev);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .ds-glyph .g {
+    font-size: 28px;
+    color: var(--gold);
+  }
+  .ds-glyph .l {
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  /* Components */
+  .ds-comp {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .ds-comp-card {
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .ds-comp-card h4 {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin: 0 0 18px;
+  }
+  .ds-demo {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 24px;
+    background: var(--surface-elev);
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+  .ds-code {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    padding: 12px 14px;
+    background: var(--bg-1);
+    border-radius: 4px;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+
+  .ds-foot {
+    margin-top: 80px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 900px) {
+    .ds-palette { grid-template-columns: repeat(3, 1fr); }
+    .ds-glyphs { grid-template-columns: repeat(4, 1fr); }
+    .ds-comp { grid-template-columns: 1fr; }
+    .ds-type-row { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="starfield"></div>
+
+<main class="ds">
+  <header class="ds-head">
+    <div style="font-family: var(--font-display); font-size:12px; letter-spacing:5px; color: var(--gold); margin-bottom:14px;">✦ · ⌗ · ✦</div>
+    <h1>Sistema de <em>diseño</em></h1>
+    <p>El vocabulario completo: tokens, tipografía, glifos y componentes. Listo para integrar en Tailwind o CSS plano.</p>
+    <nav class="ds-toc">
+      <a href="#paleta">Paleta</a>
+      <a href="#tipo">Tipografía</a>
+      <a href="#glifos">Glifos</a>
+      <a href="#componentes">Componentes</a>
+      <a href="#instalar">Instalar</a>
+    </nav>
+  </header>
+
+  <!-- PALETA -->
+  <section class="ds-section" id="paleta">
+    <div class="ds-section-head">
+      <h2>Paleta — Cosmos</h2>
+      <span class="num">I · 22 TOKENS</span>
+    </div>
+    <div class="ds-palette">
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#0a0418"></div><div class="ds-swatch-meta"><strong>cosmos.0</strong><span>#0a0418</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#140828"></div><div class="ds-swatch-meta"><strong>cosmos.1</strong><span>#140828</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#1a0e2e"></div><div class="ds-swatch-meta"><strong>cosmos.surface</strong><span>#1a0e2e</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#2a1a4d"></div><div class="ds-swatch-meta"><strong>cosmos.elev</strong><span>#2a1a4d</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#1f0f3a"></div><div class="ds-swatch-meta"><strong>cosmos.2</strong><span>#1f0f3a</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#ede4ff"></div><div class="ds-swatch-meta"><strong>ink</strong><span>#ede4ff</span></div></div>
+
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#c4b5fd"></div><div class="ds-swatch-meta"><strong>lila.300</strong><span>#c4b5fd</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#a78bfa"></div><div class="ds-swatch-meta"><strong>lila.400</strong><span>#a78bfa</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#8b5cf6"></div><div class="ds-swatch-meta"><strong>lila.500</strong><span>#8b5cf6</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#7c3aed"></div><div class="ds-swatch-meta"><strong>lila.600</strong><span>#7c3aed</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#5b21b6"></div><div class="ds-swatch-meta"><strong>lila.700</strong><span>#5b21b6</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#2e1065"></div><div class="ds-swatch-meta"><strong>lila.900</strong><span>#2e1065</span></div></div>
+
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#fde68a"></div><div class="ds-swatch-meta"><strong>gold.300</strong><span>#fde68a</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#f5d76e"></div><div class="ds-swatch-meta"><strong>gold.400</strong><span>#f5d76e</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#d4a843"></div><div class="ds-swatch-meta"><strong>gold.500</strong><span>#d4a843</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#8a6520"></div><div class="ds-swatch-meta"><strong>gold.700</strong><span>#8a6520</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#ec4899"></div><div class="ds-swatch-meta"><strong>magenta</strong><span>#ec4899</span></div></div>
+      <div class="ds-swatch"><div class="ds-swatch-color" style="background:#b8a8d0"></div><div class="ds-swatch-meta"><strong>ink.soft</strong><span>#b8a8d0</span></div></div>
+    </div>
+  </section>
+
+  <!-- TIPOGRAFÍA -->
+  <section class="ds-section" id="tipo">
+    <div class="ds-section-head">
+      <h2>Tipografía</h2>
+      <span class="num">II · 3 FAMILIAS</span>
+    </div>
+    <div class="ds-type">
+      <div class="ds-type-row">
+        <span class="ds-type-lbl">Display XL</span>
+        <div style="font-family: var(--font-display); font-size: clamp(48px,7vw,96px); font-weight:500; letter-spacing:2px; color:var(--ink); line-height:1;">Cruzar el umbral</div>
+        <span class="ds-type-spec">Cinzel · 500 · 0.06em</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="ds-type-lbl">Display LG</span>
+        <div style="font-family: var(--font-display); font-size:48px; font-weight:500; letter-spacing:1.5px; color:var(--ink);">Una escuela holística</div>
+        <span class="ds-type-spec">Cinzel · 500 · 0.05em</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="ds-type-lbl">Quote · italic</span>
+        <div style="font-family: var(--font-quote); font-style:italic; font-size:24px; color:var(--lila); line-height:1.4;">Para quienes buscan profundidad, no atajos.</div>
+        <span class="ds-type-spec">Cormorant · italic · 400</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="ds-type-lbl">Body</span>
+        <div style="font-family: var(--font-body); font-size:15px; color:var(--ink-soft); line-height:1.65; max-width: 480px;">Astrología, tarot, herbalismo y reiki enseñados por maestras con linaje. Formación profesional para terapeutas que buscan profundidad.</div>
+        <span class="ds-type-spec">Quicksand · 400 · 1.65</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="ds-type-lbl">Eyebrow</span>
+        <div style="font-family: var(--font-display); font-size:11px; letter-spacing:3px; color:var(--gold); text-transform:uppercase;">— COHORTE DE LUNA NUEVA —</div>
+        <span class="ds-type-spec">Cinzel · 500 · 0.22em uppercase</span>
+      </div>
+      <div class="ds-type-row">
+        <span class="ds-type-lbl">Romanos</span>
+        <div style="font-family: var(--font-display); font-size:32px; color:var(--gold); letter-spacing:1px;">I · II · III · IV · V · MMXXVI</div>
+        <span class="ds-type-spec">Numerología pública</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- GLIFOS -->
+  <section class="ds-section" id="glifos">
+    <div class="ds-section-head">
+      <h2>Glifos cósmicos</h2>
+      <span class="num">III · ICONOGRAFÍA</span>
+    </div>
+    <div class="ds-glyphs">
+      <div class="ds-glyph"><span class="g">☉</span><span class="l">Sol</span></div>
+      <div class="ds-glyph"><span class="g">☽</span><span class="l">Luna</span></div>
+      <div class="ds-glyph"><span class="g">♀</span><span class="l">Venus</span></div>
+      <div class="ds-glyph"><span class="g">♂</span><span class="l">Marte</span></div>
+      <div class="ds-glyph"><span class="g">♃</span><span class="l">Júpiter</span></div>
+      <div class="ds-glyph"><span class="g">♄</span><span class="l">Saturno</span></div>
+      <div class="ds-glyph"><span class="g">✦</span><span class="l">Estrella</span></div>
+      <div class="ds-glyph"><span class="g">⚯</span><span class="l">Pacto</span></div>
+      <div class="ds-glyph"><span class="g">○</span><span class="l">L. nueva</span></div>
+      <div class="ds-glyph"><span class="g">◐</span><span class="l">Creciente</span></div>
+      <div class="ds-glyph"><span class="g">◑</span><span class="l">Menguante</span></div>
+      <div class="ds-glyph"><span class="g">●</span><span class="l">Llena</span></div>
+      <div class="ds-glyph"><span class="g">☾</span><span class="l">Tarde</span></div>
+      <div class="ds-glyph"><span class="g">☘</span><span class="l">Herbal</span></div>
+      <div class="ds-glyph"><span class="g">⌗</span><span class="l">Cierre</span></div>
+      <div class="ds-glyph"><span class="g">▷</span><span class="l">Reproducir</span></div>
+    </div>
+  </section>
+
+  <!-- COMPONENTES -->
+  <section class="ds-section" id="componentes">
+    <div class="ds-section-head">
+      <h2>Componentes</h2>
+      <span class="num">IV · MUESTRARIO</span>
+    </div>
+    <div class="ds-comp">
+      <div class="ds-comp-card">
+        <h4>Botones</h4>
+        <div class="ds-demo">
+          <a class="btn btn-primary">Cruzar el umbral <span class="arrow">↦</span></a>
+          <a class="btn btn-ghost">Ver el catálogo</a>
+        </div>
+        <div class="ds-code">.btn-ritual-primary<br/>.btn-ritual-ghost</div>
+      </div>
+
+      <div class="ds-comp-card">
+        <h4>Eyebrow + Divider</h4>
+        <div class="ds-demo" style="flex-direction:column; align-items:stretch;">
+          <div class="cd-eyebrow">— SECCIÓN II —</div>
+          <div class="cd-divider"><span class="line"></span><span class="symbol">RITUAL DE PASAJE</span><span class="line"></span></div>
+        </div>
+        <div class="ds-code">.eyebrow · .divider-ritual</div>
+      </div>
+
+      <div class="ds-comp-card">
+        <h4>Pill / Tag</h4>
+        <div class="ds-demo">
+          <span style="padding:6px 14px; border:1px solid var(--gold); border-radius:100px; font-family:var(--font-display); font-size:10px; letter-spacing:2px; color:var(--gold); text-transform:uppercase;">★ MÁS ELEGIDO</span>
+          <span style="padding:6px 14px; border:1px solid var(--line); border-radius:100px; font-family:var(--font-display); font-size:10px; letter-spacing:2px; color:var(--ink-soft); text-transform:uppercase;">Tarot · 21 entradas</span>
+        </div>
+        <div class="ds-code">border + radius-pill</div>
+      </div>
+
+      <div class="ds-comp-card">
+        <h4>Card cosmos</h4>
+        <div class="ds-demo" style="display:block;">
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:18px; box-shadow:var(--hh-shadow-card);">
+            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:2px; color:var(--gold); text-transform:uppercase;">TAROT · MAESTRÍA</div>
+            <h3 style="font-family:var(--font-display); font-size:22px; font-weight:500; margin:6px 0; color:var(--ink);">Tarot iniciático</h3>
+            <div style="font-family:var(--font-quote); font-style:italic; font-size:14px; color:var(--lila);">los 22 arcanos como espejo del alma</div>
+          </div>
+        </div>
+        <div class="ds-code">.cosmos-card</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALAR -->
+  <section class="ds-section" id="instalar">
+    <div class="ds-section-head">
+      <h2>Integrar en Tailwind</h2>
+      <span class="num">V · INSTALACIÓN</span>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+      <div class="ds-comp-card">
+        <h4>1 · Copiar config</h4>
+        <div class="ds-code">cp design-system/tailwind.config.js .<br/>cp design-system/tokens.css ./styles/</div>
+      </div>
+      <div class="ds-comp-card">
+        <h4>2 · Importar fuentes</h4>
+        <div class="ds-code" style="white-space:normal;">@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Quicksand:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&display=swap');</div>
+      </div>
+      <div class="ds-comp-card">
+        <h4>3 · Tematizar</h4>
+        <div class="ds-code">&lt;html data-theme="dark"&gt;  // cosmos<br/>&lt;html data-theme="light"&gt; // pergamino</div>
+      </div>
+      <div class="ds-comp-card">
+        <h4>4 · Usar clases</h4>
+        <div class="ds-code">&lt;h1 class="font-display text-display-xl tracking-ritual"&gt;<br/>&lt;button class="btn-ritual btn-ritual-primary"&gt;<br/>&lt;div class="bg-cosmos-surface text-ink shadow-cosmos-card"&gt;</div>
+      </div>
+    </div>
+    <div style="margin-top:24px; text-align:center;">
+      <a href="README.md" class="btn btn-ghost">Leer README completo ↦</a>
+    </div>
+  </section>
+
+  <div class="ds-foot">✦ · MMXXVI · HUMANO · DEMASIADO · HUMANO · ✦</div>
+</main>
+
+</body>
+</html>

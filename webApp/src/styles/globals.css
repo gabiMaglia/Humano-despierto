@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* ── Fonts from next/font (variables injected on <html>) ────────────────── */
+@theme inline {
+  --font-display: var(--font-cinzel);
+  --font-body: var(--font-quicksand);
+  --font-quote: var(--font-cormorant);
+  --font-cardo: var(--font-cardo-var);
+}
+
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+@theme {
+  /* Cosmos palette */
+  --color-cosmos-0: #0a0418;
+  --color-cosmos-1: #140828;
+  --color-cosmos-2: #1f0f3a;
+  --color-cosmos-surface: #1a0e2e;
+  --color-cosmos-elev: #2a1a4d;
+
+  /* Pergamino palette */
+  --color-pergamino-0: #f5efe2;
+  --color-pergamino-1: #ebe2ce;
+  --color-pergamino-2: #ddd0b6;
+  --color-pergamino-surface: #f8f3e7;
+  --color-pergamino-elev: #ffffff;
+
+  /* Ink */
+  --color-ink: #ede4ff;
+  --color-ink-soft: #b8a8d0;
+  --color-ink-faint: #8070a0;
+
+  /* Lila */
+  --color-lila-50: #f5f3ff;
+  --color-lila-200: #ddd6fe;
+  --color-lila-300: #c4b5fd;
+  --color-lila-400: #a78bfa;
+  --color-lila-500: #8b5cf6;
+  --color-lila-600: #7c3aed;
+  --color-lila-700: #5b21b6;
+  --color-lila-900: #2e1065;
+
+  /* Gold */
+  --color-gold-300: #fde68a;
+  --color-gold-400: #f5d76e;
+  --color-gold-500: #d4a843;
+  --color-gold-700: #8a6520;
+
+  /* Accent */
+  --color-magenta: #ec4899;
+
+  /* Border radius */
+  --radius-ritual: 6px;
+  --radius-scroll: 8px;
+  --radius-pill: 100px;
+
+  /* Shadows */
+  --shadow-cosmos-card: 0 20px 60px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(196,181,253,0.18);
+  --shadow-gold-glow: 0 0 30px -10px rgba(245,215,110,0.4);
+  --shadow-lila-glow: 0 0 40px -10px rgba(196,181,253,0.35);
+
+  /* Font sizes */
+  --text-display-xl: clamp(48px, 7vw, 96px);
+  --text-display-lg: clamp(36px, 5vw, 72px);
+  --text-display-md: clamp(28px, 3.5vw, 44px);
+  --text-eyebrow: 10px;
+  --text-eyebrow-sm: 9px;
+
+  /* Letter spacing */
+  --tracking-ritual: 0.25em;
+  --tracking-cosmic: 0.18em;
+
+  /* Animations */
+  --animate-breathe: breathe 5s ease-in-out infinite;
+  --animate-wheel-spin: wheelSpin 60s linear infinite;
+  --animate-twinkle: twinkle 3s ease-in-out infinite;
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────────────── */
+@keyframes breathe {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.04); }
+}
+@keyframes wheelSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes scrollDrop {
+  0%   { transform: scaleY(0); transform-origin: top; }
+  50%  { transform: scaleY(1); transform-origin: top; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px #f5d76e; }
+  50%       { opacity: 0.5; transform: scale(0.8); box-shadow: 0 0 4px #f5d76e; }
+}
+
+/* ── SVG wheel animation helpers ────────────────────────────────────────── */
+.wheel-rotate {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wheelSpin 120s linear infinite;
+}
+.wheel-rotate-rev {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wheelSpin 180s linear infinite reverse;
+}
+
+/* ── Utility components ─────────────────────────────────────────────────── */
+@layer components {
+  .btn-ritual {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ritual-primary {
+    background: linear-gradient(180deg, #f5d76e, #d4a843);
+    color: #0a0418;
+    box-shadow: 0 0 30px -8px rgba(245,215,110,0.5);
+  }
+  .btn-ritual-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 40px -6px rgba(245,215,110,0.7);
+  }
+  .btn-ritual-ghost {
+    background: transparent;
+    color: #ede4ff;
+    border: 1px solid rgba(196,181,253,0.4);
+  }
+  .btn-ritual-ghost:hover {
+    border-color: #f5d76e;
+    color: #f5d76e;
+  }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #f5d76e;
+  }
+  .cosmos-card {
+    background: #1a0e2e;
+    border: 1px solid rgba(196,181,253,0.18);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+  }
+}

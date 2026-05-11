@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Humano demasiado Humano — Portada</title>
+<link rel="stylesheet" href="hifi/landing.css"/>
+<template id="__bundler_thumbnail" data-bg-color="#0a0418">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0a0418"/>
+    <circle cx="600" cy="400" r="180" fill="none" stroke="#c4b5fd" stroke-width="1.5" opacity="0.5"/>
+    <circle cx="600" cy="400" r="120" fill="none" stroke="#f5d76e" stroke-width="1.5" opacity="0.7"/>
+    <circle cx="600" cy="400" r="60"  fill="none" stroke="#f5d76e" stroke-width="2"/>
+    <text x="600" y="418" text-anchor="middle" font-family="Cinzel, serif" font-size="48" fill="#f5d76e">✦</text>
+    <circle cx="300" cy="200" r="2" fill="#fff" opacity="0.7"/>
+    <circle cx="900" cy="240" r="2" fill="#f5d76e" opacity="0.7"/>
+    <circle cx="200" cy="620" r="2" fill="#c4b5fd" opacity="0.7"/>
+    <circle cx="980" cy="600" r="2" fill="#fff" opacity="0.5"/>
+    <text x="600" y="700" text-anchor="middle" font-family="Cinzel, serif" font-size="22" letter-spacing="6" fill="#ede4ff">HUMANO · HUMANO</text>
+  </svg>
+</template>
+<style>
+  body { min-height: 100vh; }
+  .portada {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 64px 40px 80px;
+    position: relative;
+    z-index: 2;
+  }
+  .pt-head {
+    text-align: center;
+    padding-bottom: 48px;
+    border-bottom: 1px dashed var(--line);
+    margin-bottom: 56px;
+    position: relative;
+  }
+  .pt-glyph {
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+  .pt-head h1 {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 500;
+    letter-spacing: 2px;
+    margin: 0 0 18px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .pt-head h1 em {
+    font-family: var(--font-quote);
+    font-style: italic;
+    color: var(--lila);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .pt-head p {
+    font-family: var(--font-quote);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  .pt-meta {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    margin-top: 26px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .pt-meta .dot { opacity: 0.4; }
+  .pt-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .pt-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 28px 24px;
+    background: var(--surface-elev);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.25s;
+    overflow: hidden;
+    min-height: 320px;
+  }
+  .pt-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, rgba(245,215,110,0.08), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .pt-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-4px);
+    box-shadow: 0 30px 60px -30px rgba(245,215,110,0.3);
+  }
+  .pt-card:hover::before { opacity: 1; }
+  .pt-card-num {
+    font-family: var(--font-display);
+    font-size: 64px;
+    color: var(--gold);
+    opacity: 0.18;
+    letter-spacing: 1px;
+    line-height: 1;
+    position: absolute;
+    top: 18px; right: 22px;
+  }
+  .pt-card-glyph {
+    font-size: 36px;
+    color: var(--lila);
+    margin-bottom: 18px;
+    text-shadow: 0 0 20px rgba(196,181,253,0.4);
+  }
+  .pt-card-cat {
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .pt-card h3 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .pt-card p {
+    font-family: var(--font-quote);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0 0 18px;
+    flex: 1;
+  }
+  .pt-card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .pt-card-foot .arrow {
+    color: var(--gold);
+    font-size: 14px;
+    transition: transform 0.2s;
+  }
+  .pt-card:hover .pt-card-foot .arrow { transform: translateX(4px); }
+  .pt-extras {
+    margin-top: 64px;
+    padding-top: 36px;
+    border-top: 1px dashed var(--line);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .pt-extra {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 18px;
+    align-items: center;
+    padding: 20px 22px;
+    background: transparent;
+    border: 1px dashed var(--line-strong);
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+  }
+  .pt-extra:hover { border-style: solid; border-color: var(--gold); background: var(--surface-elev); }
+  .pt-extra-glyph {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    font-size: 22px;
+  }
+  .pt-extra strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    color: var(--ink);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .pt-extra span {
+    font-family: var(--font-quote);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .pt-foot {
+    margin-top: 64px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  @media (max-width: 900px) {
+    .pt-grid { grid-template-columns: 1fr 1fr; }
+    .pt-extras { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .pt-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="starfield"></div>
+
+<div class="portada">
+  <header class="pt-head">
+    <div class="pt-glyph">✦ · ☾ · ☉ · ✦</div>
+    <h1>Humano <em>demasiado</em> Humano</h1>
+    <p>Una escuela holística para oficios sutiles del alma. Un sketchbook completo: nueve pantallas en hi-fi, veintiocho wireframes y un sistema de diseño naciente.</p>
+    <div class="pt-meta">
+      <span>MMXXVI</span><span class="dot">·</span>
+      <span>IX PANTALLAS HI-FI</span><span class="dot">·</span>
+      <span>XXVIII WIREFRAMES</span><span class="dot">·</span>
+      <span>COSMOS OSCURO</span>
+    </div>
+  </header>
+
+  <div class="pt-grid">
+    <a class="pt-card" href="hifi/Landing.html">
+      <span class="pt-card-num">I</span>
+      <span class="pt-card-glyph">☉</span>
+      <span class="pt-card-cat">PUERTA · INVITACIÓN</span>
+      <h3>Landing</h3>
+      <p>Hero asimétrico con rueda zodiacal animada. Donde empieza el camino.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Catalogo.html">
+      <span class="pt-card-num">II</span>
+      <span class="pt-card-glyph">✦</span>
+      <span class="pt-card-cat">EXPLORAR · ELEGIR</span>
+      <h3>Catálogo</h3>
+      <p>Grid filtrable de cursos por disciplina, fase lunar y duración.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Curso.html">
+      <span class="pt-card-num">III</span>
+      <span class="pt-card-glyph">☾</span>
+      <span class="pt-card-cat">PROFUNDIZAR</span>
+      <h3>Detalle de curso</h3>
+      <p>Pergamino narrativo: el curso contado como un viaje en módulos.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Maestra.html">
+      <span class="pt-card-num">IV</span>
+      <span class="pt-card-glyph">♀</span>
+      <span class="pt-card-cat">LINAJE · OFICIO</span>
+      <h3>La maestra</h3>
+      <p>Carta natal, biografía narrativa, cursos y voces de quienes pasaron.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Dashboard.html">
+      <span class="pt-card-num">V</span>
+      <span class="pt-card-glyph">◐</span>
+      <span class="pt-card-cat">EL UMBRAL</span>
+      <h3>Mi camino</h3>
+      <p>Dashboard del estudiante: cursos, bitácora, fase lunar y el círculo.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Reproductor.html">
+      <span class="pt-card-num">VI</span>
+      <span class="pt-card-glyph">▷</span>
+      <span class="pt-card-cat">PRÁCTICA</span>
+      <h3>Reproductor</h3>
+      <p>Lección con tirada de cruz celta como escenografía y notas en tiempo.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Checkout.html">
+      <span class="pt-card-num">VII</span>
+      <span class="pt-card-glyph">⚯</span>
+      <span class="pt-card-cat">SELLAR EL PACTO</span>
+      <h3>Checkout</h3>
+      <p>Inscripción en cuatro pasos. Pago, datos del peregrino y resumen.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Blog.html">
+      <span class="pt-card-num">VIII</span>
+      <span class="pt-card-glyph">✎</span>
+      <span class="pt-card-cat">DIARIO ABIERTO</span>
+      <h3>Anotaciones</h3>
+      <p>Lo que las maestras escriben entre clase y clase. Ensayos y notas de campo.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+
+    <a class="pt-card" href="hifi/Comunidad.html">
+      <span class="pt-card-num">IX</span>
+      <span class="pt-card-glyph">○</span>
+      <span class="pt-card-cat">EL CÍRCULO</span>
+      <h3>Comunidad</h3>
+      <p>Foro habitado: canales por disciplina, hilos, encuentros y ritual semanal.</p>
+      <div class="pt-card-foot"><span>HI-FI · DESKTOP + MOBILE</span><span class="arrow">↦</span></div>
+    </a>
+  </div>
+
+  <div class="pt-extras">
+    <a class="pt-extra" href="Sketchbook.html">
+      <span class="pt-extra-glyph">⚏</span>
+      <div>
+        <strong>Sketchbook · wireframes</strong>
+        <span>Veintiocho variaciones lo-fi de las nueve pantallas, lado a lado.</span>
+      </div>
+      <span class="arrow" style="color: var(--gold);">↦</span>
+    </a>
+    <a class="pt-extra" href="design-system/index.html">
+      <span class="pt-extra-glyph">⌗</span>
+      <div>
+        <strong>Sistema de diseño · Tailwind</strong>
+        <span>Tokens, tipografía, componentes y config para integrar.</span>
+      </div>
+      <span class="arrow" style="color: var(--gold);">↦</span>
+    </a>
+  </div>
+
+  <div class="pt-foot">✦ · MMXXVI · HUMANO · DEMASIADO · HUMANO · ✦</div>
+</div>
+
+</body>
+</html>

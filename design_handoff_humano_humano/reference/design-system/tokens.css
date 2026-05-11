@@ -1,0 +1,78 @@
+/* Design System tokens · Humano · Humano */
+:root {
+  /* COSMOS — dark default */
+  --hh-bg-0: #0a0418;
+  --hh-bg-1: #140828;
+  --hh-bg-2: #1f0f3a;
+  --hh-surface: #1a0e2e;
+  --hh-surface-elev: #2a1a4d;
+  --hh-line: rgba(196, 181, 253, 0.18);
+  --hh-line-strong: rgba(196, 181, 253, 0.4);
+  --hh-ink: #ede4ff;
+  --hh-ink-soft: #b8a8d0;
+  --hh-ink-faint: #8070a0;
+  --hh-lila-50: #f5f3ff;
+  --hh-lila-200: #ddd6fe;
+  --hh-lila-300: #c4b5fd;
+  --hh-lila-400: #a78bfa;
+  --hh-lila-500: #8b5cf6;
+  --hh-lila-600: #7c3aed;
+  --hh-lila-700: #5b21b6;
+  --hh-lila-900: #2e1065;
+  --hh-gold-300: #fde68a;
+  --hh-gold-400: #f5d76e;
+  --hh-gold-500: #d4a843;
+  --hh-gold-700: #8a6520;
+  --hh-magenta: #ec4899;
+
+  --hh-font-display: 'Cinzel', serif;
+  --hh-font-body: 'Quicksand', sans-serif;
+  --hh-font-quote: 'Cormorant Garamond', serif;
+
+  --hh-radius-sm: 4px;
+  --hh-radius: 6px;
+  --hh-radius-lg: 8px;
+  --hh-radius-pill: 100px;
+
+  --hh-shadow-soft: 0 20px 50px -20px rgba(0,0,0,0.5);
+  --hh-shadow-glow: 0 0 30px -10px rgba(245,215,110,0.4);
+  --hh-shadow-card: 0 20px 60px -20px rgba(0,0,0,0.5), 0 0 0 1px var(--hh-line);
+}
+
+[data-theme="light"] {
+  --hh-bg-0: #f5efe2;
+  --hh-bg-1: #ebe2ce;
+  --hh-bg-2: #ddd0b6;
+  --hh-surface: #f8f3e7;
+  --hh-surface-elev: #ffffff;
+  --hh-line: rgba(91, 42, 134, 0.2);
+  --hh-line-strong: rgba(91, 42, 134, 0.45);
+  --hh-ink: #1f1430;
+  --hh-ink-soft: #5a4570;
+  --hh-ink-faint: #9888a8;
+  --hh-lila-300: #5b2a86;
+  --hh-lila-400: #7c3aed;
+  --hh-gold-400: #b8893a;
+}
+
+/* Aliases for legacy code */
+:root {
+  --bg-0: var(--hh-bg-0);
+  --bg-1: var(--hh-bg-1);
+  --bg-2: var(--hh-bg-2);
+  --surface: var(--hh-surface);
+  --surface-elev: var(--hh-surface-elev);
+  --line: var(--hh-line);
+  --line-strong: var(--hh-line-strong);
+  --ink: var(--hh-ink);
+  --ink-soft: var(--hh-ink-soft);
+  --ink-faint: var(--hh-ink-faint);
+  --lila: var(--hh-lila-300);
+  --lila-2: var(--hh-lila-400);
+  --lila-deep: var(--hh-lila-600);
+  --gold: var(--hh-gold-400);
+  --gold-deep: var(--hh-gold-500);
+  --font-display: var(--hh-font-display);
+  --font-body: var(--hh-font-body);
+  --font-quote: var(--hh-font-quote);
+}
