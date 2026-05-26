@@ -1,7 +1,7 @@
 export default function ClosingCTA() {
   return (
     <section
-      className="relative overflow-hidden border-t border-lila-300/18 px-6 py-32 text-center"
+      className="relative overflow-hidden border-t border-lila-300/18 px-6 py-24 text-center md:px-12"
       style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(196,181,253,0.1), transparent 60%), #0a0418" }}
     >
       {/* Triangle glyph */}

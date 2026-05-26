@@ -1,3 +1,5 @@
+import AuthGate from "@/components/layout/AuthGate";
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <AuthGate>{children}</AuthGate>;
 }

@@ -1,6 +1,6 @@
 const COLS = [
-  { title: "Estudiar", links: ["Cursos", "Cohortes", "Maestras", "Calendario"] },
-  { title: "Templo",   links: ["Diario",  "Círculo", "Biblioteca", "Becas"]    },
+  { title: "Estudiar", links: ["Cursos", "Cohortes", "Guías", "Calendario"] },
+  { title: "Templo",   links: ["Círculo", "Biblioteca", "Becas"]            },
   { title: "Hablar",   links: ["Contacto","Newsletter","Instagram","Substack"]  },
 ] as const;
 

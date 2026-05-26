@@ -33,7 +33,7 @@ const cardo = Cardo({
 
 export const metadata: Metadata = {
   title: "Humano Despierto — Escuela Holística",
-  description: "Una escuela para oficios sutiles del alma. Astrología, tarot, herbalismo y reiki por maestras con linaje.",
+  description: "Una escuela para oficios sutiles del alma. Astrología, tarot, herbalismo y reiki por guías con linaje.",
 };
 
 export default function RootLayout({

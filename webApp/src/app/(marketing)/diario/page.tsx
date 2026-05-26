@@ -1,27 +1,23 @@
 import SideCard from "@/components/molecules/SideCard";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import Avatar from "@/components/atoms/Avatar";
+import PageHeader from "@/components/layout/PageHeader";
 import { BLOG } from "@/lib/mocks/blog";
 
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-cosmos-0">
-      {/* Header */}
-      <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12 text-center">
-        <p className="mb-4 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— DIARIO ABIERTO —</p>
-        <h1 className="font-display text-display-md text-ink mb-4">
-          Anotaciones <em className="font-quote italic text-lila-300">al margen</em>
-          <br />del oficio
-        </h1>
-        <p className="mx-auto max-w-lg font-quote italic text-lg text-ink-soft mb-8 leading-relaxed">
-          Lo que las maestras escriben entre clase y clase. Ensayos, cartas a estudiantes, notas de campo después de cada cohorte.
-        </p>
+      <PageHeader
+        badge="84 anotaciones · 6 autores"
+        title={<>Anotaciones <em className="font-quote italic text-lila-300">al margen</em> del oficio</>}
+        subtitle="Lo que las guías escriben entre clase y clase. Ensayos, cartas a estudiantes, notas de campo después de cada cohorte."
+      >
         <div className="mx-auto max-w-md flex items-center gap-2.5 rounded-ritual border border-lila-300/20 bg-cosmos-0 px-4 py-3">
           <span className="text-lila-300 text-sm">✦</span>
           <input type="text" placeholder="Buscar entre anotaciones..." className="flex-1 bg-transparent font-body text-sm text-ink placeholder:text-ink-faint outline-none" />
           <kbd className="font-body text-[9px] text-ink-faint border border-lila-300/20 rounded px-1.5 py-0.5">⌘K</kbd>
         </div>
-      </header>
+      </PageHeader>
 
       {/* Category pills */}
       <div className="border-b border-lila-300/18 px-6 py-4 md:px-12 flex flex-wrap gap-2">

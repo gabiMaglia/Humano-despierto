@@ -4,9 +4,11 @@ import { HERO } from "@/lib/mocks/landing";
 export default function HeroSection() {
   return (
     <section
-      className="relative grid items-center gap-12 overflow-hidden px-6 pb-20 pt-24 md:grid-cols-[1.05fr_1fr] md:px-12 md:pb-32 md:pt-32 min-h-screen"
+      className="relative overflow-hidden px-6 pb-24 pt-24 md:px-12 md:pb-32 md:pt-32 min-h-screen"
       style={{ backgroundImage: "radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 30%, rgba(10,4,24,0.6) 70%, #0a0418 100%)" }}
     >
+      <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-[1.05fr_1fr]">
+
       {/* ── Text ─────────────────────────────────────────────────────────── */}
       <div className="relative z-10 flex flex-col items-start">
 
@@ -76,6 +78,8 @@ export default function HeroSection() {
           ))}
         </div>
       </div>
+
+      </div>{/* /mx-auto grid */}
 
       {/* Scroll cue */}
       <div className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-1.5 md:flex">

@@ -7,13 +7,13 @@ export const HERO = {
     em:   "oficios sutiles",
     post: "del alma humana",
   },
-  sub: "Astrología, tarot, herbalismo y reiki enseñados por maestras con linaje. Formación profesional para terapeutas que buscan profundidad, no atajos.",
+  sub: "Astrología, tarot, herbalismo y reiki enseñados por guías con linaje. Formación profesional para terapeutas que buscan profundidad, no atajos.",
   ctas: [
     { label: "Cruzar el umbral ↦", href: "/cursos", primary: true  },
     { label: "Ver el catálogo",    href: "/cursos", primary: false },
   ],
   stats: [
-    { num: "12", label: "Maestras"     },
+    { num: "12", label: "Guías"        },
     { num: "48", label: "Cursos vivos" },
     { num: "2k", label: "Iniciadas"    },
   ],
@@ -57,7 +57,7 @@ export const MAESTRA = {
   sign:     "♓ Piscis · Asc. Escorpio",
   courses:  3,
   students: 418,
-  href:     "/maestras/luna-arce",
+  href:     "/guias/luna-arce",
 } as const;
 
 export const LUNAR_DAYS = [

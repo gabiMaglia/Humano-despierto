@@ -1,5 +1,5 @@
 import CourseCard from "@/components/molecules/CourseCard";
-import SectionHeader from "@/components/atoms/SectionHeader";
+import PageHeader from "@/components/layout/PageHeader";
 import { CATALOG_COURSES } from "@/lib/mocks/courses";
 
 const FILTERS = {
@@ -48,28 +48,11 @@ function FilterGroup({ title, items }: { title: string; items: { label: string; 
 export default function CatalogPage() {
   return (
     <div className="min-h-screen bg-cosmos-0">
-      {/* Hero strip */}
-      <header className="relative border-b border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12 overflow-hidden">
-        <svg className="absolute right-8 top-1/2 -translate-y-1/2 h-24 w-48 opacity-30" viewBox="0 0 200 80" aria-hidden>
-          <g stroke="#c4b5fd" fill="none" strokeWidth="0.4">
-            <circle cx={100} cy={40} r={30} /><circle cx={100} cy={40} r={22} strokeDasharray="1 2" />
-            <line x1={70} y1={40} x2={130} y2={40} /><line x1={100} y1={10} x2={100} y2={70} />
-            <polygon points="100,15 125,55 75,55" /><polygon points="100,65 125,25 75,25" />
-          </g>
-        </svg>
-        <div className="relative max-w-2xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-pill border border-lila-300/40 px-3.5 py-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold-400" style={{ boxShadow:"0 0 8px #f5d76e" }} />
-            <span className="font-display text-[9px] uppercase tracking-[0.22em] text-lila-300">48 cursos · 4 disciplinas</span>
-          </div>
-          <h1 className="font-display text-display-md text-ink mb-3">
-            El compendio <em className="font-quote italic text-lila-300">vivo</em>
-          </h1>
-          <p className="font-quote italic text-lg text-ink-soft max-w-md">
-            Cada cohorte abre con la luna nueva. Los cursos a tu propio ritmo siempre están disponibles.
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        badge="48 cursos · 4 disciplinas"
+        title={<>El compendio <em className="font-quote italic text-lila-300">vivo</em></>}
+        subtitle="Cada cohorte abre con la luna nueva. Los cursos a tu propio ritmo siempre están disponibles."
+      />
 
       {/* Body */}
       <div className="mx-auto max-w-7xl px-6 py-10 md:px-12 flex gap-8">

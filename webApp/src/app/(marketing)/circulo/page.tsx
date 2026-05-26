@@ -1,22 +1,39 @@
 import SideCard from "@/components/molecules/SideCard";
 import Avatar from "@/components/atoms/Avatar";
-import StatBlock from "@/components/atoms/StatBlock";
 import { COM } from "@/lib/mocks/community";
 
 export default function ComunidadPage() {
   return (
     <div className="min-h-screen bg-cosmos-0">
-      {/* Header */}
-      <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-14 md:px-12 text-center">
-        <p className="mb-4 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Círculo privado —</p>
-        <h1 className="mb-4 font-display text-display-md text-ink">
-          Las que ya están <em className="font-quote italic text-lila-300">adentro</em>
-        </h1>
-        <p className="mx-auto mb-8 max-w-lg font-quote italic text-lg text-ink-soft leading-relaxed">
-          Un foro habitado, no una red social. Sin métricas, sin algoritmo. Solo estudiantes, maestras y tiempo lento.
-        </p>
-        <div className="flex flex-wrap justify-center gap-8 md:gap-12">
-          {COM.stats.map((s) => <StatBlock key={s.label} num={s.n} label={s.label} />)}
+      <header className="relative border-b border-lila-300/18 bg-cosmos-surface px-6 py-24 md:px-12 overflow-hidden">
+        {/* Corner stats */}
+        <div className="pointer-events-none absolute inset-x-6 inset-y-8 md:inset-x-12">
+          <div className="absolute left-0 top-0">
+            <span className="block font-display text-2xl text-ink">{COM.stats[0].n}</span>
+            <span className="mt-0.5 block font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">{COM.stats[0].label}</span>
+          </div>
+          <div className="absolute right-0 top-0 text-right">
+            <span className="block font-display text-2xl text-ink">{COM.stats[1].n}</span>
+            <span className="mt-0.5 block font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">{COM.stats[1].label}</span>
+          </div>
+          <div className="absolute bottom-0 right-0 text-right">
+            <span className="block font-display text-2xl text-ink">{COM.stats[2].n}</span>
+            <span className="mt-0.5 block font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">{COM.stats[2].label}</span>
+          </div>
+        </div>
+
+        {/* Centered content */}
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-pill border border-lila-300/40 px-3.5 py-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-gold-400" style={{ boxShadow: "0 0 8px #f5d76e" }} />
+            <span className="font-display text-eyebrow-sm uppercase tracking-[0.22em] text-lila-300">CDXVIII estudiantes · XXIV círculos activos</span>
+          </div>
+          <h1 className="mb-3 font-display text-display-md text-ink">
+            Las que ya están <em className="font-quote italic text-lila-300">adentro</em>
+          </h1>
+          <p className="font-quote italic text-lg text-ink-soft leading-relaxed">
+            Un foro habitado, no una red social. Sin métricas, sin algoritmo. Solo estudiantes, guías y tiempo lento.
+          </p>
         </div>
       </header>
 

@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(New-Item -ItemType Directory -Force \"c:/Users/Gabriel Maglia/Documents/PersonalProjects/HUMANODEMASIADOHUMANO/webApp/src/app/\\(marketing\\)/guias/[slug]\")",
+      "Bash(Out-Null)",
+      "Bash(mkdir -p \"c:/Users/Gabriel Maglia/Documents/PersonalProjects/HUMANODEMASIADOHUMANO/webApp/src/app/\\(marketing\\)/guias/[slug]\" && echo \"dir created\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/zustand/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('c:/Users/Gabriel Maglia/Documents/PersonalProjects/HUMANODEMASIADOHUMANO/webApp/node_modules/zustand/package.json'\\).version\\)\")",
+      "Bash(node -e \"require\\('three'\\); console.log\\('ok'\\)\")",
+      "Bash(node -e \"require\\('three'\\); console.log\\('three ok'\\)\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Gabriel Maglia\\Documents\\PersonalProjects\\HUMANODEMASIADOHUMANO\\webApp\\src\\app\\(marketing)\\guias"
     ]
   }
 }
