@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const S = STUDENT;
 
   return (
-    <div className="min-h-screen mt-[-8] bg-cosmos-0 text-ink">
+    <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
       <Nav />
       <div className="pt-16">
 
