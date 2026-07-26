@@ -71,6 +71,8 @@ export default function PlatonicSolid({ solid, size = 1.3 }: Props) {
 
     // ── Resize — reads CSS dimensions, updates pixel buffer ───────────
     function resize() {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       if (w === 0 || h === 0) return;

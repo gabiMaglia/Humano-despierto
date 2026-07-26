@@ -32,7 +32,7 @@ export const LESSON = {
   notes: [
     { time:"04:12", text:"La cruz celta no se lee — se camina. Diez estaciones, no diez respuestas." },
     { time:"17:48", text:"Pos. 5 (lo que está sobre): conciencia. Pos. 6 (lo que viene): no es predicción, es brotación." },
-    { time:"23:02", text:"Sol dijo: "no preguntes qué significa la carta, preguntá qué pregunta te hace la carta a vos"." },
+    { time:"23:02", text:"Sol dijo: 'no preguntes qué significa la carta, preguntá qué pregunta te hace la carta a vos'." },
   ],
   resources: [
     { type:"PDF",   name:"Mapa de la cruz celta · 10 posiciones", size:"1.2 MB" },
