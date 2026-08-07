@@ -110,9 +110,13 @@ grant select (id, user_id, course_id, status, enrolled_at, granted_by, updated_a
 grant select (id, user_id, course_id, lesson_id, seconds_watched, completed, completed_at,
               last_seen_at, created_at)
   on public.lesson_progress to authenticated;
-grant insert (user_id, course_id, lesson_id, seconds_watched, completed, completed_at, last_seen_at)
+-- `completed` y `completed_at` NO son escribibles por el cliente en ninguna de las dos rutas
+-- (T-011 c.1): son columnas DERIVADAS de (lesson_id, seconds_watched) y las calculan los guards
+-- de 0006. Estaban en el grant de INSERT y eso alcanzaba para auto-certificarse una leccion
+-- completada con 1 segundo visto, porque el unico trigger de la tabla era BEFORE UPDATE.
+grant insert (user_id, course_id, lesson_id, seconds_watched, last_seen_at)
   on public.lesson_progress to authenticated;
-grant update (seconds_watched, completed, completed_at, last_seen_at)
+grant update (seconds_watched, last_seen_at)
   on public.lesson_progress to authenticated;
 
 -- ---------------------------------------------------------------- lesson_notes

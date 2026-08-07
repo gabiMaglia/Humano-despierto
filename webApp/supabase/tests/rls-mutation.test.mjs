@@ -456,8 +456,11 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       const ESPERADO_ANON = [
         'can_read_course', 'current_app_role', 'is_admin', 'lesson_is_preview', 'owns_course',
       ];
+      // `lesson_progress_completes` (T-011) entra por la misma razon que `is_service_context`:
+      // la llaman los guards de lesson_progress, que son SECURITY INVOKER.
       const ESPERADO_AUTH = [
         ...ESPERADO_ANON, 'can_author', 'has_course_access', 'is_service_context',
+        'lesson_progress_completes',
       ].sort();
       const fns = await functionPrivileges(db);
       assert.deepEqual(fns.filter((f) => f.anon).map((f) => f.proname).sort(), ESPERADO_ANON);
@@ -772,6 +775,11 @@ describe('control negativo · con las guardas revertidas los ataques SI pasan', 
       afterMigrations: [
         `grant select (video_id) on public.lessons to anon, authenticated;
          grant update (video_id) on public.lessons to authenticated;`,
+        // T-011 agrego la SEGUNDA capa de escritura (lessons_guard). Para seguir demostrando
+        // lo que este control demuestra —que el revoke de columna era la barrera de T-001—
+        // hay que revertir tambien la capa nueva. Con una sola revertida, el ataque no pasa:
+        // eso lo prueba el control c.3 de tests/insert-guards.test.mjs.
+        `drop trigger lessons_guard on public.lessons;`,
       ],
     });
     await seed(db);
@@ -787,7 +795,11 @@ describe('control negativo · con las guardas revertidas los ataques SI pasan', 
 
   test('defecto 5 · con status en el grant de INSERT, la docente se autopublica', async () => {
     const { db } = await bootDatabase({
-      afterMigrations: [`grant insert (status, published_at) on public.courses to authenticated;`],
+      afterMigrations: [
+        `grant insert (status, published_at) on public.courses to authenticated;`,
+        // Idem: T-011 sumo courses_guard_insert como segunda capa del alta.
+        `drop trigger courses_guard_insert on public.courses;`,
+      ],
     });
     await seed(db);
     const r = await asOwnerTeacher(db, () =>
@@ -801,8 +813,8 @@ describe('control negativo · con las guardas revertidas los ataques SI pasan', 
     assert.equal(r.ok, true, 'el grant de columna no era lo que bloqueaba el INSERT');
     const check = await db.query(`select status from public.courses where slug = 'autopublicado'`);
     assert.equal(check.rows[0].status, 'published');
-    // Y lo que esto revela: en el INSERT la unica capa es el grant de columna. El trigger
-    // courses_guard es BEFORE UPDATE, no lo cubre. Ver "riesgos" del handoff.
+    // Lo que este control revelo en T-001: en el INSERT la unica capa era el grant de columna,
+    // porque courses_guard es BEFORE UPDATE. Cerrado en T-011 con courses_guard_insert.
     await db.close();
   });
 });
