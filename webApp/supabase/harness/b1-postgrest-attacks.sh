@@ -26,6 +26,12 @@ tok() {
 alta() {
   curl -s -X POST "$API/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" \
     -d "{\"email\":\"$1\",\"password\":\"$PASS\"${2:+,\"data\":$2}}" >/dev/null
+  # El stack local es compartido y otros procesos mutan los fixtures (D-07): a un
+  # agente le hizo falta cambiarle la contraseña a este mismo usuario y dejó el
+  # script sin poder autenticar. Se reafirma la contraseña para que la corrida sea
+  # hermética y no dependa de que nadie más la haya tocado.
+  x "update auth.users set encrypted_password = crypt('$PASS', gen_salt('bf'))
+     where email = '$1';"
 }
 
 # Espera un código HTTP concreto. $1 rótulo · $2 esperado · $3 método · $4 path · $5 jwt · $6 body
@@ -100,10 +106,13 @@ esperar "catalogo publico de cursos"       200 GET "courses?select=slug,title" "
 
 echo ""
 echo "── la verdad en la DB, no lo que contesto la API"
-INS=$(q "select count(*) from public.enrollments;")
+# Se afirma sobre el efecto del ATAQUE, no sobre el estado global de la base: el
+# stack es compartido y otros tickets siembran inscripciones legítimas (D-07).
+# Contar `enrollments = 0` daba un falso rojo en cuanto alguien sembraba una.
+INS=$(q "select count(*) from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';")
 ROL=$(q "select role from public.profiles where id='$ALUMNA';")
 EST=$(q "select status from public.courses where id='$CURSO';")
-printf '  enrollments=%s (esperado 0) · rol alumna=%s (student) · curso ajeno=%s (published)\n' "$INS" "$ROL" "$EST"
+printf '  inscripcion que intento crearse=%s (esperado 0) · rol alumna=%s (student) · curso ajeno=%s (published)\n' "$INS" "$ROL" "$EST"
 [ "$INS" = "0" ] && [ "$ROL" = "student" ] && [ "$EST" = "published" ] || { echo "  FALLA: el estado real cambio"; fallos=$((fallos+1)); }
 
 echo ""
