@@ -1,7 +1,10 @@
+import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
-import { COURSE_DETAIL } from "@/lib/mocks/courses";
+import { getCourseBySlug } from "@/lib/server/courses";
+import { formatPriceCents } from "@/lib/utils/format";
+import { toRoman } from "@/lib/utils/roman";
 
 const FRAME_CORNERS = [
   "top-3 left-3 border-t border-l",
@@ -11,15 +14,16 @@ const FRAME_CORNERS = [
 ] as const;
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  await params; // slug would select the course; we show COURSE_DETAIL as the mock
-  const C = COURSE_DETAIL;
+  const { slug } = await params;
+  const course = await getCourseBySlug(slug);
+  if (!course) notFound();
 
   return (
     <div className="min-h-screen bg-cosmos-0">
       <Breadcrumb crumbs={[
         { label:"Catálogo", href:"/cursos" },
-        { label:C.tag },
-        { label:C.title },
+        { label:course.discipline },
+        { label:course.title },
       ]} />
 
       {/* Pergamino header */}
@@ -37,9 +41,19 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           </svg>
         </div>
 
-        <p className="mb-3 font-display text-eyebrow tracking-[0.2em] text-gold-400">✦ {C.tag} · {C.level}</p>
-        <h1 className="font-display text-display-md text-ink mb-3">{C.title}</h1>
-        <p className="font-quote italic text-xl text-lila-300 mb-6">{C.subtitle}</p>
+        <p className="mb-3 font-display text-eyebrow tracking-[0.2em] text-gold-400">✦ {course.discipline} · {course.level}</p>
+        <h1 className="font-display text-display-md text-ink mb-3">
+          {course.title}
+          {course.titleEm && (
+            <>
+              {" "}
+              <em className="font-quote italic text-lila-300">{course.titleEm}</em>
+            </>
+          )}
+        </h1>
+        {course.subtitle && (
+          <p className="font-quote italic text-xl text-lila-300 mb-6">{course.subtitle}</p>
+        )}
 
         <div className="flex items-center justify-center gap-3.5 mb-8">
           <div className="h-px flex-1 max-w-[160px] bg-lila-300/18" />
@@ -47,19 +61,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           <div className="h-px flex-1 max-w-[160px] bg-lila-300/18" />
         </div>
 
-        <p className="mx-auto max-w-xl font-quote italic text-lg text-ink-soft leading-relaxed mb-10">
-          {C.intro}
-        </p>
+        {course.intro && (
+          <p className="mx-auto max-w-xl font-quote italic text-lg text-ink-soft leading-relaxed mb-10">
+            {course.intro}
+          </p>
+        )}
 
-        {/* Meta stats */}
-        <div className="flex items-center justify-center gap-6 md:gap-10">
-          {C.stats.map((s, i) => (
-            <div key={s.label} className="flex items-center gap-6 md:gap-10">
-              <StatBlock num={s.num} label={s.label} size="lg" />
-              {i < C.stats.length - 1 && <span className="text-lila-300/30 text-xl">·</span>}
-            </div>
-          ))}
-        </div>
+        {/* Meta stats — derivados del currículum real, no del mock (no hay duration_weeks/cohorte: ADR-004) */}
+        {course.modules.length > 0 && (
+          <div className="flex items-center justify-center gap-6 md:gap-10">
+            <StatBlock num={toRoman(course.modules.length)} label="Módulos" size="lg" />
+            <span className="text-lila-300/30 text-xl">·</span>
+            <StatBlock num={String(course.lessonCount)} label="Lecciones" size="lg" />
+          </div>
+        )}
       </header>
 
       {/* Maestra strip */}
@@ -73,54 +88,63 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           </div>
           <div>
             <p className="mb-1 font-display text-eyebrow tracking-[0.2em] text-ink-faint uppercase">Quien transmite</p>
-            <h3 className="mb-1 font-display text-xl tracking-wider text-lila-300">{C.teacher.name}</h3>
-            <p className="mb-2 font-display text-eyebrow tracking-cosmic text-ink-faint">{C.teacher.role}</p>
-            <p className="font-quote italic text-base text-ink-soft">&ldquo;{C.teacher.quote}&rdquo;</p>
+            <h3 className="mb-1 font-display text-xl tracking-wider text-lila-300">{course.teacherName}</h3>
+            {course.teacherBio && (
+              <p className="font-quote italic text-base text-ink-soft">&ldquo;{course.teacherBio}&rdquo;</p>
+            )}
           </div>
         </div>
       </section>
 
       {/* Modules */}
-      <section className="px-6 py-16 md:px-12">
-        <div className="mx-auto max-w-3xl">
-          <SectionDivider label="El viaje" className="mb-10" />
-          <div className="relative">
-            {/* Spine line */}
-            <div className="absolute left-[19px] top-0 bottom-0 w-px bg-lila-300/18" />
-            <div className="space-y-0">
-              {C.modules.map((m) => (
-                <article key={m.num} className="flex gap-6 pb-8">
-                  <div className="relative z-10 flex flex-col items-center gap-1.5 flex-none">
-                    <span className="h-10 w-10 rounded-full border border-lila-300/40 bg-cosmos-surface flex items-center justify-center font-display text-sm text-lila-300">
-                      {m.num}
-                    </span>
-                  </div>
-                  <div className="flex-1 pt-2 pb-4">
-                    <h4 className="mb-1.5 font-display text-lg tracking-wide text-ink">{m.title}</h4>
-                    <p className="mb-2 font-body text-sm text-ink-soft leading-relaxed">{m.desc}</p>
-                    <span className="font-display text-eyebrow tracking-cosmic text-gold-400">☾ {m.sessions}</span>
-                  </div>
-                </article>
+      {course.modules.length > 0 && (
+        <section className="px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="El viaje" className="mb-10" />
+            <div className="relative">
+              {/* Spine line */}
+              <div className="absolute left-[19px] top-0 bottom-0 w-px bg-lila-300/18" />
+              <div className="space-y-0">
+                {course.modules.map((m) => (
+                  <article key={m.position} className="flex gap-6 pb-8">
+                    <div className="relative z-10 flex flex-col items-center gap-1.5 flex-none">
+                      <span className="h-10 w-10 rounded-full border border-lila-300/40 bg-cosmos-surface flex items-center justify-center font-display text-sm text-lila-300">
+                        {toRoman(m.position)}
+                      </span>
+                    </div>
+                    <div className="flex-1 pt-2 pb-4">
+                      <h4 className="mb-1.5 font-display text-lg tracking-wide text-ink">{m.title}</h4>
+                      {m.description && (
+                        <p className="mb-2 font-body text-sm text-ink-soft leading-relaxed">{m.description}</p>
+                      )}
+                      <span className="font-display text-eyebrow tracking-cosmic text-gold-400">
+                        ☾ {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Includes */}
+      {course.includes.length > 0 && (
+        <section className="border-t border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="Qué recibes" className="mb-10" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {course.includes.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex-none text-gold-400 text-sm">✦</span>
+                  <span className="font-body text-sm text-ink-soft">{item}</span>
+                </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Includes */}
-      <section className="border-t border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12">
-        <div className="mx-auto max-w-3xl">
-          <SectionDivider label="Qué recibes" className="mb-10" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {C.includes.map((item) => (
-              <div key={item} className="flex items-start gap-3">
-                <span className="mt-0.5 flex-none text-gold-400 text-sm">✦</span>
-                <span className="font-body text-sm text-ink-soft">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Pact CTA */}
       <section className="relative overflow-hidden border-t border-lila-300/18 px-6 py-24 md:px-12 text-center"
@@ -130,7 +154,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           <circle cx={40} cy={40} r={8} fill="currentColor" opacity="0.3" />
         </svg>
         <p className="mb-3 mt-10 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El Umbral —</p>
-        <h2 className="mb-3 font-display text-4xl tracking-wide text-ink">
+        <h2 className="mb-4 font-display text-4xl tracking-wide text-ink">
           El umbral está <em className="font-quote italic text-lila-300">abierto</em>
         </h2>
         <p className="mb-8 font-quote italic text-lg text-ink-soft">Acceso inmediato · empezá cuando quieras, a tu propio ritmo</p>
@@ -138,13 +162,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         <div className="mx-auto max-w-xs cosmos-card p-6 mb-8 text-left">
           <div className="flex justify-between items-baseline mb-2">
             <span className="font-body text-sm text-ink-soft">Ofrenda</span>
-            <span className="font-display text-2xl text-gold-400">{C.price}</span>
+            <span className="font-display text-2xl text-gold-400">{formatPriceCents(course.priceCents, course.currency)}</span>
           </div>
-          <div className="flex justify-between items-baseline mb-4 text-ink-faint">
-            <span className="font-body text-xs">o tres pagos de</span>
-            <span className="font-display text-base text-ink-soft">$ 100</span>
-          </div>
-          <a href={`/inscribirme/tarot-iniciatico`} className="btn-ritual btn-ritual-primary w-full rounded-pill justify-center">
+          <a href={`/inscribirme/${course.slug}`} className="btn-ritual btn-ritual-primary w-full rounded-pill justify-center">
             Sellar el pacto ↦
           </a>
           <button className="mt-3 w-full font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors">
