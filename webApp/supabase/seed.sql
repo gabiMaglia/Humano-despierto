@@ -176,6 +176,12 @@ from tarot, (values
 -- Solo el modulo III ("Las tiradas") tiene lecciones reales en el mock (player.ts). Los
 -- demas modulos solo traen un conteo ("lessons: 4") sin titulo/duracion -- no hay dato que
 -- sembrar sin inventarlo. duration_seconds sale de "MM:SS" -> segundos, nunca 0.
+--
+-- is_preview (T-004 c.3): el mock no marcaba ninguna leccion como vista previa (0 de 5),
+-- pero el criterio de aceptacion exige que exista una reproducible sin inscripcion. Se elige
+-- la primera leccion del recorrido ("Tirada de tres cartas") como vista previa -- decision de
+-- producto minima para que el criterio sea probable, no una respuesta del PO. is_preview es
+-- columna service_role (0003_privileges.sql): solo el seed o una conexion directa la escribe.
 
 with target as (
   select cm.id as module_id, cm.course_id
@@ -188,14 +194,14 @@ insert into public.lessons (
   duration_seconds, is_preview, is_published
 )
 select gen_random_uuid(), target.course_id, target.module_id, v.position, v.title,
-  'youtube', v.video_id, v.duration_seconds, false, true
+  'youtube', v.video_id, v.duration_seconds, v.is_preview, true
 from target, (values
-  (1, 'Tirada de tres cartas',              'SEEDlesson1', 2292),
-  (2, 'El presente, lo oculto, el consejo', 'SEEDlesson2', 2528),
-  (3, 'Apertura del hexagrama',             'SEEDlesson3', 2814),
-  (4, 'La cruz celta como mapa del alma',   'SEEDlesson4', 3138),
-  (5, 'El árbol de la vida',                'SEEDlesson5', 3840)
-) as v(position, title, video_id, duration_seconds);
+  (1, 'Tirada de tres cartas',              'SEEDlesson1', 2292, true),
+  (2, 'El presente, lo oculto, el consejo', 'SEEDlesson2', 2528, false),
+  (3, 'Apertura del hexagrama',             'SEEDlesson3', 2814, false),
+  (4, 'La cruz celta como mapa del alma',   'SEEDlesson4', 3138, false),
+  (5, 'El árbol de la vida',                'SEEDlesson5', 3840, false)
+) as v(position, title, video_id, duration_seconds, is_preview);
 
 -- ---------------------------------------------------------------- lesson_chapters (LESSON.chapters)
 -- Todas pertenecen a la leccion IV del modulo III ("La cruz celta como mapa del alma").

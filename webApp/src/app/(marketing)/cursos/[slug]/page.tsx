@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
+import CurriculumAccordion from "@/components/course/CurriculumAccordion";
 import { getCourseBySlug } from "@/lib/server/courses";
-import { formatPriceCents } from "@/lib/utils/format";
+import { getStudentCourseAccess } from "@/lib/server/enrollment";
+import { formatPriceCents, formatTotalDuration } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
 
 const FRAME_CORNERS = [
@@ -17,6 +19,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
   if (!course) notFound();
+
+  const access = await getStudentCourseAccess(course.id);
 
   return (
     <div className="min-h-screen bg-cosmos-0">
@@ -96,35 +100,23 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         </div>
       </section>
 
-      {/* Modules */}
+      {/* Curriculum — acordeón de módulos/lecciones, T-004 */}
       {course.modules.length > 0 && (
         <section className="px-6 py-16 md:px-12">
           <div className="mx-auto max-w-3xl">
-            <SectionDivider label="El viaje" className="mb-10" />
-            <div className="relative">
-              {/* Spine line */}
-              <div className="absolute left-[19px] top-0 bottom-0 w-px bg-lila-300/18" />
-              <div className="space-y-0">
-                {course.modules.map((m) => (
-                  <article key={m.position} className="flex gap-6 pb-8">
-                    <div className="relative z-10 flex flex-col items-center gap-1.5 flex-none">
-                      <span className="h-10 w-10 rounded-full border border-lila-300/40 bg-cosmos-surface flex items-center justify-center font-display text-sm text-lila-300">
-                        {toRoman(m.position)}
-                      </span>
-                    </div>
-                    <div className="flex-1 pt-2 pb-4">
-                      <h4 className="mb-1.5 font-display text-lg tracking-wide text-ink">{m.title}</h4>
-                      {m.description && (
-                        <p className="mb-2 font-body text-sm text-ink-soft leading-relaxed">{m.description}</p>
-                      )}
-                      <span className="font-display text-eyebrow tracking-cosmic text-gold-400">
-                        ☾ {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
-                      </span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
+            <SectionDivider label="El viaje" className="mb-6" />
+            <p className="mb-10 text-center font-display text-eyebrow tracking-cosmic text-ink-faint">
+              {toRoman(course.modules.length)} {course.modules.length === 1 ? "sección" : "secciones"}
+              <span className="text-lila-300/30"> · </span>
+              {toRoman(course.lessonCount)} {course.lessonCount === 1 ? "clase" : "clases"}
+              <span className="text-lila-300/30"> · </span>
+              {formatTotalDuration(course.totalDurationSeconds)}
+            </p>
+            <CurriculumAccordion
+              modules={course.modules}
+              hasAccess={access.hasAccess}
+              completedLessonIds={[...access.completedLessonIds]}
+            />
           </div>
         </section>
       )}
