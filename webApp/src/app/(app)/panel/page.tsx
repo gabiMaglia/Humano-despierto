@@ -7,6 +7,7 @@ import { STUDENT } from "@/lib/mocks/student";
 
 export default function DashboardPage() {
   const S = STUDENT;
+  const continuing = S.enrolled.find((c) => c.progress < 100) ?? S.enrolled[0];
 
   return (
     <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
@@ -36,21 +37,19 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Next session strip */}
+        {/* Continue watching strip */}
         <div className="border-b border-lila-300/18 bg-lila-300/[0.04] px-6 py-5 md:px-12 flex flex-wrap items-center gap-6">
           <div className="flex-1 min-w-0">
-            <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Próxima sesión en vivo</p>
-            <h3 className="font-display text-lg tracking-wide text-ink">{S.nextSession.course}</h3>
-            <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{S.nextSession.module}</p>
+            <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Continuar donde quedaste</p>
+            <h3 className="font-display text-lg tracking-wide text-ink">{continuing.title}</h3>
+            <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{continuing.module}</p>
           </div>
-          <div className="text-center">
-            <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{S.nextSession.day}</p>
-            <p className="font-display text-2xl text-ink">{S.nextSession.date}</p>
-            <p className="font-display text-eyebrow tracking-cosmic text-gold-400">{S.nextSession.time}</p>
+          <div className="flex-none">
+            <ProgressRing value={continuing.progress} />
           </div>
           <div className="flex flex-col items-start gap-2">
-            <a href="#" className="btn-ritual btn-ritual-primary rounded-pill">Entrar a la sala ↦</a>
-            <span className="font-quote italic text-sm text-ink-soft">Faltan <em className="text-lila-300">2 días</em></span>
+            <a href={`/leccion/lesson-current`} className="btn-ritual btn-ritual-primary rounded-pill">Continuar ↦</a>
+            <span className="font-quote italic text-sm text-ink-soft">Vista por última vez <em className="text-lila-300">{continuing.lastSeen}</em></span>
           </div>
         </div>
 
@@ -119,23 +118,6 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <aside className="space-y-5">
-            <SideCard title="Próximos encuentros" badge="Calendario">
-              <div className="space-y-3">
-                {S.proximas.map((e) => (
-                  <div key={e.title} className="flex items-start gap-3">
-                    <div className="flex-none text-center w-9">
-                      <div className="font-display text-lg leading-none text-lila-300">{e.day}</div>
-                      <div className="font-display text-eyebrow tracking-cosmic text-ink-faint">{e.mes}</div>
-                    </div>
-                    <div>
-                      <p className="font-display text-[11px] tracking-wide text-ink">{e.title}</p>
-                      <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{e.course} · {e.tipo}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SideCard>
-
             <SideCard title="El círculo" badge="3 nuevos">
               <div className="space-y-3 mb-4">
                 {S.circulo.map((c) => (
