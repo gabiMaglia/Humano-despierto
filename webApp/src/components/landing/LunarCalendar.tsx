@@ -50,7 +50,7 @@ export default function LunarCalendar() {
           El cielo <em className="font-quote italic text-lila-300">marca el ritmo</em>
         </h2>
         <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
-          Los lives, rituales y cohortes se sincronizan con las fases de la luna.
+          Un mapa del cielo para acompañar la práctica, no un calendario de clases.
         </p>
 
         {/* Moon phases */}

@@ -110,10 +110,10 @@ from (values
    'Tarot', 'Maestría', 28000, 'II', '◑',
    array[
      'Acceso de por vida a las grabaciones',
-     '10 sesiones live por Zoom con Sol Mayor',
+     'Diez encuentros grabados con Sol Mayor',
      'Mazo de tarot de Marsella enviado a domicilio',
      'Cuaderno de bitácora encuadernado',
-     'Círculo cerrado de práctica entre cohorte',
+     'Círculo cerrado de práctica entre estudiantes',
      'Certificado al cierre del recorrido'
    ]::text[], 'Sol Mayor', true),
   (3, 'reiki-nivel-1', 'Reiki', 'nivel I', null,

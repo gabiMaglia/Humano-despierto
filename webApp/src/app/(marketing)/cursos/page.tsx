@@ -20,10 +20,10 @@ const FILTERS = {
     { label:"Solo grabado",   count:22, active:false },
     { label:"Presencial",     count:6,  active:false },
   ],
-  cohorte: [
-    { label:"☾ Luna nueva · 6 may",    count:12, active:true  },
-    { label:"◐ Creciente · 14 may",    count:8,  active:false },
-    { label:"● Llena · 22 may",         count:6,  active:false },
+  duracion: [
+    { label:"Hasta 6 semanas",  count:12, active:false },
+    { label:"De 6 a 10",        count:8,  active:false },
+    { label:"Más de 10",        count:6,  active:false },
   ],
 };
 
@@ -54,7 +54,7 @@ export default async function CatalogPage() {
       <PageHeader
         badge="48 cursos · 4 disciplinas"
         title={<>El compendio <em className="font-quote italic text-lila-300">vivo</em></>}
-        subtitle="Cada cohorte abre con la luna nueva. Los cursos a tu propio ritmo siempre están disponibles."
+        subtitle="Todos los recorridos están abiertos. Se cursan a tu propio ritmo, sin fecha de inicio."
       />
 
       {/* Body */}
@@ -74,7 +74,7 @@ export default async function CatalogPage() {
           <FilterGroup title="Disciplina" items={FILTERS.disciplina} />
           <FilterGroup title="Nivel"      items={FILTERS.nivel} />
           <FilterGroup title="Formato"    items={FILTERS.formato} />
-          <FilterGroup title="Próxima cohorte" items={FILTERS.cohorte} />
+          <FilterGroup title="Duración" items={FILTERS.duracion} />
           <button className="mt-2 font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-lila-300 transition-colors">
             Limpiar filtros ✕
           </button>

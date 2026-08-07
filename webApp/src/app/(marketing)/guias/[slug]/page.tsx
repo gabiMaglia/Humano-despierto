@@ -198,10 +198,10 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           Una <em className="font-quote italic text-lila-300">guía</em> que sostenga el camino
         </h2>
         <p className="mb-8 font-quote italic text-lg text-ink-soft">
-          Sol abre dos cohortes al año · próxima en luna nueva del 6 de mayo
+          Sus recorridos están abiertos · se cursan cuando quieras, a tu ritmo
         </p>
         <div className="flex flex-col sm:flex-row gap-3.5 justify-center">
-          <Link href="/cursos/tarot-iniciatico" className="btn-ritual btn-ritual-primary rounded-pill">Tarot iniciático · 6 mayo ↦</Link>
+          <Link href="/cursos/tarot-iniciatico" className="btn-ritual btn-ritual-primary rounded-pill">Tarot iniciático ↦</Link>
           <a href="#cursos" className="btn-ritual btn-ritual-ghost rounded-pill">Ver todos sus cursos</a>
         </div>
       </section>

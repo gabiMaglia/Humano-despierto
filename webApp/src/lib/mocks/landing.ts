@@ -1,7 +1,7 @@
 // Extracted from design_handoff_humano_humano/reference/hifi/desktop.jsx
 
 export const HERO = {
-  badge: "Cohorte de Luna Nueva · Mayo",
+  badge: "Inscripción abierta · Todo el año",
   h1: {
     pre:  "Una escuela para",
     em:   "oficios sutiles",
