@@ -107,7 +107,16 @@ create table public.lessons (
   constraint lessons_position_key unique (module_id, position) deferrable initially immediate,
   -- T-005 c.4: el id de YouTube es exactamente [A-Za-z0-9_-]{11}. Pegar una URL entera falla aca.
   constraint lessons_video_id_format check (video_id is null or video_id ~ '^[A-Za-z0-9_-]{11}$'),
-  constraint lessons_published_needs_video check (not is_published or video_id is not null)
+  -- T-012 · lo que se impide no es que exista un borrador incompleto, sino que se PUBLIQUE una
+  -- leccion que ningun alumno podria completar nunca: `completed` se deriva del umbral contra
+  -- `duration_seconds` (ADR-007) y con duracion 0 ese umbral no se cruza con ningun valor.
+  -- Por eso el corte va en la publicacion y no en la tabla: un `check (duration_seconds > 0)` a
+  -- secas haria imposible el alta, que es de DOS pasos por construccion — la docente crea el
+  -- esqueleto y el servidor resuelve el video contra la API de YouTube (T-005 c.4b). Publicar ya
+  -- exigia `video_id`, asi que no cambia el orden de operaciones de nadie.
+  -- Es el respaldo en DB de lo que T-005 c.4b promete en la app; nadie lo bypassea, ni service_role.
+  constraint lessons_published_needs_video
+    check (not is_published or (video_id is not null and duration_seconds > 0))
 );
 
 create index lessons_course_idx on public.lessons (course_id);

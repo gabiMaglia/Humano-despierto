@@ -65,13 +65,15 @@ grant delete                                            on public.course_modules
 grant select (id, course_id, module_id, position, title, description, video_provider,
               duration_seconds, is_preview, is_published, created_at, updated_at)
   on public.lessons to anon, authenticated;
-grant insert (course_id, module_id, position, title, description, video_provider,
-              duration_seconds, is_preview)
+grant insert (course_id, module_id, position, title, description, video_provider, is_preview)
   on public.lessons to authenticated;
-grant update (position, title, description, video_provider, duration_seconds, is_preview)
+grant update (position, title, description, video_provider, is_preview)
   on public.lessons to authenticated;
 grant delete on public.lessons to authenticated;
 -- `is_published` tampoco: publicar una leccion exige video_id, que el cliente no puede escribir.
+-- `duration_seconds` tampoco (T-012, decision del PO): es la vara contra la que se certifica el
+-- progreso (ADR-007) y la escribia la parte interesada. La resuelve el servidor desde la API de
+-- YouTube al cargar el video (T-005). Se sigue LEYENDO: alimenta el catalogo y el player.
 
 -- ---------------------------------------------------------------- lesson_chapters
 grant select (id, course_id, lesson_id, position, start_seconds, label, created_at, updated_at)

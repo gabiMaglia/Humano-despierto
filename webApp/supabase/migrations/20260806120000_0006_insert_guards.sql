@@ -24,8 +24,10 @@
 --   1) 0003 ya no las incluye en el grant de INSERT ni de UPDATE (el cliente no puede nombrarlas);
 --   2) estos triggers las recalculan en INSERT y en UPDATE.
 --
--- El umbral se evalua contra `lessons.duration_seconds`, que el cliente no escribe... salvo el
--- docente dueño al crear la leccion. Ver "residuo declarado" al pie.
+-- El umbral se evalua contra `lessons.duration_seconds`, que desde T-012 el cliente NO escribe por
+-- ninguna via: la duracion la resuelve el servidor contra la API de YouTube al cargar el video
+-- (T-005). Mientras estuvo en el grant de UPDATE de la docente dueña, bajarla a 5 s certificaba
+-- retroactivamente a toda su cohorte: la vara de la certificacion la editaba la parte interesada.
 
 -- Umbral unico, en un solo lugar. Aritmetica entera a proposito (regla de la casa: nunca float):
 -- `s*100 >= d*90` es exactamente `s >= 0.9*d` sin redondeo.
@@ -50,14 +52,34 @@ as $$
   );
 $$;
 
--- SECURITY DEFINER a proposito: los guards son INVOKER y corren como `authenticated`, para quien
--- `lessons` esta bajo RLS. Con INVOKER, un curso archivado (o una leccion despublicada) dejaria de
--- resolver la duracion y el alumno no podria completar nada. No es oraculo de nada:
--- `duration_seconds` ya se sirve a `anon` en el whitelist de SELECT de 0003.
+-- SECURITY DEFINER a proposito: necesita resolver la duracion sin la RLS de `lessons`, porque un
+-- curso archivado o una leccion despublicada dejarian de resolverla y el alumno no podria completar
+-- nada.
+--
+-- T-012 · H-1. La version de T-011 justificaba esto con "no es oraculo de nada: `duration_seconds`
+-- ya se sirve a `anon`". ERA FALSO y el juez ciego lo demostro: el whitelist de SELECT solo entrega
+-- la columna en las filas que `lessons_read` expone (`0004:71-73` exige `is_published or
+-- owns_course`), y un borrador ajeno no cumple ninguna de las dos. Con EXECUTE para `authenticated`
+-- y un `p_lesson_id` arbitrario, busqueda binaria sobre esta funcion devuelve el
+-- `duration_seconds` exacto de contenido que la RLS oculta.
+--
+-- El cierre: la funcion NO se otorga a `authenticated` (ver el pie del archivo). La invocan solo los
+-- dos guards de `lesson_progress`, que por eso pasan a ser SECURITY DEFINER.
+-- Esto NO reintroduce la trampa que 0005 documenta —un guard DEFINER cuyo `is_service_context()`
+-- se auto-eximiria siempre— porque estos dos guards no consultan `current_user` por ninguna via:
+-- no tienen bypass de service_role, a proposito (mantienen un invariante, no arbitran un permiso).
+-- Los guards que SI lo consultan (`guard_courses_insert`, `guard_lessons`) siguen siendo INVOKER.
+--
+-- Queda una via de consulta, y esa si esta compuertada: escribir `lesson_progress` y leer
+-- `completed`. Exige acertar el par (lesson_id, course_id) de la FK compuesta y pasar el WITH CHECK
+-- de `lesson_progress_insert_own` — `has_course_access(course_id) or lesson_is_preview(lesson_id)`.
+-- Sobre un borrador ajeno no hay inscripcion ni preview: el INSERT se rechaza y no hay respuesta
+-- que leer.
 
 create or replace function public.guard_lesson_progress_insert()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 begin
@@ -81,6 +103,7 @@ create trigger lesson_progress_guard_insert
 create or replace function public.guard_lesson_progress()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 begin
@@ -150,6 +173,11 @@ create trigger courses_guard_insert
 --   · `video_id`: primer miembro de la clase "localizador de contenido pago" (ADR-003). El
 --     defecto 4 de la ronda 1 de T-001 probo que el revoke de columna era su UNICA barrera de
 --     escritura, incluso para la docente dueña.
+--   · `duration_seconds` (T-012 · decision del PO): es la VARA contra la que se certifica el
+--     progreso (ADR-007). Mientras la escribio la docente dueña, bajarla a 5 s certificaba de una
+--     sentencia a toda su cohorte — y el caso probable no era fraude sino una correccion de dato
+--     que certifica retroactivamente sin que nadie lo note. La resuelve el servidor contra la API
+--     de YouTube al pegar la URL del video (T-005); el docente no la ve ni la toca.
 create or replace function public.guard_lessons()
 returns trigger
 language plpgsql
@@ -169,6 +197,11 @@ begin
       raise exception 'lessons.video_id no se escribe desde el cliente (ADR-003)'
         using errcode = '42501';
     end if;
+    -- La leccion nace sin duracion: la trae YouTube cuando el servidor resuelve el video.
+    if new.duration_seconds is distinct from 0 then
+      raise exception 'lessons.duration_seconds lo resuelve el servidor desde el video (T-005)'
+        using errcode = '42501';
+    end if;
   else
     if new.is_published is distinct from old.is_published then
       raise exception 'lessons.is_published lo fija el servidor al publicar la leccion (T-005)'
@@ -176,6 +209,10 @@ begin
     end if;
     if new.video_id is distinct from old.video_id then
       raise exception 'lessons.video_id no se escribe desde el cliente (ADR-003)'
+        using errcode = '42501';
+    end if;
+    if new.duration_seconds is distinct from old.duration_seconds then
+      raise exception 'lessons.duration_seconds lo resuelve el servidor desde el video (T-005)'
         using errcode = '42501';
     end if;
   end if;
@@ -195,8 +232,13 @@ create trigger lessons_guard
 -- 0002:158 (corre antes) ni `alter default privileges` (0003:18) lo sacan.
 revoke execute on all functions in schema public from public;
 
--- `lesson_progress_completes()` se invoca DESDE el cuerpo de los guards de `lesson_progress`,
--- que son SECURITY INVOKER: ahi Postgres si chequea EXECUTE en tiempo de ejecucion. Sin este
--- grant, el INSERT legitimo de un alumno guardando progreso moriria con 42501 dentro del trigger.
--- (Los guards en si no lo necesitan: disparar un trigger no chequea EXECUTE sobre su funcion.)
-grant execute on function public.lesson_progress_completes(uuid, integer) to authenticated, service_role;
+-- T-012 · H-1: `lesson_progress_completes()` NO lleva grant para `authenticated`. La llaman los dos
+-- guards de `lesson_progress`, que son SECURITY DEFINER y corren como owner: ahi el EXECUTE esta
+-- cubierto por la propiedad de la funcion, no por un grant. Otorgarsela al cliente la convertia en
+-- un oraculo de `duration_seconds` sobre lecciones que la RLS oculta (ver el bloque de arriba).
+-- `service_role` conserva el EXECUTE que le deja el `alter default privileges` de Supabase —0003:18
+-- solo lo revoca a `anon` y `authenticated`— y no se lo quita este archivo: para `service_role` no
+-- es oraculo de nada, ya lee `lessons` entera sin pasar por RLS.
+--
+-- `is_service_context()` (0005:161) conserva su grant a `authenticated`: la llaman
+-- `guard_courses_insert` y `guard_lessons`, que siguen siendo INVOKER.

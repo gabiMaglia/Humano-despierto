@@ -456,11 +456,12 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       const ESPERADO_ANON = [
         'can_read_course', 'current_app_role', 'is_admin', 'lesson_is_preview', 'owns_course',
       ];
-      // `lesson_progress_completes` (T-011) entra por la misma razon que `is_service_context`:
-      // la llaman los guards de lesson_progress, que son SECURITY INVOKER.
+      // `is_service_context` sigue siendo la unica excepcion: la llaman `guard_courses_insert` y
+      // `guard_lessons`, que son SECURITY INVOKER. `lesson_progress_completes` (T-011) estuvo aca
+      // una ronda y salio en T-012 (H-1): con EXECUTE para el cliente era un oraculo de
+      // `duration_seconds` sobre lecciones que la RLS oculta.
       const ESPERADO_AUTH = [
         ...ESPERADO_ANON, 'can_author', 'has_course_access', 'is_service_context',
-        'lesson_progress_completes',
       ].sort();
       const fns = await functionPrivileges(db);
       assert.deepEqual(fns.filter((f) => f.anon).map((f) => f.proname).sort(), ESPERADO_ANON);

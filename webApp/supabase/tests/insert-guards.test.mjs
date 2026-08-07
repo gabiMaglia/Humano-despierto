@@ -11,6 +11,7 @@ import { bootDatabase, asUser, attempt } from '../harness/db.mjs';
 import { seed, ID } from './seed.mjs';
 
 const PRIV_DENIED = '42501';
+const CHECK_VIOLATION = '23514';
 
 // lessonA dura 3138 s ⇒ el umbral del 90 % cae en 2824.2: 2824 no completa, 2825 si.
 const DURACION_LESSON_A = 3138;
@@ -43,36 +44,88 @@ const AUTOCERTIFICAR = `
   values ($1, $2, $3, 1, true, now())`;
 
 // ---------------------------------------------------------------------------
+// T-012 · H-1 · el oraculo.
+// Una leccion dentro del curso BORRADOR de otra docente: `lessons_read` (0004:71-73) exige
+// `can_read_course(course_id) and (is_published or owns_course)`, y un borrador ajeno no cumple
+// ninguna de las dos ⇒ la RLS la oculta por completo.
+// ---------------------------------------------------------------------------
+const MODULO_OCULTO = '50000000-0000-4000-8000-0000000000dd';
+const LESSON_OCULTA = '60000000-0000-4000-8000-0000000000dd';
+const DURACION_OCULTA = 4321;
+const UMBRAL_OCULTO = Math.ceil(DURACION_OCULTA * 0.9); // 3889
+
+const sembrarLeccionOculta = async (db) => {
+  await db.exec(`
+    insert into public.course_modules (id, course_id, position, title)
+      values ('${MODULO_OCULTO}', '${ID.courseDraft}', 1, 'Modulo del borrador');
+    insert into public.lessons (id, course_id, module_id, position, title, duration_seconds, is_published)
+      values ('${LESSON_OCULTA}', '${ID.courseDraft}', '${MODULO_OCULTO}', 1, 'Oculta', ${DURACION_OCULTA}, false);
+  `);
+};
+
+/**
+ * Busqueda binaria del menor N que completa: es `ceil(0.9 * duration_seconds)`, de donde la
+ * duracion sale exacta. Devuelve `{denied}` si la funcion no es invocable.
+ */
+const oraculo = async (db, lessonId, run) => {
+  let lo = 0;
+  let hi = 100000;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const r = await run(() =>
+      attempt(db, `select public.lesson_progress_completes($1, $2) as c`, [lessonId, mid]),
+    );
+    if (!r.ok) return { denied: r.code, pasos: 0 };
+    if (r.rows[0].c) hi = mid;
+    else lo = mid + 1;
+  }
+  // De `umbral = ceil(0.9 d)` se despeja d ∈ ((u-1)·100/90, u·100/90]. Para u=3889 ese intervalo
+  // es (4320, 4321.11]: contiene UN solo entero, 4321. La duracion sale exacta, no aproximada.
+  return { umbral: lo, duracion: Math.floor((lo * 100) / 90) };
+};
+
+// ---------------------------------------------------------------------------
 // Criterio 4 · el barrido, ejecutable.
-// Toda columna con INSERT para `authenticated`, leida del ACL crudo (pg_attribute.attacl), no de
+// Toda columna con INSERT para un rol de cliente, leida del ACL crudo (pg_attribute.attacl), no de
 // la lectura de 0003. Si alguien agrega una columna al grant, este test se pone rojo y obliga a
 // decidir sobre ella — que es exactamente lo que no paso con lesson_progress.completed.
-// ---------------------------------------------------------------------------
-const columnasConInsert = async (db) =>
+//
+// T-012 · H-2: se barren los DOS roles de cliente. La version de T-011 filtraba solo
+// `authenticated` y `anon` quedaba fuera de la guarda: hoy no tiene ningun INSERT, pero el dia que
+// alguien le otorgue uno el barrido no se enteraba.
+const ROLES_CLIENTE = ['authenticated', 'anon'];
+
+const columnasConInsert = async (db, rol) =>
   (
-    await db.query(`
+    await db.query(
+      `
       select c.relname || '.' || a.attname as col
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
       join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
       cross join lateral aclexplode(a.attacl) acl
       join pg_roles r on r.oid = acl.grantee
-      where n.nspname = 'public' and r.rolname = 'authenticated' and acl.privilege_type = 'INSERT'
-    `)
+      where n.nspname = 'public' and r.rolname = $1 and acl.privilege_type = 'INSERT'
+    `,
+      [rol],
+    )
   ).rows
     .map((r) => r.col)
     .sort();
 
-const tablasConInsertEntero = async (db) =>
+const tablasConInsertEntero = async (db, rol) =>
   (
-    await db.query(`
+    await db.query(
+      `
       select c.relname as t
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
       cross join lateral aclexplode(c.relacl) acl
       join pg_roles r on r.oid = acl.grantee
-      where n.nspname = 'public' and r.rolname = 'authenticated' and acl.privilege_type = 'INSERT'
-    `)
+      where n.nspname = 'public' and r.rolname = $1 and acl.privilege_type = 'INSERT'
+    `,
+      [rol],
+    )
   ).rows
     .map((r) => r.t)
     .sort();
@@ -87,9 +140,10 @@ const INSERT_ESPERADO = {
   courses: ['slug', 'title', 'title_em', 'subtitle', 'intro', 'discipline', 'level', 'price_cents',
             'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id'],
 
-  // Guard nuevo (c.3): is_published y video_id fuera del grant Y bloqueadas por trigger.
+  // Guard nuevo (c.3): is_published, video_id y —desde T-012— duration_seconds fuera del grant
+  // Y bloqueadas por trigger. La duracion la trae YouTube, no el docente (decision del PO).
   lessons: ['course_id', 'module_id', 'position', 'title', 'description', 'video_provider',
-            'duration_seconds', 'is_preview'],
+            'is_preview'],
 
   // Guards nuevos (c.1): completed/completed_at ya no estan en el grant y ademas son derivadas.
   lesson_progress: ['user_id', 'course_id', 'lesson_id', 'seconds_watched', 'last_seen_at'],
@@ -115,6 +169,7 @@ describe('T-011 · guards de INSERT', () => {
   before(async () => {
     ({ db } = await bootDatabase());
     await seed(db);
+    await sembrarLeccionOculta(db);
   });
 
   after(async () => db?.close());
@@ -288,7 +343,7 @@ describe('T-011 · guards de INSERT', () => {
   });
 
   // ------------------------------------------------------------ criterio 3
-  describe('c.3 · lessons: is_published y video_id son del servidor', () => {
+  describe('c.3 · lessons: is_published, video_id y duration_seconds son del servidor', () => {
     test('la docente dueña no publica una leccion al crearla', async () => {
       const r = await asOwnerTeacher(db, () =>
         attempt(
@@ -310,12 +365,36 @@ describe('T-011 · guards de INSERT', () => {
       assert.equal(r.code, PRIV_DENIED);
     });
 
-    test('control positivo: crea la leccion y le cambia el titulo', async () => {
-      const alta = await asOwnerTeacher(db, () =>
+    // T-012 · punto 4 (decision del PO): la duracion la trae YouTube, no la docente.
+    test('la docente dueña no fija la duracion al crear la leccion', async () => {
+      const r = await asOwnerTeacher(db, () =>
         attempt(
           db,
           `insert into public.lessons (course_id, module_id, position, title, duration_seconds)
-           values ($1, $2, 22, 'Borrador de leccion', 600)`,
+           values ($1, $2, 23, 'Con duracion', 600)`,
+          [ID.courseA, ID.moduleA],
+        ),
+      );
+      assert.equal(r.ok, false, 'la docente fijo la vara de la certificacion');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('ni la corrige despues: bajarla certificaria a toda la cohorte', async () => {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(db, `update public.lessons set duration_seconds = 5 where id = $1`, [ID.lessonA]),
+      );
+      assert.equal(r.ok, false, 'la docente bajo la duracion de una leccion con alumnos');
+      assert.equal(r.code, PRIV_DENIED);
+      const check = await db.query(`select duration_seconds from public.lessons where id = $1`, [ID.lessonA]);
+      assert.equal(check.rows[0].duration_seconds, DURACION_LESSON_A);
+    });
+
+    test('control positivo: crea la leccion (sin duracion) y le cambia el titulo', async () => {
+      const alta = await asOwnerTeacher(db, () =>
+        attempt(
+          db,
+          `insert into public.lessons (course_id, module_id, position, title)
+           values ($1, $2, 22, 'Borrador de leccion')`,
           [ID.courseA, ID.moduleA],
         ),
       );
@@ -329,48 +408,230 @@ describe('T-011 · guards de INSERT', () => {
       assert.equal(edicion.ok, true, `el guard rompio la edicion legitima: ${edicion.message}`);
     });
 
-    test('control positivo: service_role si carga el video y publica (T-005)', async () => {
+    test('control positivo: service_role carga video + duracion y publica (T-005)', async () => {
       const r = await asService(db, () =>
         attempt(
           db,
-          `update public.lessons set video_id = 'bQw4w9WgXcQ', is_published = true
+          `update public.lessons set video_id = 'bQw4w9WgXcQ', duration_seconds = 1200, is_published = true
            where position = 22 and course_id = $1`,
           [ID.courseA],
         ),
       );
       assert.equal(r.ok, true, `el guard alcanzo a service_role: ${r.message}`);
+      const check = await db.query(
+        `select duration_seconds, is_published from public.lessons where position = 22 and course_id = $1`,
+        [ID.courseA],
+      );
+      assert.equal(check.rows[0].duration_seconds, 1200);
+      assert.equal(check.rows[0].is_published, true);
     });
   });
 
   // ------------------------------------------------------------ criterio 4
-  describe('c.4 · barrido de TODO grant de INSERT para authenticated', () => {
-    test('ninguna tabla tiene INSERT a nivel de TABLA: todo es whitelist de columnas', async () => {
-      assert.deepEqual(await tablasConInsertEntero(db), []);
+  describe('c.4 · barrido de TODO grant de INSERT para los roles de cliente', () => {
+    test('ninguna tabla tiene INSERT a nivel de TABLA, en ninguno de los dos roles', async () => {
+      for (const rol of ROLES_CLIENTE) {
+        assert.deepEqual(await tablasConInsertEntero(db, rol), [], `${rol} tiene INSERT de tabla`);
+      }
     });
 
-    test('el whitelist de columnas es exactamente el declarado y decidido', async () => {
-      assert.deepEqual(await columnasConInsert(db), listaEsperada);
+    test('el whitelist de columnas de `authenticated` es exactamente el declarado y decidido', async () => {
+      assert.deepEqual(await columnasConInsert(db, 'authenticated'), listaEsperada);
+    });
+
+    // T-012 · H-2. anon no escribe NADA: no tiene sesion, no hay fila que le pertenezca.
+    test('`anon` no tiene ni un solo INSERT', async () => {
+      assert.deepEqual(await columnasConInsert(db, 'anon'), []);
     });
 
     test('las columnas de servidor no figuran en ningun grant de INSERT', async () => {
-      const lista = await columnasConInsert(db);
-      for (const col of [
-        'lesson_progress.completed',
-        'lesson_progress.completed_at',
-        'courses.status',
-        'courses.featured',
-        'courses.published_at',
-        'lessons.is_published',
-        'lessons.video_id',
-      ]) {
-        assert.ok(!lista.includes(col), `${col} volvio al grant de INSERT`);
+      for (const rol of ROLES_CLIENTE) {
+        const lista = await columnasConInsert(db, rol);
+        for (const col of [
+          'lesson_progress.completed',
+          'lesson_progress.completed_at',
+          'courses.status',
+          'courses.featured',
+          'courses.published_at',
+          'lessons.is_published',
+          'lessons.video_id',
+          'lessons.duration_seconds',
+        ]) {
+          assert.ok(!lista.includes(col), `${col} volvio al grant de INSERT de ${rol}`);
+        }
       }
     });
 
     test('las tablas sin alta desde el cliente siguen sin grant de INSERT', async () => {
-      const lista = await columnasConInsert(db);
-      for (const t of ['profiles', 'enrollments', 'lesson_resources']) {
-        assert.ok(!lista.some((c) => c.startsWith(`${t}.`)), `${t} gano un grant de INSERT`);
+      for (const rol of ROLES_CLIENTE) {
+        const lista = await columnasConInsert(db, rol);
+        for (const t of ['profiles', 'enrollments', 'lesson_resources']) {
+          assert.ok(!lista.some((c) => c.startsWith(`${t}.`)), `${t} gano un INSERT para ${rol}`);
+        }
+      }
+    });
+  });
+
+  // ------------------------------------------------------------ T-012 · publicacion
+  describe('publicar exige una duracion real (lessons_published_needs_video)', () => {
+
+    test('ni service_role publica una leccion con duracion 0', async () => {
+      const r = await asService(db, () =>
+        attempt(
+          db,
+          `insert into public.lessons (course_id, module_id, position, title, video_id, duration_seconds, is_published)
+           values ($1, $2, 41, 'Publicada sin duracion', 'cQw4w9WgXcQ', 0, true)`,
+          [ID.courseA, ID.moduleA],
+        ),
+      );
+      assert.equal(r.ok, false, 'se publico una leccion que nadie podria completar nunca');
+      assert.equal(r.code, CHECK_VIOLATION);
+      assert.match(r.message, /lessons_published_needs_video/);
+    });
+
+    test('tampoco se llega por UPDATE: bajar la duracion de una leccion publicada', async () => {
+      const r = await asService(db, () =>
+        attempt(db, `update public.lessons set duration_seconds = 0 where id = $1`, [ID.lessonA]),
+      );
+      assert.equal(r.ok, false, 'una leccion publicada quedo con duracion 0');
+      assert.equal(r.code, CHECK_VIOLATION);
+    });
+
+    test('sigue exigiendo el video (la mitad que ya existia)', async () => {
+      const r = await asService(db, () =>
+        attempt(
+          db,
+          `insert into public.lessons (course_id, module_id, position, title, duration_seconds, is_published)
+           values ($1, $2, 42, 'Publicada sin video', 600, true)`,
+          [ID.courseA, ID.moduleA],
+        ),
+      );
+      assert.equal(r.ok, false);
+      assert.equal(r.code, CHECK_VIOLATION);
+    });
+
+    // EL PUNTO DEL DISEÑO: el alta es de dos pasos, y el paso 1 tiene que seguir siendo posible.
+    // Sin `id` en el INSERT: la columna nunca estuvo en el grant del docente (0003) y nombrarla
+    // devuelve 42501, que no tiene nada que ver con lo que este control mide.
+    const idDelBorrador = async () =>
+      (await db.query(`select id from public.lessons where position = 43 and course_id = $1`, [ID.courseA]))
+        .rows[0]?.id;
+
+    test('control positivo: la docente crea el BORRADOR con duracion 0', async () => {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(
+          db,
+          `insert into public.lessons (course_id, module_id, position, title)
+           values ($1, $2, 43, 'Esqueleto sin video')`,
+          [ID.courseA, ID.moduleA],
+        ),
+      );
+      assert.equal(r.ok, true, `el constraint rompio el paso 1 del alta: ${r.message}`);
+      const check = await db.query(
+        `select duration_seconds, video_id, is_published from public.lessons where position = 43 and course_id = $1`,
+        [ID.courseA],
+      );
+      assert.deepEqual(check.rows[0], { duration_seconds: 0, video_id: null, is_published: false });
+    });
+
+    test('control positivo: el paso 2 publica la misma leccion bien formada', async () => {
+      const r = await asService(db, () =>
+        attempt(
+          db,
+          `update public.lessons set video_id = 'cQw4w9WgXcQ', duration_seconds = 900, is_published = true
+           where position = 43 and course_id = $1`,
+          [ID.courseA],
+        ),
+      );
+      assert.equal(r.ok, true, `el constraint rompio el paso 2 del alta: ${r.message}`);
+      const check = await db.query(
+        `select duration_seconds, is_published from public.lessons where position = 43 and course_id = $1`,
+        [ID.courseA],
+      );
+      assert.deepEqual(check.rows[0], { duration_seconds: 900, is_published: true });
+    });
+
+    test('control positivo: y una vez publicada, el alumno inscripto puede certificarla', async () => {
+      const lessonId = await idDelBorrador();
+      const alta = await asStudent(db, () =>
+        attempt(
+          db,
+          `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+           values ($1, $2, $3, 810)`,
+          [ID.student, ID.courseA, lessonId],
+        ),
+      );
+      assert.equal(alta.ok, true, alta.message);
+      const fila = await progresoDe(db, lessonId);
+      assert.equal(fila.completed, true, '810 de 900 es el 90 %: deberia certificar');
+    });
+  });
+
+  // ------------------------------------------------------------ T-012 · H-1
+  describe('H-1 · lesson_progress_completes() ya no es un oraculo de duration_seconds', () => {
+    test('la RLS oculta la leccion del borrador ajeno', async () => {
+      const r = await asStudent(db, () =>
+        attempt(db, `select duration_seconds from public.lessons where id = $1`, [LESSON_OCULTA]),
+      );
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows.length, 0, 'la leccion del borrador ajeno es visible');
+    });
+
+    test('el alumno no puede invocar la funcion: no tiene EXECUTE', async () => {
+      const r = await asStudent(db, () =>
+        attempt(db, `select public.lesson_progress_completes($1, $2) as c`, [LESSON_OCULTA, UMBRAL_OCULTO]),
+      );
+      assert.equal(r.ok, false, 'la funcion sigue siendo invocable por el cliente');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('la busqueda binaria muere en el primer paso', async () => {
+      const r = await oraculo(db, LESSON_OCULTA, (fn) => asStudent(db, fn));
+      assert.equal(r.umbral, undefined, `el oraculo devolvio el umbral ${r.umbral}`);
+      assert.equal(r.denied, PRIV_DENIED);
+    });
+
+    // La otra via de consulta —escribir progreso y leer `completed`— si esta compuertada, y por la
+    // policy, no por la funcion: sobre un borrador ajeno no hay inscripcion activa ni preview.
+    test('tampoco se consulta escribiendo progreso sobre la leccion oculta', async () => {
+      const r = await asStudent(db, () =>
+        attempt(
+          db,
+          `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+           values ($1, $2, $3, 3889)`,
+          [ID.student, ID.courseDraft, LESSON_OCULTA],
+        ),
+      );
+      assert.equal(r.ok, false, 'el trigger contesto sobre una leccion que la RLS oculta');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('control positivo: el alumno sigue certificando su propio progreso', async () => {
+      const fila = await progresoDe(db, ID.lessonA);
+      assert.equal(fila.completed, true, 'el revoke de EXECUTE rompio el camino legitimo');
+    });
+
+    // El fix mueve los dos guards de progreso a SECURITY DEFINER. Esa es la condicion que permite
+    // sacarle el EXECUTE al cliente, y no reintroduce la trampa de 0005 solo porque estos dos no
+    // consultan `current_user`. Si alguien les agrega un bypass de service_role, deja de ser cierto.
+    test('los guards de progreso son DEFINER; los que miran current_user siguen INVOKER', async () => {
+      const r = await db.query(`
+        select p.proname, p.prosecdef, p.prosrc
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname in ('guard_lesson_progress', 'guard_lesson_progress_insert',
+                            'guard_courses_insert', 'guard_lessons')
+      `);
+      const f = Object.fromEntries(r.rows.map((x) => [x.proname, x]));
+      assert.equal(f.guard_lesson_progress.prosecdef, true);
+      assert.equal(f.guard_lesson_progress_insert.prosecdef, true);
+      assert.equal(f.guard_courses_insert.prosecdef, false);
+      assert.equal(f.guard_lessons.prosecdef, false);
+      for (const g of ['guard_lesson_progress', 'guard_lesson_progress_insert']) {
+        assert.ok(
+          !f[g].prosrc.includes('is_service_context'),
+          `${g} es DEFINER y consulta current_user: se auto-eximiria siempre`,
+        );
       }
     });
   });
@@ -452,6 +713,84 @@ describe('T-011 · controles de mutacion', () => {
     await db.close();
   });
 
+  // T-012 · H-3 · aislamiento de capa. c.1 ya tenia el par completo (capa 1 sola / ambas capas);
+  // c.2 y c.3 solo tenian "ambas", asi que no distinguian si al ataque lo detiene el grant o el
+  // trigger — y lo que T-011 agrega es el trigger. Se afirma tambien sobre el MENSAJE: sin eso,
+  // un 42501 de cualquier otra procedencia daria el test por bueno.
+  test('c.2 capa 1 revertida (vuelve el grant): courses_guard_insert detiene el ataque SOLO', async () => {
+    const { db } = await bootDatabase({
+      afterMigrations: [
+        `grant insert (status, published_at, featured) on public.courses to authenticated;`,
+      ],
+    });
+    await seed(db);
+    const ataques = [
+      [`status, published_at`, `'published', now()`, /draft/],
+      [`featured`, `true`, /curaduria/],
+      [`published_at`, `now()`, /published_at/],
+    ];
+    for (const [cols, vals, esperado] of ataques) {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(
+          db,
+          `insert into public.courses (slug, title, discipline, level, teacher_id, ${cols})
+           values ('t012-aislado', 'Aislado', 'tarot', 'iniciacion', $1, ${vals})`,
+          [ID.teacherA],
+        ),
+      );
+      assert.equal(r.ok, false, `con el grant de vuelta no quedo ninguna capa para ${cols}`);
+      assert.equal(r.code, PRIV_DENIED);
+      assert.match(r.message, esperado, `no lo corto courses_guard_insert sino otra cosa: ${r.message}`);
+    }
+    const check = await db.query(`select count(*)::int as n from public.courses where slug = 't012-aislado'`);
+    assert.equal(check.rows[0].n, 0);
+    await db.close();
+  });
+
+  test('c.3 capa 1 revertida (vuelve el grant): lessons_guard detiene los seis ataques SOLO', async () => {
+    const { db } = await bootDatabase({
+      afterMigrations: [
+        `grant insert (is_published, video_id, duration_seconds) on public.lessons to authenticated;
+         grant update (is_published, video_id, duration_seconds) on public.lessons to authenticated;`,
+      ],
+    });
+    await seed(db);
+
+    const altas = [
+      [`is_published`, `true`, /is_published/],
+      [`video_id`, `'HACKHACK123'`, /video_id/],
+      [`duration_seconds`, `600`, /duration_seconds/],
+    ];
+    for (const [col, val, esperado] of altas) {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(
+          db,
+          `insert into public.lessons (course_id, module_id, position, title, ${col})
+           values ($1, $2, 31, 'Aislada', ${val})`,
+          [ID.courseA, ID.moduleA],
+        ),
+      );
+      assert.equal(r.ok, false, `con el grant de vuelta no quedo ninguna capa para ${col}`);
+      assert.equal(r.code, PRIV_DENIED);
+      assert.match(r.message, esperado, `no lo corto lessons_guard sino otra cosa: ${r.message}`);
+    }
+
+    const ediciones = [
+      [`is_published = false`, /is_published/],
+      [`video_id = 'HACKHACK123'`, /video_id/],
+      [`duration_seconds = 5`, /duration_seconds/],
+    ];
+    for (const [set, esperado] of ediciones) {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(db, `update public.lessons set ${set} where id = $1`, [ID.lessonA]),
+      );
+      assert.equal(r.ok, false, `con el grant de vuelta no quedo ninguna capa para ${set}`);
+      assert.equal(r.code, PRIV_DENIED);
+      assert.match(r.message, esperado, `no lo corto lessons_guard sino otra cosa: ${r.message}`);
+    }
+    await db.close();
+  });
+
   test('c.2 · con el grant de vuelta y sin courses_guard_insert, la docente se autopublica', async () => {
     const { db } = await bootDatabase({
       afterMigrations: [
@@ -477,16 +816,19 @@ describe('T-011 · controles de mutacion', () => {
   test('c.3 · con el grant de vuelta y sin lessons_guard, la leccion nace publicada', async () => {
     const { db } = await bootDatabase({
       afterMigrations: [
-        `grant insert (is_published, video_id) on public.lessons to authenticated;`,
+        `grant insert (is_published, video_id, duration_seconds) on public.lessons to authenticated;`,
         `drop trigger lessons_guard on public.lessons;`,
       ],
     });
     await seed(db);
+    // La fila lleva `duration_seconds` porque `lessons_published_needs_video` (T-012) exige duracion
+    // real para publicar. Es una capa ORTOGONAL: si la fila fuera invalida por ella, este control
+    // moriria con 23514 y dejaria de demostrar lo suyo — que sin el trigger el ataque pasa.
     const r = await asOwnerTeacher(db, () =>
       attempt(
         db,
-        `insert into public.lessons (course_id, module_id, position, title, video_id, is_published)
-         values ($1, $2, 21, 'Nace publicada', 'HACKHACK123', true)`,
+        `insert into public.lessons (course_id, module_id, position, title, video_id, duration_seconds, is_published)
+         values ($1, $2, 21, 'Nace publicada', 'HACKHACK123', 600, true)`,
         [ID.courseA, ID.moduleA],
       ),
     );
@@ -502,12 +844,143 @@ describe('T-011 · controles de mutacion', () => {
 
   test('c.4 · el barrido detecta un grant nuevo (la asercion no es vacua)', async () => {
     const { db } = await bootDatabase({ afterMigrations: [GRANT_COMPLETED] });
-    const lista = await columnasConInsert(db);
+    const lista = await columnasConInsert(db, 'authenticated');
     assert.ok(
       lista.includes('lesson_progress.completed') && lista.includes('lesson_progress.completed_at'),
       'la enumeracion de grants no ve las columnas que dice ver',
     );
     assert.notDeepEqual(lista, listaEsperada);
+    await db.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-012 · CONTROLES DE MUTACION — uno por fix, cada uno revirtiendo SOLO su linea.
+// ---------------------------------------------------------------------------
+describe('T-012 · controles de mutacion', () => {
+  test('H-1 · con el EXECUTE de vuelta, la busqueda binaria recupera la duracion oculta', async () => {
+    const { db } = await bootDatabase({
+      afterMigrations: [
+        `grant execute on function public.lesson_progress_completes(uuid, integer) to authenticated;`,
+      ],
+    });
+    await seed(db);
+    await sembrarLeccionOculta(db);
+
+    // La RLS sigue ocultando la fila: la fuga es la funcion, no la tabla.
+    const directo = await asStudent(db, () =>
+      attempt(db, `select duration_seconds from public.lessons where id = $1`, [LESSON_OCULTA]),
+    );
+    assert.equal(directo.rows.length, 0);
+
+    const r = await oraculo(db, LESSON_OCULTA, (fn) => asStudent(db, fn));
+    assert.equal(r.denied, undefined, 'no era el revoke de EXECUTE lo que cerraba el oraculo');
+    assert.equal(r.umbral, UMBRAL_OCULTO);
+    assert.equal(r.duracion, DURACION_OCULTA, 'la duracion oculta se recupera exacta');
+    await db.close();
+  });
+
+  test('H-1 · el fix no rompe el camino legitimo: el guard sigue certificando', async () => {
+    // El riesgo del fix es el simetrico: si los guards hubieran quedado INVOKER sin EXECUTE, el
+    // INSERT legitimo moriria con 42501 DENTRO del trigger. Se prueba con el guard vuelto a INVOKER.
+    const { db } = await bootDatabase({
+      afterMigrations: [
+        `alter function public.guard_lesson_progress_insert() security invoker;`,
+      ],
+    });
+    await seed(db);
+    const r = await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 10)`,
+        [ID.student, ID.courseA, ID.lessonA],
+      ),
+    );
+    assert.equal(r.ok, false, 'el guard INVOKER sin EXECUTE deberia morir dentro del trigger');
+    assert.equal(r.code, PRIV_DENIED);
+    await db.close();
+  });
+
+  test('constraint · con la version vieja, se publica una leccion incompletable', async () => {
+    const { db } = await bootDatabase({
+      afterMigrations: [
+        // SOLO la mitad que agrega T-012: vuelve el constraint tal cual lo dejo T-001.
+        `alter table public.lessons drop constraint lessons_published_needs_video;
+         alter table public.lessons add constraint lessons_published_needs_video
+           check (not is_published or video_id is not null);`,
+      ],
+    });
+    await seed(db);
+    const LECCION = '60000000-0000-4000-8000-0000000000ff';
+    const r = await asService(db, () =>
+      attempt(
+        db,
+        `insert into public.lessons (id, course_id, module_id, position, title, video_id, duration_seconds, is_published)
+         values ($1, $2, $3, 41, 'Publicada sin duracion', 'cQw4w9WgXcQ', 0, true)`,
+        [LECCION, ID.courseA, ID.moduleA],
+      ),
+    );
+    assert.equal(r.ok, true, 'no era el constraint lo que bloqueaba la publicacion');
+
+    // Y el daño concreto que evita: la leccion se publica y es INCOMPLETABLE para siempre —
+    // ni viendo un millon de segundos cruza un umbral que se calcula sobre duracion 0.
+    await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 999999)`,
+        [ID.student, ID.courseA, LECCION],
+      ),
+    );
+    const fila = await progresoDe(db, LECCION);
+    assert.equal(fila.completed, false, 'si completara, el constraint no estaria protegiendo nada');
+    await db.close();
+  });
+
+  test('H-2 · el barrido ve un INSERT otorgado a `anon`', async () => {
+    const { db } = await bootDatabase({
+      afterMigrations: [`grant insert (body) on public.lesson_notes to anon;`],
+    });
+    assert.deepEqual(await columnasConInsert(db, 'anon'), ['lesson_notes.body']);
+    // Y la version vieja del barrido (solo authenticated) no se enteraba:
+    assert.deepEqual(await columnasConInsert(db, 'authenticated'), listaEsperada);
+    await db.close();
+  });
+
+  test('punto 4 · con duration_seconds escribible, la docente certifica a toda la cohorte', async () => {
+    const { db } = await bootDatabase({
+      afterMigrations: [
+        `grant update (duration_seconds) on public.lessons to authenticated;`,
+        `drop trigger lessons_guard on public.lessons;`,
+      ],
+    });
+    await seed(db);
+    await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 10)`,
+        [ID.student, ID.courseA, ID.lessonA],
+      ),
+    );
+    const antes = await progresoDe(db, ID.lessonA);
+    assert.equal(antes.completed, false);
+
+    const baja = await asOwnerTeacher(db, () =>
+      attempt(db, `update public.lessons set duration_seconds = 5 where id = $1`, [ID.lessonA]),
+    );
+    assert.equal(baja.ok, true, 'no era el grant/guard lo que impedia mover la vara');
+
+    // Basta la siguiente escritura de progreso del alumno — ni siquiera hay que tocar su fila.
+    await asStudent(db, () =>
+      attempt(db, `update public.lesson_progress set last_seen_at = now() where lesson_id = $1`, [
+        ID.lessonA,
+      ]),
+    );
+    const despues = await progresoDe(db, ID.lessonA);
+    assert.equal(despues.completed, true, 'la vara movida no certificaba: el control seria vacuo');
+    assert.equal(despues.seconds_watched, 10);
     await db.close();
   });
 });
