@@ -15,11 +15,6 @@ const FILTERS = {
     { label:"Intermedio", count:22, active:true  },
     { label:"Maestría",   count:8,  active:false },
   ],
-  formato: [
-    { label:"Live + grabado", count:20, active:true  },
-    { label:"Solo grabado",   count:22, active:false },
-    { label:"Presencial",     count:6,  active:false },
-  ],
   duracion: [
     { label:"Hasta 6 semanas",  count:12, active:false },
     { label:"De 6 a 10",        count:8,  active:false },
@@ -73,7 +68,6 @@ export default async function CatalogPage() {
           </div>
           <FilterGroup title="Disciplina" items={FILTERS.disciplina} />
           <FilterGroup title="Nivel"      items={FILTERS.nivel} />
-          <FilterGroup title="Formato"    items={FILTERS.formato} />
           <FilterGroup title="Duración" items={FILTERS.duracion} />
           <button className="mt-2 font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-lila-300 transition-colors">
             Limpiar filtros ✕

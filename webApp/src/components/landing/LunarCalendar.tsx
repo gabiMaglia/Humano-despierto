@@ -60,11 +60,6 @@ export default function LunarCalendar() {
               <Moon phase={d.phase} today={"today" in d && d.today} />
               <span className="font-display text-[11px] tracking-[0.2em] text-ink">{d.date}</span>
               <span className="font-quote italic text-sm text-ink-soft">{d.label}</span>
-              {"event" in d && d.event && (
-                <span className="absolute -bottom-6 font-display text-[10px] tracking-[0.1em] text-gold-400">
-                  {d.event}
-                </span>
-              )}
             </div>
           ))}
         </div>

@@ -78,10 +78,10 @@ export const GUIAS: Guia[] = [
       { year: "MMXX", title: "Trauma-informed counseling", place: "Online" },
     ],
     courses: [
-      { num: "I", tag: "Tarot · Iniciación", title: "El loco emprende camino", students: "XLII", moon: "◐", status: "En curso", slug: "el-loco" },
-      { num: "II", tag: "Tarot · Maestría", title: "Tarot iniciático", students: "XII", moon: "○", status: "Próximo · 6 may", slug: "tarot-iniciatico" },
+      { num: "I", tag: "Tarot · Iniciación", title: "El loco emprende camino", students: "XLII", moon: "◐", status: "Abierto", slug: "el-loco" },
+      { num: "II", tag: "Tarot · Maestría", title: "Tarot iniciático", students: "XII", moon: "○", status: "Abierto", slug: "tarot-iniciatico" },
       { num: "III", tag: "Astrología · Maestría", title: "Cartografía del alma", students: "XXIV", moon: "●", status: "Cerrado", slug: "cartografia" },
-      { num: "IV", tag: "Encuentro · 1 día", title: "Plenilunio en Escorpio", students: "C", moon: "●", status: "Próximo · 23 may", slug: "plenilunio" },
+      { num: "IV", tag: "Taller · 1 día", title: "Plenilunio en Escorpio", students: "C", moon: "●", status: "Abierto", slug: "plenilunio" },
     ],
     testimonios: [
       { text: "Hizo de un mazo de cartas un espejo del que no quiero alejarme.", who: "Lía M.", course: "Tarot iniciático MMXXV" },
@@ -122,8 +122,8 @@ export const GUIAS: Guia[] = [
       { year: "MMXXII", title: "Ética de la consulta astrológica", place: "Bogotá" },
     ],
     courses: [
-      { num: "I", tag: "Astrología · Inicial", title: "Carta natal esencial", students: "XXXVIII", moon: "○", status: "En curso", slug: "carta-natal-esencial" },
-      { num: "II", tag: "Astrología · Intermedio", title: "Tránsitos y retornos", students: "XVI", moon: "◐", status: "Próximo · 14 sep", slug: "transitos-retornos" },
+      { num: "I", tag: "Astrología · Inicial", title: "Carta natal esencial", students: "XXXVIII", moon: "○", status: "Abierto", slug: "carta-natal-esencial" },
+      { num: "II", tag: "Astrología · Intermedio", title: "Tránsitos y retornos", students: "XVI", moon: "◐", status: "Abierto", slug: "transitos-retornos" },
       { num: "III", tag: "Astrología · Inicial", title: "Las doce casas", students: "LII", moon: "◑", status: "Cerrado", slug: "doce-casas" },
     ],
     testimonios: [
@@ -164,8 +164,8 @@ export const GUIAS: Guia[] = [
       { year: "MMXXII", title: "Astrología horaria", place: "Online" },
     ],
     courses: [
-      { num: "I", tag: "Astrología · Vínculos", title: "Sinastría: el mapa del vínculo", students: "XX", moon: "◑", status: "En curso", slug: "sinastria-vinculo" },
-      { num: "II", tag: "Astrología · Anual", title: "Retorno solar: leer el año que empieza", students: "XXX", moon: "○", status: "Próximo · 21 dic", slug: "retorno-solar" },
+      { num: "I", tag: "Astrología · Vínculos", title: "Sinastría: el mapa del vínculo", students: "XX", moon: "◑", status: "Abierto", slug: "sinastria-vinculo" },
+      { num: "II", tag: "Astrología · Anual", title: "Retorno solar: leer el año que empieza", students: "XXX", moon: "○", status: "Abierto", slug: "retorno-solar" },
       { num: "III", tag: "Astrología · Consulta", title: "Astrología horaria: preguntas al cielo", students: "XIV", moon: "●", status: "Cerrado", slug: "astrologia-horaria" },
     ],
     testimonios: [
@@ -206,8 +206,8 @@ export const GUIAS: Guia[] = [
       { year: "MMXXIII", title: "Etnobotánica del sur de México", place: "Online" },
     ],
     courses: [
-      { num: "I", tag: "Herbal · Iniciación", title: "Botica de monte: plantas del patio", students: "XXVIII", moon: "○", status: "En curso", slug: "botica-de-monte" },
-      { num: "II", tag: "Herbal · Intermedio", title: "Fermentos de plantas: vinagres y jarabes", students: "XVIII", moon: "◐", status: "Próximo · 9 oct", slug: "fermentos-de-plantas" },
+      { num: "I", tag: "Herbal · Iniciación", title: "Botica de monte: plantas del patio", students: "XXVIII", moon: "○", status: "Abierto", slug: "botica-de-monte" },
+      { num: "II", tag: "Herbal · Intermedio", title: "Fermentos de plantas: vinagres y jarabes", students: "XVIII", moon: "◐", status: "Abierto", slug: "fermentos-de-plantas" },
     ],
     testimonios: [
       { text: "Me enseñó a reconocer lo que ya crecía en mi propio patio. Dejé de buscar tan lejos.", who: "Valeria N.", course: "Botica de monte MMXXV" },
@@ -247,8 +247,8 @@ export const GUIAS: Guia[] = [
       { year: "MMXXIII", title: "Reiki nivel III · maestría", place: "Buenos Aires" },
     ],
     courses: [
-      { num: "I", tag: "Reiki · Nivel II", title: "Reiki nivel II: símbolos y práctica a distancia", students: "XVI", moon: "◐", status: "En curso", slug: "reiki-nivel-2" },
-      { num: "II", tag: "Reiki · Práctica", title: "Círculo de práctica: imposición de manos", students: "XXII", moon: "●", status: "Próximo · 5 nov", slug: "circulo-imposicion-manos" },
+      { num: "I", tag: "Reiki · Nivel II", title: "Reiki nivel II: símbolos y práctica a distancia", students: "XVI", moon: "◐", status: "Abierto", slug: "reiki-nivel-2" },
+      { num: "II", tag: "Reiki · Práctica", title: "Círculo de práctica: imposición de manos", students: "XXII", moon: "●", status: "Abierto", slug: "circulo-imposicion-manos" },
     ],
     testimonios: [
       { text: "No promete nada que no pueda sostener. Solo silencio, presencia y manos quietas — y con eso alcanza.", who: "Marcos T.", course: "Reiki nivel II MMXXV" },
