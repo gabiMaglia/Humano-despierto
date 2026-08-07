@@ -28,9 +28,9 @@ export const COM = {
   members: [
     { glyph:"☉", name:"Sol Mayor",  role:"MAESTRA · TAROT",  online:true  },
     { glyph:"♀", name:"Luz Marini", role:"MAESTRA · ASTRO",  online:true  },
-    { glyph:"☽", name:"Mariana T.", role:"ESTUDIANTE · XII",  online:true  },
-    { glyph:"✦", name:"Cami R.",    role:"ESTUDIANTE · XV",  online:false },
-    { glyph:"◐", name:"Lía M.",     role:"ESTUDIANTE · XV",  online:true  },
+    { glyph:"☽", name:"Mariana T.", role:"ESTUDIANTE · ASTROLOGÍA",  online:true  },
+    { glyph:"✦", name:"Cami R.",    role:"ESTUDIANTE · TAROT",  online:false },
+    { glyph:"◐", name:"Lía M.",     role:"ESTUDIANTE · HERBAL",  online:true  },
     { glyph:"☘", name:"Mara Iturri",role:"MAESTRA · HERBAL", online:false },
   ],
   pact: [
