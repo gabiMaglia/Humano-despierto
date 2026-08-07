@@ -137,11 +137,11 @@ export default function DashboardPage() {
 
             <SideCard>
               <p className="mb-1 font-display text-eyebrow tracking-cosmic text-lila-300">Quizás te llame</p>
-              <h3 className="mb-2 font-display text-sm tracking-wide text-ink">Plenilunio en Escorpio</h3>
+              <h3 className="mb-2 font-display text-sm tracking-wide text-ink">Herbario lunar</h3>
               <p className="mb-3 font-body text-xs text-ink-soft leading-relaxed">
-                Encuentro abierto · 23 de mayo · con Sol Mayor. Para quienes ya cruzaron el primer umbral.
+                Plantas aliadas según la fase de la luna, con Aurora Violeta. Ocho semanas a tu ritmo, para quienes ya cruzaron el primer umbral.
               </p>
-              <a href="#" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Inscribirme ↦</a>
+              <a href="/cursos/herbario-lunar" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver el recorrido ↦</a>
             </SideCard>
           </aside>
         </div>
