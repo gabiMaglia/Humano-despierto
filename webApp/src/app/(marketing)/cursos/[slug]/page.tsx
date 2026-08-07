@@ -131,9 +131,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         </svg>
         <p className="mb-3 mt-10 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El Umbral —</p>
         <h2 className="mb-3 font-display text-4xl tracking-wide text-ink">
-          Próxima cohorte abre con la <em className="font-quote italic text-lila-300">luna nueva</em>
+          El umbral está <em className="font-quote italic text-lila-300">abierto</em>
         </h2>
-        <p className="mb-8 font-quote italic text-lg text-ink-soft">{C.cohort} · cierra inscripciones al filo del eclipse</p>
+        <p className="mb-8 font-quote italic text-lg text-ink-soft">Acceso inmediato · empezá cuando quieras, a tu propio ritmo</p>
 
         <div className="mx-auto max-w-xs cosmos-card p-6 mb-8 text-left">
           <div className="flex justify-between items-baseline mb-2">

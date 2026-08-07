@@ -10,7 +10,6 @@ export interface CourseCardData {
   teacher: string;
   price: string;
   weeks?: string;
-  format?: string;
   level?: string;
   moon?: string;
   featured?: boolean;
@@ -23,7 +22,7 @@ interface Props extends CourseCardData {
 
 export default function CourseCard({
   num, tag, title, titleEm, desc, teacher, price,
-  weeks, format, level, moon, featured, slug, className,
+  weeks, level, moon, featured, slug, className,
 }: Props) {
   return (
     <article

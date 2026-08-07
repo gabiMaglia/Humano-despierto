@@ -24,10 +24,6 @@ export default function PlayerPage() {
           <span className="text-lila-300/30">·</span>
           <span className="text-lila-300">Lección {L.lessonNum}</span>
         </div>
-        <div className="flex items-center gap-1.5 font-display text-eyebrow tracking-cosmic text-lila-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-gold-400 animate-pulse" style={{ boxShadow:"0 0 6px #f5d76e" }} />
-          Cohorte XII
-        </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
@@ -53,7 +49,6 @@ export default function PlayerPage() {
             {/* Overlay */}
             <div className="absolute inset-0" style={{ background:"linear-gradient(to top, rgba(10,4,24,0.9) 0%, transparent 50%)" }} />
             <div className="absolute bottom-0 left-0 right-0 p-5">
-              <p className="mb-1 font-display text-eyebrow tracking-cosmic text-gold-400">En vivo hace 4 días · Grabado</p>
               <h1 className="font-display text-xl tracking-wide text-ink mb-1">{L.title}</h1>
               <div className="flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
                 <span>{L.maestra}</span><span className="text-lila-300/30">·</span>
@@ -180,12 +175,6 @@ export default function PlayerPage() {
                     <span className="flex-none text-lila-300 hover:text-gold-400 transition-colors cursor-pointer">↓</span>
                   </div>
                 ))}
-                <div className="cosmos-card p-4 mt-4">
-                  <p className="mb-1 font-display text-eyebrow tracking-cosmic text-lila-300">Próximo en vivo</p>
-                  <h4 className="mb-1 font-display text-sm tracking-wide text-ink">El árbol de la vida</h4>
-                  <p className="mb-3 font-display text-eyebrow tracking-cosmic text-gold-400">MAR 30 abr · 19:00</p>
-                  <a href="#" className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] py-1.5">Agregar al calendario</a>
-                </div>
               </div>
             )}
           </div>
