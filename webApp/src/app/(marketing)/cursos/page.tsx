@@ -1,6 +1,7 @@
 import CourseCard from "@/components/molecules/CourseCard";
 import PageHeader from "@/components/layout/PageHeader";
-import { CATALOG_COURSES } from "@/lib/mocks/courses";
+import { getPublishedCourses } from "@/lib/server/courses";
+import { formatPriceCents } from "@/lib/utils/format";
 
 const FILTERS = {
   disciplina: [
@@ -45,7 +46,9 @@ function FilterGroup({ title, items }: { title: string; items: { label: string; 
   );
 }
 
-export default function CatalogPage() {
+export default async function CatalogPage() {
+  const courses = await getPublishedCourses();
+
   return (
     <div className="min-h-screen bg-cosmos-0">
       <PageHeader
@@ -96,8 +99,21 @@ export default function CatalogPage() {
 
           {/* Grid */}
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {CATALOG_COURSES.map((course) => (
-              <CourseCard key={course.slug} {...course} />
+            {courses.map((course) => (
+              <CourseCard
+                key={course.slug}
+                num={course.romanNum ?? ""}
+                tag={course.discipline}
+                level={course.level}
+                title={course.title}
+                titleEm={course.titleEm ?? undefined}
+                desc={course.desc ?? ""}
+                teacher={course.teacherName}
+                price={formatPriceCents(course.priceCents, course.currency)}
+                moon={course.moonGlyph ?? undefined}
+                featured={course.featured}
+                slug={course.slug}
+              />
             ))}
           </div>
 
