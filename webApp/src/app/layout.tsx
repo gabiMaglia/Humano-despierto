@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cinzel, Quicksand, Cormorant_Garamond, Cardo } from "next/font/google";
+import AuthProvider from "@/components/providers/AuthProvider";
 import "@/styles/globals.css";
 
 const cinzel = Cinzel({
@@ -45,7 +46,7 @@ export default function RootLayout({
       className={`${cinzel.variable} ${quicksand.variable} ${cormorantGaramond.variable} ${cardo.variable}`}
     >
       <body className="bg-cosmos-0 text-ink antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

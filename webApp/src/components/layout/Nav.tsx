@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/useAuthStore";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV_LINKS = [
   { label: "Cursos",  href: "/cursos"  },
@@ -10,7 +12,15 @@ const NAV_LINKS = [
 ];
 
 export default function Nav() {
-  const { isSignedIn, user, signOut } = useAuthStore();
+  const { isSignedIn, user } = useAuthStore();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 border-b border-lila-300/20 bg-cosmos-0/80 backdrop-blur-md">
@@ -56,12 +66,12 @@ export default function Nav() {
                 className="hidden md:flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors"
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-full border border-lila-300/40 bg-lila-300/10 text-sm text-lila-300">
-                  {user?.glyph}
+                  {user?.glyph || "☉"}
                 </span>
-                <span>{user?.name}</span>
+                <span>{user?.fullName || user?.email}</span>
               </Link>
               <button
-                onClick={signOut}
+                onClick={handleSignOut}
                 className="font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-gold-400 transition-colors"
               >
                 Salir
