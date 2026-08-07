@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useAuthStore } from "@/lib/stores/useAuthStore";
+import { createClient } from "@/lib/supabase/client";
 import type { SolidType } from "@/components/cosmos/PlatonicSolid";
 
 const PlatonicSolid = dynamic(() => import("@/components/cosmos/PlatonicSolid"), { ssr: false });
@@ -21,18 +21,51 @@ type Tab = "entrar" | "registro";
 
 export default function EntrarPage() {
   const [tab, setTab] = useState<Tab>("entrar");
-  const [solidInfo] = useState(() => SOLIDS[Math.floor(Math.random() * SOLIDS.length)]);
+  // Fijo en SSR y en el primer render del cliente (hidratan igual); recién
+  // después de montar se sortea. Sortear en el useState inicial rompía la
+  // hidratación (server/client HTML distinto) y React remontaba todo el
+  // árbol del formulario, borrando lo que la persona ya había tecleado.
+  const [solidInfo, setSolidInfo] = useState(SOLIDS[0]);
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { signIn } = useAuthStore();
   const router = useRouter();
 
-  function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    // Un solo set, ligado a mount ([]), no hay cascada: es el patrón
+    // documentado de React para "solo aleatorio en el cliente".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSolidInfo(SOLIDS[Math.floor(Math.random() * SOLIDS.length)]);
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    signIn();
+    setError(null);
+    setLoading(true);
+
+    const supabase = createClient();
+
+    const { error: authError } =
+      tab === "entrar"
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: nombre } },
+          });
+
+    setLoading(false);
+
+    if (authError) {
+      setError(authError.message);
+      return;
+    }
+
     router.push("/panel");
+    router.refresh();
   }
 
   return (
@@ -140,11 +173,22 @@ export default function EntrarPage() {
             />
           </div>
 
+          {error && (
+            <p role="alert" className="font-body text-xs text-red-400">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="btn-ritual btn-ritual-primary mt-2 w-full rounded-ritual"
+            disabled={loading}
+            className="btn-ritual btn-ritual-primary mt-2 w-full rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {tab === "entrar" ? "Ingresar" : "Crear cuenta"}
+            {loading
+              ? "Un momento…"
+              : tab === "entrar"
+                ? "Ingresar"
+                : "Crear cuenta"}
           </button>
         </form>
 
@@ -155,10 +199,12 @@ export default function EntrarPage() {
           <div className="h-px flex-1 bg-lila-300/18" />
         </div>
 
-        {/* Google OAuth placeholder */}
+        {/* Google OAuth — sin ADR de OAuth todavía, deshabilitado a propósito */}
         <button
-          onClick={handleSubmit}
-          className="btn-ritual btn-ritual-ghost flex w-full items-center justify-center gap-3 rounded-ritual"
+          type="button"
+          disabled
+          title="Disponible próximamente"
+          className="btn-ritual btn-ritual-ghost flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-ritual opacity-50"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4 flex-none" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
