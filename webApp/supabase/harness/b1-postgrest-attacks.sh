@@ -13,6 +13,7 @@ set -uo pipefail
 API=${API:-http://127.0.0.1:54321}
 DBC=${DBC:-supabase_db_webApp}
 ANON=${ANON:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+SRV=${SRV:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
 PASS='Passw0rd!123'
 fallos=0
 
@@ -97,6 +98,18 @@ esperar "select * sobre lessons"           403 GET "lessons?select=*"        "$A
 esperar "drive_file_id+url, autenticada"   403 GET "lesson_resources?select=drive_file_id,url" "$ALUMNA_JWT"
 esperar "drive_file_id+url, anon"          403 GET "lesson_resources?select=drive_file_id,url" "$ANON"
 esperar "oraculo por filtro (where url)"   403 GET "lesson_resources?url=like.*drive*&select=name" "$ALUMNA_JWT"
+
+echo ""
+echo "── el camino legitimo de service_role POR HTTP (punto ciego que tenia esta suite)"
+# Esta seccion existe porque la suite solo afirmaba que los ataques fallan. Un esquema
+# que le niega todo a todos pasa los 13 ataques igual de bien que uno correcto. Y de
+# hecho pasaba: `service_role` NO tenia privilegio de tabla (medido: 42501 por PostgREST,
+# has_table_privilege = false) y ningun Server Action habria funcionado — lo descubrio
+# el agente de T-006 al necesitarlo, no esta suite. Lo arregla la migracion 0007.
+esperar "service_role lee video_id"        200 GET "lessons?select=id,video_id&limit=1" "$SRV"
+esperar "service_role lee lesson_resources" 200 GET "lesson_resources?select=drive_file_id,url&limit=1" "$SRV"
+esperar "service_role puede inscribir"     201 POST "enrollments" "$SRV" "{\"user_id\":\"$ALUMNA\",\"course_id\":\"$CURSO\",\"status\":\"active\"}"
+x "delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
 
 echo ""
 echo "── caminos legitimos que NO se deben haber roto"
