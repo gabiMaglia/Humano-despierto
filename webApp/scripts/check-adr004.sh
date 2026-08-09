@@ -56,8 +56,23 @@ if [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null)" != "200" ]
   exit 2
 fi
 
+# COOKIE opcional: cookie de sesión para escanear las rutas protegidas de verdad.
+#   COOKIE="sb-...-auth-token=..." bash scripts/check-adr004.sh
+COOKIE=${COOKIE:-}
+
 for r in "${RUTAS[@]}"; do
-  html=$(curl -s -L "$BASE$r" | sed -E "s/($EXCEPCIONES)//gI")
+  # SIN -L a propósito. Segundo agujero por construcción que encontró QA: con -L,
+  # /panel, /leccion/* e /inscribirme/* redirigen a /entrar sin sesión y el guard
+  # terminaba escaneando el login tres veces, dando verde sobre las rutas que MÁS
+  # historial de violaciones tienen. Un redirect ahora se reporta como NO ESCANEADA
+  # y cuenta como falla: el guard no puede quedar en verde sobre lo que no miró.
+  code=$(curl -s -o /tmp/adr_body -w '%{http_code}' ${COOKIE:+-H "Cookie: $COOKIE"} "$BASE$r")
+  if [ "$code" = "307" ] || [ "$code" = "302" ] || [ "$code" = "308" ]; then
+    echo "  ? $r — NO ESCANEADA (HTTP $code, exige sesión)"
+    echo "      correr con COOKIE=... para escanearla; sin eso no se puede afirmar que esté limpia"
+    fallos=$((fallos+1)); continue
+  fi
+  html=$(sed -E "s/($EXCEPCIONES)//gI" /tmp/adr_body)
   hit=0
   for p in "${PATRONES[@]}"; do
     n=$(printf '%s' "$html" | grep -ciE "$p")
