@@ -460,8 +460,14 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       // `guard_lessons`, que son SECURITY INVOKER. `lesson_progress_completes` (T-011) estuvo aca
       // una ronda y salio en T-012 (H-1): con EXECUTE para el cliente era un oraculo de
       // `duration_seconds` sobre lecciones que la RLS oculta.
+      // T-016 suma `text_has_locator`/`array_has_locator`: la expresion de un CHECK se evalua con
+      // los privilegios de QUIEN ESCRIBE, asi que sin EXECUTE la docente no puede renombrar su
+      // propio PDF (42501 dentro del CHECK — medido en el control c.3 de locator-free-text).
+      // No son oraculo de nada: son puras sobre un texto que el llamador ya tiene, no leen tablas.
+      // A `anon` no se le otorgan: no tiene ningun grant de escritura, nunca evalua un CHECK.
       const ESPERADO_AUTH = [
-        ...ESPERADO_ANON, 'can_author', 'has_course_access', 'is_service_context',
+        ...ESPERADO_ANON, 'array_has_locator', 'can_author', 'has_course_access',
+        'is_service_context', 'text_has_locator',
       ].sort();
       const fns = await functionPrivileges(db);
       assert.deepEqual(fns.filter((f) => f.anon).map((f) => f.proname).sort(), ESPERADO_ANON);
