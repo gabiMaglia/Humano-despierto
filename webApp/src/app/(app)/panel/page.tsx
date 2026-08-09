@@ -1,13 +1,41 @@
 import Nav from "@/components/layout/Nav";
-import SideCard from "@/components/molecules/SideCard";
 import ProgressRing from "@/components/atoms/ProgressRing";
-import Avatar from "@/components/atoms/Avatar";
-import SectionDivider from "@/components/atoms/SectionDivider";
-import { STUDENT } from "@/lib/mocks/student";
+import { getCurrentUser } from "@/lib/server/auth";
+import { getStudentDashboard } from "@/lib/server/enrollment";
+import { formatRelativeTime } from "@/lib/utils/relative-time";
+import { toRoman } from "@/lib/utils/roman";
 
-export default function DashboardPage() {
-  const S = STUDENT;
-  const continuing = S.enrolled.find((c) => c.progress < 100) ?? S.enrolled[0];
+// T-007 · panel del alumno. Reemplaza el mock `STUDENT.enrolled` por inscripciones activas +
+// progreso real (ADR-007: `completed` es derivada, nunca se declara acá). Los widgets
+// decorativos del mock original (fase lunar de HOY con fecha fija, bitácora, círculo) no tienen
+// ninguna tabla que los respalde — se sacan en vez de mostrarse como si fueran datos reales del
+// alumno (c.5). Si en el futuro cursan la bitácora/el círculo de una tabla real, vuelven acá.
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+  const { courses } = user ? await getStudentDashboard() : { courses: [] };
+
+  if (courses.length === 0) {
+    return (
+      <div className="min-h-screen bg-cosmos-0 text-ink">
+        <Nav />
+        <div className="flex flex-col items-center justify-center gap-5 px-6 py-32 text-center">
+          <span className="text-4xl text-lila-300">✦</span>
+          <p className="font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El umbral de tu camino —</p>
+          <h1 className="max-w-md font-display text-display-md text-ink">
+            Todavía no empezaste ningún <em className="font-quote italic text-lila-300">recorrido</em>
+          </h1>
+          <p className="max-w-md font-body text-sm text-ink-soft">
+            Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
+          </p>
+          <a href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
+            Explorar el catálogo ↦
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const continuing = courses.find((c) => c.progressPercent < 100) ?? courses[0];
 
   return (
     <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
@@ -15,26 +43,16 @@ export default function DashboardPage() {
       <div className="pt-16">
 
         {/* Welcome header */}
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12 flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El umbral de tu camino —</p>
-            <h1 className="font-display text-display-md text-ink">
-              Bienvenida de vuelta, <em className="font-quote italic text-lila-300">{S.name}</em>
-            </h1>
+        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
+          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El umbral de tu camino —</p>
+          <h1 className="font-display text-display-md text-ink">
+            Bienvenida de vuelta, <em className="font-quote italic text-lila-300">{user?.fullName ?? "alumna"}</em>
+          </h1>
+          {user?.glyph && (
             <div className="mt-2 flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-soft">
-              <span>{S.glyph} {S.sign}</span>
+              <span>{user.glyph}</span>
             </div>
-          </div>
-
-          {/* Lunar phase widget */}
-          <div className="flex items-center gap-4 cosmos-card px-5 py-4">
-            <span className="text-4xl text-gold-400">{S.lunarPhase.icon}</span>
-            <div>
-              <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Hoy · {S.lunarPhase.date}</p>
-              <p className="font-display text-sm tracking-wide text-ink">{S.lunarPhase.name}</p>
-              <p className="font-body text-xs text-ink-soft mt-0.5 max-w-[220px]">{S.lunarPhase.desc}</p>
-            </div>
-          </div>
+          )}
         </header>
 
         {/* Continue watching strip */}
@@ -42,108 +60,66 @@ export default function DashboardPage() {
           <div className="flex-1 min-w-0">
             <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Continuar donde quedaste</p>
             <h3 className="font-display text-lg tracking-wide text-ink">{continuing.title}</h3>
-            <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{continuing.module}</p>
+            <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{continuing.discipline}</p>
           </div>
           <div className="flex-none">
-            <ProgressRing value={continuing.progress} />
+            <ProgressRing value={continuing.progressPercent} />
           </div>
           <div className="flex flex-col items-start gap-2">
-            <a href={`/leccion/lesson-current`} className="btn-ritual btn-ritual-primary rounded-pill">Continuar ↦</a>
-            <span className="font-quote italic text-sm text-ink-soft">Vista por última vez <em className="text-lila-300">{continuing.lastSeen}</em></span>
+            {continuing.continueLessonId ? (
+              <a href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
+                Continuar ↦
+              </a>
+            ) : (
+              <a href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
+                Ver curso ↦
+              </a>
+            )}
+            {continuing.lastSeenAt && (
+              <span className="font-quote italic text-sm text-ink-soft">
+                Vista por última vez <em className="text-lila-300">{formatRelativeTime(continuing.lastSeenAt)}</em>
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Main grid */}
-        <div className="mx-auto max-w-7xl px-6 py-10 md:px-12 grid gap-8 lg:grid-cols-[1fr_320px]">
-
-          <main className="min-w-0 space-y-10">
-            {/* Enrolled courses */}
-            <section>
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="font-display text-lg tracking-wide text-ink">Tu camino actual</h2>
-                <a href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</a>
-              </div>
-              <div className="space-y-4">
-                {S.enrolled.map((c) => (
-                  <article key={c.num} className={`cosmos-card flex items-center gap-5 p-5 ${c.progress === 100 ? "opacity-60" : ""}`}>
-                    <div className="flex flex-col items-center gap-1 flex-none">
-                      <span className="font-display text-lg tracking-wide text-lila-300">{c.num}</span>
-                      <span className="text-base">{c.moon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display text-eyebrow tracking-cosmic text-gold-400 uppercase">{c.tag} · {c.maestra}</p>
-                      <h4 className="font-display text-base tracking-wide text-ink mb-0.5">{c.title}</h4>
-                      <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{c.module}</p>
-                      <div className="mt-1 flex items-center gap-2 font-body text-xs text-ink-faint">
-                        <span>{c.sessionsDone}/{c.sessionsTotal} sesiones</span>
+        {/* Enrolled courses */}
+        <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="font-display text-lg tracking-wide text-ink">Tu camino actual</h2>
+            <a href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</a>
+          </div>
+          <div className="space-y-4">
+            {courses.map((c, i) => (
+              <article key={c.courseId} className={`cosmos-card flex items-center gap-5 p-5 ${c.progressPercent === 100 ? "opacity-60" : ""}`}>
+                <div className="flex flex-col items-center gap-1 flex-none">
+                  <span className="font-display text-lg tracking-wide text-lila-300">{c.romanNum ?? toRoman(i + 1)}</span>
+                  {c.moonGlyph && <span className="text-base">{c.moonGlyph}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-eyebrow tracking-cosmic text-gold-400 uppercase">{c.discipline} · {c.teacherName}</p>
+                  <h4 className="font-display text-base tracking-wide text-ink mb-0.5">{c.title}</h4>
+                  <div className="mt-1 flex items-center gap-2 font-body text-xs text-ink-faint">
+                    <span>{c.completedLessons}/{c.totalLessons} lecciones</span>
+                    {c.lastSeenAt && (
+                      <>
                         <span className="text-lila-300/30">·</span>
-                        <span>{c.lastSeen}</span>
-                      </div>
-                    </div>
-                    <div className="flex-none flex flex-col items-center gap-2">
-                      <ProgressRing value={c.progress} />
-                      {c.progress < 100 && (
-                        <a href={`/leccion/lesson-current`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
-                          Continuar ↦
-                        </a>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            {/* Bitácora */}
-            <section>
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="font-display text-lg tracking-wide text-ink">Tu bitácora</h2>
-                <button className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Escribir entrada +</button>
-              </div>
-              <div className="space-y-3">
-                {S.bitacora.map((e) => (
-                  <article key={e.date} className="cosmos-card flex items-start gap-4 p-5 cursor-pointer hover:-translate-y-0.5 transition-transform">
-                    <div className="flex-none h-10 w-10 rounded-ritual bg-cosmos-surface border border-lila-300/18 flex items-center justify-center text-lg text-lila-300">
-                      {e.glyph}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="mb-0.5 font-display text-eyebrow tracking-cosmic text-ink-faint">{e.date}</p>
-                      <h4 className="mb-1 font-display text-sm tracking-wide text-ink">{e.title}</h4>
-                      <p className="font-body text-xs text-ink-soft leading-relaxed line-clamp-2">{e.preview}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </main>
-
-          {/* Sidebar */}
-          <aside className="space-y-5">
-            <SideCard title="El círculo" badge="3 nuevos">
-              <div className="space-y-3 mb-4">
-                {S.circulo.map((c) => (
-                  <div key={c.name} className="flex items-start gap-2.5">
-                    <Avatar glyph={c.glyph} size="xs" />
-                    <div>
-                      <p className="font-display text-[10px] tracking-wide text-ink">{c.name}</p>
-                      <p className="font-body text-[11px] text-ink-soft leading-snug">{c.text}</p>
-                    </div>
+                        <span>{formatRelativeTime(c.lastSeenAt)}</span>
+                      </>
+                    )}
                   </div>
-                ))}
-              </div>
-              <a href="/circulo" className="btn-ritual btn-ritual-ghost w-full justify-center rounded-pill text-[10px]">
-                Entrar al círculo
-              </a>
-            </SideCard>
-
-            <SideCard>
-              <p className="mb-1 font-display text-eyebrow tracking-cosmic text-lila-300">Quizás te llame</p>
-              <h3 className="mb-2 font-display text-sm tracking-wide text-ink">Herbario lunar</h3>
-              <p className="mb-3 font-body text-xs text-ink-soft leading-relaxed">
-                Plantas aliadas según la fase de la luna, con Aurora Violeta. Ocho semanas a tu ritmo, para quienes ya cruzaron el primer umbral.
-              </p>
-              <a href="/cursos/herbario-lunar" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver el recorrido ↦</a>
-            </SideCard>
-          </aside>
+                </div>
+                <div className="flex-none flex flex-col items-center gap-2">
+                  <ProgressRing value={c.progressPercent} />
+                  {c.progressPercent < 100 && c.continueLessonId && (
+                    <a href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
+                      Continuar ↦
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </div>
