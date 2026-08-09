@@ -61,6 +61,14 @@ export default function Nav() {
         <div className="flex items-center gap-2.5">
           {isSignedIn ? (
             <>
+              {user?.role === "teacher" && (
+                <Link
+                  href="/panel/docente"
+                  className="hidden font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-lila-300 lg:block"
+                >
+                  Panel docente
+                </Link>
+              )}
               <Link
                 href="/panel"
                 className="hidden md:flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors"
