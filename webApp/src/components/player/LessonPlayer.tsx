@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatDurationSeconds } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
 import { useYouTubePlayer } from "@/components/player/useYouTubePlayer";
-import { saveLessonProgress, saveLessonNote } from "@/app/(app)/leccion/[id]/actions";
+import { saveLessonProgress, saveLessonNote } from "@/app/leccion/[id]/actions";
 import type { LessonPlayerData, PlayerLessonState, PlayerNote } from "@/lib/server/lesson-player";
 
 const STATE_ICON: Record<PlayerLessonState, string> = {
@@ -65,6 +65,11 @@ export default function LessonPlayer({ data }: Props) {
 
   const flushProgress = useCallback(
     async (force: boolean) => {
+      // T-006 (rechazo 1): un anónimo puede estar acá viendo una lección `is_preview`
+      // (ADR-003). `lesson_progress` exige sesión — sin esto, cada tick intenta persistir y
+      // falla contra el server action, en vez de simplemente no aplicar (no hay progreso propio
+      // que guardar sin usuario).
+      if (!data.isAuthenticated) return;
       if (completedRef.current) return;
       const seconds = Math.floor(maxSecondsRef.current);
       if (seconds <= lastSavedRef.current) return;
@@ -87,7 +92,7 @@ export default function LessonPlayer({ data }: Props) {
         savingRef.current = false;
       }
     },
-    [data.lessonId]
+    [data.lessonId, data.isAuthenticated]
   );
 
   const handleProgressTick = useCallback(
@@ -335,7 +340,13 @@ export default function LessonPlayer({ data }: Props) {
               </div>
             )}
 
-            {tab === "notas" && (
+            {tab === "notas" && !data.isAuthenticated && (
+              <p className="font-body text-xs italic text-ink-faint">
+                Iniciá sesión para tomar notas en esta lección.
+              </p>
+            )}
+
+            {tab === "notas" && data.isAuthenticated && (
               <div>
                 <div className="mb-4 rounded-ritual border border-lila-300/20 bg-cosmos-surface p-3">
                   <textarea
