@@ -60,9 +60,13 @@ fi
 #   COOKIE="sb-...-auth-token=..." bash scripts/check-adr004.sh
 COOKIE=${COOKIE:-}
 
-# Señal de que lo que respondió es una página del sitio y no un error boundary.
-# El footer lo monta el layout raíz en toda ruta que renderice de verdad.
-MARCA_PAGINA_REAL=${MARCA_PAGINA_REAL:-Humano Despierto}
+# Señal de que la PÁGINA renderizó, no solo el cascarón.
+#
+# CUARTO bypass que encontró QA, y el más sutil: antes se buscaba el nombre del sitio,
+# que vive en el <title> del layout raíz — y ese layout se monta IGUAL cuando la página
+# falla. Un error boundary con HTTP 200 traía la marca y pasaba como limpio.
+# El <h1> lo pone la página, no el layout: medido, las 15 rutas escaneables tienen
+# exactamente uno y el error boundary tiene cero.
 
 for r in "${RUTAS[@]}"; do
   # SIN -L a propósito. Segundo agujero por construcción que encontró QA: con -L,
@@ -90,9 +94,9 @@ for r in "${RUTAS[@]}"; do
   # No alcanza con corregir esa ruta: cualquier página de error da cero coincidencias
   # y parece limpia. Se exige una señal de que se escaneó una página REAL — el layout
   # del sitio siempre monta el footer. Sin eso, NO ESCANEADA.
-  if ! grep -qi "$MARCA_PAGINA_REAL" /tmp/adr_body; then
-    echo "  ? $r — NO ESCANEADA (respondió $code pero no es una página del sitio:"
-    echo "      falta la marca del layout; probablemente un error boundary o un 404)"
+  if ! grep -q "<h1" /tmp/adr_body; then
+    echo "  ? $r — NO ESCANEADA (respondió $code pero la página no renderizó:"
+    echo "      no hay <h1>, así que es el cascarón del layout — error boundary o similar)"
     fallos=$((fallos+1)); continue
   fi
   html=$(sed -E "s/($EXCEPCIONES)//gI" /tmp/adr_body)
