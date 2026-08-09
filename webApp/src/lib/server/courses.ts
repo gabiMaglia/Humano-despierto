@@ -16,14 +16,24 @@ export interface PublishedCourseSummary {
   teacherName: string;
 }
 
+export interface CourseDetailLesson {
+  id: string;
+  position: number;
+  title: string;
+  durationSeconds: number;
+  isPreview: boolean;
+}
+
 export interface CourseDetailModule {
   position: number;
   title: string;
   description: string | null;
   lessonCount: number;
+  lessons: CourseDetailLesson[];
 }
 
 export interface CourseDetail {
+  id: string;
   slug: string;
   title: string;
   titleEm: string | null;
@@ -38,6 +48,7 @@ export interface CourseDetail {
   teacherBio: string | null;
   modules: CourseDetailModule[];
   lessonCount: number;
+  totalDurationSeconds: number;
 }
 
 interface TeacherRow {
@@ -61,6 +72,11 @@ interface PublishedCourseRow {
 }
 
 interface CourseDetailLessonRow {
+  id: string;
+  position: number;
+  title: string;
+  duration_seconds: number;
+  is_preview: boolean;
   is_published: boolean;
 }
 
@@ -72,6 +88,7 @@ interface CourseDetailModuleRow {
 }
 
 interface CourseDetailRow {
+  id: string;
   slug: string;
   title: string;
   title_em: string | null;
@@ -132,9 +149,10 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
   const { data, error } = await supabase
     .from("courses")
     .select(
-      `slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency, includes,
+      `id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency, includes,
        teacher:profiles!courses_teacher_id_fkey(full_name, bio),
-       course_modules(position, title, description, lessons(is_published))`
+       course_modules(position, title, description,
+         lessons(id, position, title, duration_seconds, is_preview, is_published))`
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -148,16 +166,34 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
   const row = data as unknown as CourseDetailRow;
   const teacher = firstTeacher(row.teacher);
 
+  // `lessons_read` (RLS) ya filtra a publicadas para este cliente publico (sin owns_course);
+  // el filtro explicito queda como defensa en profundidad, no como el unico corte.
   const modules = (row.course_modules ?? [])
-    .map((m) => ({
-      position: m.position,
-      title: m.title,
-      description: m.description,
-      lessonCount: (m.lessons ?? []).filter((l) => l.is_published).length,
-    }))
+    .map((m) => {
+      const lessons = (m.lessons ?? [])
+        .filter((l) => l.is_published)
+        .map((l) => ({
+          id: l.id,
+          position: l.position,
+          title: l.title,
+          durationSeconds: l.duration_seconds,
+          isPreview: l.is_preview,
+        }))
+        .sort((a, b) => a.position - b.position);
+      return {
+        position: m.position,
+        title: m.title,
+        description: m.description,
+        lessonCount: lessons.length,
+        lessons,
+      };
+    })
     .sort((a, b) => a.position - b.position);
 
+  const allLessons = modules.flatMap((m) => m.lessons);
+
   return {
+    id: row.id,
     slug: row.slug,
     title: row.title,
     titleEm: row.title_em,
@@ -171,6 +207,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
     teacherName: teacher?.full_name ?? "—",
     teacherBio: teacher?.bio ?? null,
     modules,
-    lessonCount: modules.reduce((sum, m) => sum + m.lessonCount, 0),
+    lessonCount: allLessons.length,
+    totalDurationSeconds: allLessons.reduce((sum, l) => sum + l.durationSeconds, 0),
   };
 }
