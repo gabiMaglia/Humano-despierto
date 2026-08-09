@@ -19,7 +19,7 @@ BASE=${1:-http://localhost:3099}
 
 RUTAS=(/ /cursos /cursos/tarot-iniciatico /cursos/reiki-nivel-1 /cursos/carta-natal-esencial
        /guias /guias/sol-mayor /guias/luna-arce /guias/luz-marini /guias/mara-iturri
-       /guias/ines-volpe /diario /circulo /entrar /panel /leccion/1 /inscribirme/tarot-iniciatico)
+       /guias/ines-volpe /diario /circulo /entrar /panel /leccion/f4668666-c070-45d6-8504-aeb7ee471927 /inscribirme/tarot-iniciatico)
 
 # El invariante, no una lista de lugares. Cada patrón con su motivo.
 PATRONES=(
@@ -60,6 +60,10 @@ fi
 #   COOKIE="sb-...-auth-token=..." bash scripts/check-adr004.sh
 COOKIE=${COOKIE:-}
 
+# Señal de que lo que respondió es una página del sitio y no un error boundary.
+# El footer lo monta el layout raíz en toda ruta que renderice de verdad.
+MARCA_PAGINA_REAL=${MARCA_PAGINA_REAL:-Humano Despierto}
+
 for r in "${RUTAS[@]}"; do
   # SIN -L a propósito. Segundo agujero por construcción que encontró QA: con -L,
   # /panel, /leccion/* e /inscribirme/* redirigen a /entrar sin sesión y el guard
@@ -67,9 +71,28 @@ for r in "${RUTAS[@]}"; do
   # historial de violaciones tienen. Un redirect ahora se reporta como NO ESCANEADA
   # y cuenta como falla: el guard no puede quedar en verde sobre lo que no miró.
   code=$(curl -s -o /tmp/adr_body -w '%{http_code}' ${COOKIE:+-H "Cookie: $COOKIE"} "$BASE$r")
-  if [ "$code" = "307" ] || [ "$code" = "302" ] || [ "$code" = "308" ]; then
-    echo "  ? $r — NO ESCANEADA (HTTP $code, exige sesión)"
-    echo "      correr con COOKIE=... para escanearla; sin eso no se puede afirmar que esté limpia"
+  # Solo un 200 es escaneable. Antes solo se atajaban los redirects, así que un 404
+  # -que monta el mismo layout y por lo tanto pasa cualquier chequeo de contenido-
+  # se contaba como ruta limpia. El código de estado es el único discriminador
+  # confiable: buscar la cadena "404" no sirve, aparece también en las páginas
+  # buenas (nombres de chunk).
+  if [ "$code" != "200" ]; then
+    if [ "$code" = "307" ] || [ "$code" = "302" ] || [ "$code" = "308" ]; then
+      echo "  ? $r — NO ESCANEADA (HTTP $code, exige sesión)"
+      echo "      correr con COOKIE=... para escanearla; sin eso no se puede afirmar que esté limpia"
+    else
+      echo "  ? $r — NO ESCANEADA (HTTP $code: la ruta no sirve una página)"
+    fi
+    fallos=$((fallos+1)); continue
+  fi
+  # Tercer agujero por construcción que encontró QA: /leccion/1 no es un UUID, así
+  # que con sesión la página reventaba y el guard marcaba ✓ sobre un error boundary.
+  # No alcanza con corregir esa ruta: cualquier página de error da cero coincidencias
+  # y parece limpia. Se exige una señal de que se escaneó una página REAL — el layout
+  # del sitio siempre monta el footer. Sin eso, NO ESCANEADA.
+  if ! grep -qi "$MARCA_PAGINA_REAL" /tmp/adr_body; then
+    echo "  ? $r — NO ESCANEADA (respondió $code pero no es una página del sitio:"
+    echo "      falta la marca del layout; probablemente un error boundary o un 404)"
     fallos=$((fallos+1)); continue
   fi
   html=$(sed -E "s/($EXCEPCIONES)//gI" /tmp/adr_body)
