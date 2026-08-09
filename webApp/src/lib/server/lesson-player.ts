@@ -61,6 +61,11 @@ export interface LessonPlayerData {
   initialSecondsWatched: number;
   completed: boolean;
   modules: PlayerModule[];
+  // T-006 (rechazo 1): un anónimo puede llegar acá para una lección `is_preview` (ADR-003) —
+  // `lesson_progress`/`lesson_notes` exigen sesión (`saveLessonProgress`/`saveLessonNote`
+  // tiran si no hay `user`). El cliente usa esto para no intentar persistir nada sin sesión, en
+  // vez de fallar en silencio contra el server action cada `THROTTLE_MS`.
+  isAuthenticated: boolean;
 }
 
 interface LessonRow {
@@ -254,5 +259,6 @@ export async function getLessonPlayerData(lessonId: string): Promise<LessonPlaye
     initialSecondsWatched: progressRes.data?.seconds_watched ?? 0,
     completed: progressRes.data?.completed ?? false,
     modules,
+    isAuthenticated: Boolean(user),
   };
 }
