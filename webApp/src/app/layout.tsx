@@ -45,7 +45,11 @@ export default function RootLayout({
       lang="es"
       className={`${cinzel.variable} ${quicksand.variable} ${cormorantGaramond.variable} ${cardo.variable}`}
     >
-      <body className="bg-cosmos-0 text-ink antialiased">
+      {/* Las extensiones del navegador inyectan atributos en <body> antes de que React
+          hidrate (ColorZilla pone cz-shortcut-listen, Grammarly pone data-gr-*), y eso
+          dispara un error de hidratacion que no es de la app. Silenciarlo acá evita que
+          ese ruido tape los mismatches reales, que sí importan. */}
+      <body className="bg-cosmos-0 text-ink antialiased" suppressHydrationWarning>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
