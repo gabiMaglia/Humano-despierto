@@ -79,6 +79,10 @@ LEC=$(q "select id from public.lessons where course_id='$CURSO' limit 1;")
 x "insert into public.lesson_resources (lesson_id,course_id,position,type,name,drive_file_id,url)
    select '$LEC','$CURSO',1,'pdf','Manual pago','DRIVEID123','https://drive.google.com/file/d/DRIVEID123'
    where not exists (select 1 from public.lesson_resources where lesson_id='$LEC');"
+# El nombre se reafirma en cada corrida: los casos T-016 lo reescriben (control positivo) y la
+# siembra de arriba no lo pisaria en la segunda pasada (es un `where not exists`).
+x "update public.lesson_resources set name='Manual pago', size_label='2.4 MB' where lesson_id='$LEC';"
+REC=$(q "select id from public.lesson_resources where lesson_id='$LEC' limit 1;")
 
 echo ""
 echo "── el trigger de alta ignora el metadata del cliente (ADR-006)"
@@ -101,6 +105,25 @@ esperar "select * sobre lessons"           403 GET "lessons?select=*"        "$A
 esperar "drive_file_id+url, autenticada"   403 GET "lesson_resources?select=drive_file_id,url" "$ALUMNA_JWT"
 esperar "drive_file_id+url, anon"          403 GET "lesson_resources?select=drive_file_id,url" "$ANON"
 esperar "oraculo por filtro (where url)"   403 GET "lesson_resources?url=like.*drive*&select=name" "$ALUMNA_JWT"
+
+echo ""
+echo "── T-016 · el localizador republicado en el texto libre del catalogo"
+# El ataque NO es de la alumna: es de la DOCENTE DUEÑA, sobre su propia fila. Pasa RLS y pasa el
+# grant de columna (`name` tiene que ser escribible, la docente nombra sus archivos). Lo unico
+# que lo detiene es el CHECK. Zod (T-005) cubre el formulario, no este camino.
+esperar "(d) link en name, docente dueña"   400 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Manual — drive.google.com/file/d/LEAKED123"}'
+esperar "(d2) id de Drive suelto en name"   400 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Manual 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"}'
+esperar "(d3) link en size_label"           400 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"size_label":"https://drive.google.com/file/d/LEAKED123"}'
+esperar "(d4) link en el titulo de leccion" 400 PATCH "lessons?id=eq.$LEC"          "$DOCENTE_JWT" '{"title":"Clase completa youtu.be/dQw4w9WgXcQ"}'
+esperar "(d5) link en 'que incluye' del curso" 400 PATCH "courses?id=eq.$CURSO"     "$DOCENTE_JWT" '{"includes":["Manual: drive.google.com/file/d/LEAKED123"]}'
+esperar "(d6) link en la bio publica"       400 PATCH "profiles?id=eq.$DOCENTE"     "$DOCENTE_JWT" '{"bio":"Material en drive.google.com/drive/folders/LEAKED"}'
+# Control positivo, en la misma corrida: un patron goloso rompe el trabajo real de la docente y
+# ese es el otro modo de fallar este ticket. Tiene que dar 204.
+esperar "(d+) nombre legitimo 'Manual v2.1'" 204 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Manual v2.1","size_label":"2.4 MB"}'
+esperar "(d+) 'Bibliografía cap. IV'"        204 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Bibliografía cap. IV"}'
+NOM=$(q "select name from public.lesson_resources where id='$REC';")
+if [ "$NOM" = "Bibliografía cap. IV" ]; then printf '  ok    %-52s name=%s\n' "en la DB quedo el nombre legitimo, no el link" "$NOM"
+else printf '  FALLA %-52s name=%s\n' "el localizador quedo guardado en el catalogo" "$NOM"; fallos=$((fallos+1)); fi
 
 echo ""
 echo "── el camino legitimo de service_role POR HTTP (punto ciego que tenia esta suite)"
@@ -135,6 +158,8 @@ printf '  inscripcion que intento crearse=%s (esperado 0) · rol alumna=%s (stud
 # asi, pero publicado aparece en el catalogo real y ensucia lo que ve el PO. Se despublica
 # al terminar: un verificador no deja basura en la vista del producto.
 x "update public.courses set status='draft' where slug='curso-ajeno';"
+# Mismo contrato para lo que toca T-016: el control positivo dejo el recurso renombrado.
+x "update public.lesson_resources set name='Manual pago', size_label='2.4 MB' where id='$REC';"
 
 echo ""
 if [ "$fallos" -eq 0 ]; then echo "B-1 OK — todo ataque rechazado, todo camino legitimo intacto."; exit 0

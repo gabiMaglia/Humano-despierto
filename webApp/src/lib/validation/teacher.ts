@@ -6,21 +6,40 @@ import { z } from "zod";
 // (Zod valida forma, RLS + guards de servidor validan permiso), pero nada
 // impide reusar el mismo schema del lado del cliente si algún form lo pide.
 
-// T-005 restricción (punto 4, hallazgo del juez ciego en T-001): `name` y
-// `size_label` de `lesson_resources` son texto libre, legible SIN
-// inscripción (son el "qué incluye" del catálogo, ADR-003 regla A). El SQL
-// no puede contener que una docente pegue ahí el link que la propia regla A
-// esconde — se contiene acá. Heurística deliberadamente amplia (protocolo +
-// "www." + dominios comunes): mejor un falso positivo que se corrige a mano
-// que dejar pasar "Manual — drive.google.com/file/d/ABC".
-const URL_LIKE = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|app|dev|edu|gov|info|me)\b)/i;
+// T-016 · ESPEJO DE LA MIGRACIÓN 0008 (`public.text_has_locator`). No es defensa:
+// la defensa es el CHECK en la DB, porque esta validación solo cubre el camino del
+// formulario y no el de PostgREST con el JWT propio de la docente (ADR-009).
+// Lo que sí es: la traducción del mismo rechazo a un mensaje legible. Si este regex
+// fuera MÁS PERMISIVO que el de la DB, la docente vería un `23514` crudo del motor
+// en vez de un error del formulario — por eso las dos definiciones se tocan juntas.
+//
+// Las cuatro reglas son las de 0008, en el mismo orden:
+//   1. `://` cualquier esquema · 2. `www.` · 3. host con TLD conocido
+//   4. id de Drive suelto: 25+ de [A-Za-z0-9_] con dígito Y mayúscula Y minúscula.
+//      `-` queda fuera del charset o "Ritual-de-Luna-Nueva-Enero2026" sería falso positivo.
+const LOCATOR_PATTERNS: RegExp[] = [
+  /:\/\//,
+  /(^|[^a-z0-9])www\./i,
+  /[a-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^a-z]|$)/i,
+];
+
+function hasLocator(v: string): boolean {
+  if (LOCATOR_PATTERNS.some((re) => re.test(v))) return true;
+  return (v.match(/[A-Za-z0-9_]{25,}/g) ?? []).some(
+    (run) => /[0-9]/.test(run) && /[a-z]/.test(run) && /[A-Z]/.test(run),
+  );
+}
 
 function rejectUrl(field: string, v: string): boolean {
-  return !URL_LIKE.test(v);
+  return !hasLocator(v);
 }
 
 const NO_URL_MESSAGE = (field: string) =>
   `"${field}" no puede contener un link — es texto libre visible en el catálogo público, sin inscripción.`;
+
+/** Aplica el rechazo a un campo de texto libre que la DB ya cierra con un CHECK. */
+const noLocator = <T extends z.ZodType<string | undefined>>(schema: T, field: string) =>
+  schema.refine((v) => !v || rejectUrl(field, v), { message: NO_URL_MESSAGE(field) });
 
 export const slugSchema = z
   .string()
@@ -29,14 +48,16 @@ export const slugSchema = z
   .max(80)
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "El slug es minúsculas, números y guiones (ej: tarot-iniciatico).");
 
+// Los campos con `noLocator` son exactamente los que la migración 0008 cierra con un CHECK.
+// `price`/`currency` no lo llevan: su dominio ya está cerrado por su propio regex.
 export const courseFormSchema = z.object({
   slug: slugSchema,
-  title: z.string().trim().min(1, "El título es obligatorio.").max(200),
-  titleEm: z.string().trim().max(200).optional().or(z.literal("")),
-  subtitle: z.string().trim().max(300).optional().or(z.literal("")),
-  intro: z.string().trim().max(4000).optional().or(z.literal("")),
-  discipline: z.string().trim().min(1, "La disciplina es obligatoria.").max(80),
-  level: z.string().trim().min(1, "El nivel es obligatorio.").max(80),
+  title: noLocator(z.string().trim().min(1, "El título es obligatorio.").max(200), "título"),
+  titleEm: noLocator(z.string().trim().max(200).optional().or(z.literal("")), "título destacado"),
+  subtitle: noLocator(z.string().trim().max(300).optional().or(z.literal("")), "subtítulo"),
+  intro: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "introducción"),
+  discipline: noLocator(z.string().trim().min(1, "La disciplina es obligatoria.").max(80), "disciplina"),
+  level: noLocator(z.string().trim().min(1, "El nivel es obligatorio.").max(80), "nivel"),
   price: z
     .string()
     .trim()
@@ -47,9 +68,11 @@ export const courseFormSchema = z.object({
     .toUpperCase()
     .regex(/^[A-Z]{3}$/, "La moneda son 3 letras (ej: ARS).")
     .default("ARS"),
-  romanNum: z.string().trim().max(20).optional().or(z.literal("")),
-  moonGlyph: z.string().trim().max(8).optional().or(z.literal("")),
-  includes: z.string().trim().max(4000).optional().or(z.literal("")),
+  romanNum: noLocator(z.string().trim().max(20).optional().or(z.literal("")), "numeral"),
+  moonGlyph: noLocator(z.string().trim().max(8).optional().or(z.literal("")), "glifo"),
+  // `includes` es el gemelo semántico de `lesson_resources.name`: el "qué incluye el curso"
+  // del catálogo. Se valida línea por línea porque en la DB es text[] y el CHECK va por elemento.
+  includes: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "qué incluye"),
 });
 
 export type CourseFormInput = z.input<typeof courseFormSchema>;
@@ -68,13 +91,13 @@ export function includesToArray(includes: string | undefined): string[] {
 }
 
 export const moduleFormSchema = z.object({
-  title: z.string().trim().min(1, "El título del módulo es obligatorio.").max(200),
-  description: z.string().trim().max(2000).optional().or(z.literal("")),
+  title: noLocator(z.string().trim().min(1, "El título del módulo es obligatorio.").max(200), "título"),
+  description: noLocator(z.string().trim().max(2000).optional().or(z.literal("")), "descripción"),
 });
 
 export const lessonFormSchema = z.object({
-  title: z.string().trim().min(1, "El título de la lección es obligatorio.").max(200),
-  description: z.string().trim().max(4000).optional().or(z.literal("")),
+  title: noLocator(z.string().trim().min(1, "El título de la lección es obligatorio.").max(200), "título"),
+  description: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "descripción"),
   isPreview: z.boolean().default(false),
 });
 
@@ -87,7 +110,10 @@ export const videoUrlSchema = z.object({
 });
 
 export const chapterFormSchema = z.object({
-  label: z.string().trim().min(1, "La etiqueta del capítulo es obligatoria.").max(200),
+  label: noLocator(
+    z.string().trim().min(1, "La etiqueta del capítulo es obligatoria.").max(200),
+    "etiqueta",
+  ),
   // Acepta "mm:ss", "h:mm:ss" o segundos crudos — se normaliza en el action.
   timestamp: z
     .string()
