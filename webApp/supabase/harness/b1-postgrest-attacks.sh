@@ -131,6 +131,11 @@ EST=$(q "select status from public.courses where id='$CURSO';")
 printf '  inscripcion que intento crearse=%s (esperado 0) · rol alumna=%s (student) · curso ajeno=%s (published)\n' "$INS" "$ROL" "$EST"
 [ "$INS" = "0" ] && [ "$ROL" = "student" ] && [ "$EST" = "published" ] || { echo "  FALLA: el estado real cambio"; fallos=$((fallos+1)); }
 
+# El curso de ataque queda publicado durante la corrida porque los ataques lo necesitan
+# asi, pero publicado aparece en el catalogo real y ensucia lo que ve el PO. Se despublica
+# al terminar: un verificador no deja basura en la vista del producto.
+x "update public.courses set status='draft' where slug='curso-ajeno';"
+
 echo ""
 if [ "$fallos" -eq 0 ]; then echo "B-1 OK — todo ataque rechazado, todo camino legitimo intacto."; exit 0
 else echo "B-1 CON $fallos FALLA(S)."; exit 1; fi
