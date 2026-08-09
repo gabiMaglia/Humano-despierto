@@ -40,6 +40,11 @@ PATRONES=(
 # Excepciones deliberadas, con su justificación. Se listan para que borrarlas sea
 # una decisión y no un descuido.
 #   "una carta cada luna nueva" → cadencia de un boletín, no fecha de inicio.
+#
+# OJO, error que QA encontró y que hacía vacuo este guard: filtrar con `grep -v`
+# borra la LÍNEA que coincide, y el HTML de Next viene en UNA sola línea — así que
+# una página con la excepción se borraba entera y el barrido no veía NADA. /diario
+# pasaba en verde con violaciones plantadas. Se sustituye el fragmento, no la línea.
 EXCEPCIONES='una carta cada luna nueva|cada luna nueva\.'
 
 fallos=0
@@ -52,7 +57,7 @@ if [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null)" != "200" ]
 fi
 
 for r in "${RUTAS[@]}"; do
-  html=$(curl -s -L "$BASE$r" | grep -viE "$EXCEPCIONES")
+  html=$(curl -s -L "$BASE$r" | sed -E "s/($EXCEPCIONES)//gI")
   hit=0
   for p in "${PATRONES[@]}"; do
     n=$(printf '%s' "$html" | grep -ciE "$p")
