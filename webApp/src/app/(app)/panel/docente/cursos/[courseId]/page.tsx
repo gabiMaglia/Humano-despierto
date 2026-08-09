@@ -5,7 +5,7 @@ import CourseForm from "@/components/teacher/CourseForm";
 import ModuleBlock from "@/components/teacher/ModuleBlock";
 import NewModuleForm from "@/components/teacher/NewModuleForm";
 import PublishCourseControl from "@/components/teacher/PublishCourseControl";
-import DeleteCourseButton from "@/components/teacher/DeleteCourseButton";
+import DangerZone from "@/components/teacher/DangerZone";
 
 interface Props {
   params: Promise<{ courseId: string }>;
@@ -34,7 +34,6 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
           </div>
           <div className="flex flex-col items-end gap-3">
             <PublishCourseControl courseId={course.id} status={course.status} />
-            <DeleteCourseButton courseId={course.id} />
           </div>
         </header>
 
@@ -64,6 +63,15 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
               <NewModuleForm courseId={course.id} />
             </div>
           </section>
+
+          {/* Al pie y separada de todo lo demás: una accion irreversible no comparte
+              vecindario con las que se usan a diario. */}
+          <DangerZone
+            courseId={course.id}
+            courseTitle={course.title}
+            moduleCount={course.modules.length}
+            lessonCount={course.modules.reduce((n, m) => n + m.lessons.length, 0)}
+          />
         </div>
       </div>
     </div>
