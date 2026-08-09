@@ -44,6 +44,26 @@ const AUTOCERTIFICAR = `
   values ($1, $2, $3, 1, true, now())`;
 
 // ---------------------------------------------------------------------------
+// T-015 · el guard de UPDATE (0008) acota cuanto puede subir `seconds_watched` segun el tiempo
+// de reloj real transcurrido desde `old.last_seen_at` — que el propio guard escribe SIEMPRE con
+// `now()`, nunca con lo que declare el cliente. Los tests de UMBRAL/MONOTONIA de mas abajo (T-011)
+// escriben saltos grandes en una sola sentencia sin que pase tiempo real entre escrituras: eso es
+// EXACTAMENTE lo que T-015 deja de permitir. `retrasarReloj` los desacopla del tope (que se prueba
+// aparte, en su propio describe) apagando el trigger SOLO para la escritura de preparacion — la
+// escritura bajo prueba siempre pasa con el trigger prendido.
+const retrasarReloj = async (db, lessonId, segundosAtras) => {
+  await db.exec(`alter table public.lesson_progress disable trigger lesson_progress_monotonic;`);
+  try {
+    await db.query(
+      `update public.lesson_progress set last_seen_at = now() - ($1 || ' seconds')::interval where lesson_id = $2`,
+      [segundosAtras, lessonId],
+    );
+  } finally {
+    await db.exec(`alter table public.lesson_progress enable trigger lesson_progress_monotonic;`);
+  }
+};
+
+// ---------------------------------------------------------------------------
 // T-012 · H-1 · el oraculo.
 // Una leccion dentro del curso BORRADOR de otra docente: `lessons_read` (0004:71-73) exige
 // `can_read_course(course_id) and (is_published or owns_course)`, y un borrador ajeno no cumple
@@ -223,6 +243,10 @@ describe('T-011 · guards de INSERT', () => {
     });
 
     test('debajo del umbral (2824 de 3138) sigue incompleta', async () => {
+      // T-015: sin esto, el tope de reloj (0008) recortaria el salto de 1 a 2824 en una sola
+      // escritura — que es correcto para el atacante, pero este test prueba el UMBRAL, no el
+      // tope (ese tiene su propio describe mas abajo).
+      await retrasarReloj(db, ID.lessonA, 3000);
       const r = await asStudent(db, () =>
         attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
           UMBRAL_LESSON_A - 1,
@@ -236,6 +260,7 @@ describe('T-011 · guards de INSERT', () => {
     });
 
     test('al cruzar el umbral (2825 de 3138) la DB la certifica y la sella', async () => {
+      await retrasarReloj(db, ID.lessonA, 3000);
       const r = await asStudent(db, () =>
         attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
           UMBRAL_LESSON_A,
@@ -553,15 +578,26 @@ describe('T-011 · guards de INSERT', () => {
 
     test('control positivo: y una vez publicada, el alumno inscripto puede certificarla', async () => {
       const lessonId = await idDelBorrador();
+      // T-015: el INSERT ya no acepta un salto directo a 810/900 (90 %) en una sola escritura —
+      // es exactamente el agujero que cierra el tope de reloj (0008). El camino legitimo es
+      // acumular: una primera escritura chica y, con tiempo de reloj real de por medio, la que
+      // cruza el umbral — que es tal cual lo hace el player real (T-006 c.5).
       const alta = await asStudent(db, () =>
         attempt(
           db,
           `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
-           values ($1, $2, $3, 810)`,
+           values ($1, $2, $3, 1)`,
           [ID.student, ID.courseA, lessonId],
         ),
       );
       assert.equal(alta.ok, true, alta.message);
+      await retrasarReloj(db, lessonId, 3000);
+      const sigue = await asStudent(db, () =>
+        attempt(db, `update public.lesson_progress set seconds_watched = 810 where lesson_id = $1`, [
+          lessonId,
+        ]),
+      );
+      assert.equal(sigue.ok, true, sigue.message);
       const fila = await progresoDe(db, lessonId);
       assert.equal(fila.completed, true, '810 de 900 es el 90 %: deberia certificar');
     });
@@ -982,5 +1018,226 @@ describe('T-012 · controles de mutacion', () => {
     assert.equal(despues.completed, true, 'la vara movida no certificaba: el control seria vacuo');
     assert.equal(despues.seconds_watched, 10);
     await db.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-015 · el reloj de `seconds_watched` deja de declararlo el alumno (0008_progress_clock_cap).
+// Residuo declarado en ADR-007: `completed`/`duration_seconds` ya eran de servidor, pero
+// `seconds_watched` lo seguia declarando el cliente en una sola escritura — `update ... set
+// seconds_watched = duration_seconds` certificaba al instante. Cierre: entre dos escrituras
+// separadas por N segundos de RELOJ REAL, `seconds_watched` no puede subir mas de 2N + 10
+// (decision de producto: hasta 2x de velocidad cuenta, el scrub no).
+// ---------------------------------------------------------------------------
+describe('T-015 · tope de reloj sobre seconds_watched', () => {
+  test('UPDATE que declare seconds_watched = duration_seconds de una sola vez queda ACOTADO, no rechazado', async () => {
+    const { db } = await bootDatabase();
+    await seed(db);
+    await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 1)`,
+        [ID.student, ID.courseA, ID.lessonA],
+      ),
+    );
+    // Sin backdate: cero segundos de reloj real entre la alta y esta escritura.
+    const r = await asStudent(db, () =>
+      attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
+        DURACION_LESSON_A,
+        ID.lessonA,
+      ]),
+    );
+    assert.equal(r.ok, true, 'criterio 3: un salto imposible se acota, no se rechaza con error');
+    const fila = await progresoDe(db, ID.lessonA);
+    assert.ok(
+      fila.seconds_watched < UMBRAL_LESSON_A,
+      `la auto-certificacion instantanea paso: seconds_watched quedo en ${fila.seconds_watched}`,
+    );
+    assert.equal(fila.completed, false, 'se auto-certifico en una escritura sin tiempo de reloj real');
+    await db.close();
+  });
+
+  test('el INSERT tambien queda acotado: no hay certificacion instantanea "de arranque"', async () => {
+    const { db } = await bootDatabase();
+    await seed(db);
+    const lessonId = ID.lessonPreviewB; // dura 900 s, umbral 810 — alcanzable si no hubiera tope
+    const r = await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 810)`,
+        [ID.student, ID.courseA, lessonId],
+      ),
+    );
+    assert.equal(r.ok, true, r.message);
+    const fila = await progresoDe(db, lessonId);
+    assert.ok(fila.seconds_watched < 810, `el INSERT no acoto: quedo en ${fila.seconds_watched}`);
+    assert.equal(fila.completed, false);
+    await db.close();
+  });
+
+  test('formula: con N segundos de reloj backdateados, el tope es exactamente 2N + 10', async () => {
+    const { db } = await bootDatabase();
+    await seed(db);
+    await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 100)`,
+        [ID.student, ID.courseA, ID.lessonA],
+      ),
+    );
+    const trasAlta = await progresoDe(db, ID.lessonA);
+    assert.equal(trasAlta.seconds_watched, 10, 'el INSERT (N=0) deberia acotar a 10 (el margen)');
+
+    await retrasarReloj(db, ID.lessonA, 50); // N = 50 s ⇒ tope = 2*50 + 10 = 110 ⇒ maximo 10+110=120
+    const r = await asStudent(db, () =>
+      attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
+        99999,
+        ID.lessonA,
+      ]),
+    );
+    assert.equal(r.ok, true, r.message);
+    const fila = await progresoDe(db, ID.lessonA);
+    assert.equal(fila.seconds_watched, 120, 'el tope no siguio la formula 2N + margen');
+    await db.close();
+  });
+
+  test('el progreso legitimo (con tiempo de reloj real de por medio) SI llega a completar', async () => {
+    const { db } = await bootDatabase();
+    await seed(db);
+    await asStudent(db, () =>
+      attempt(
+        db,
+        `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+         values ($1, $2, $3, 5)`,
+        [ID.student, ID.courseA, ID.lessonA],
+      ),
+    );
+    await retrasarReloj(db, ID.lessonA, 3000);
+    const r = await asStudent(db, () =>
+      attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
+        UMBRAL_LESSON_A,
+        ID.lessonA,
+      ]),
+    );
+    assert.equal(r.ok, true, r.message);
+    const fila = await progresoDe(db, ID.lessonA);
+    assert.equal(fila.completed, true, 'el camino legitimo (con tiempo real de por medio) dejo de certificar');
+    await db.close();
+  });
+
+  // ------------------------------------------------------------ criterio 4 · mutacion
+  // Revierte SOLO la cota (el `least(...)` que la acota): los dos guards siguen pisando
+  // `last_seen_at := now()`, siguen SECURITY DEFINER, la derivacion de `completed` sigue igual.
+  // Asi el test aisla que es LA COTA — no otra capa coincidente — la que detiene el ataque, mismo
+  // estandar que los controles de aislamiento de T-012 (H-3).
+  describe('controles de mutacion', () => {
+    const GUARD_UPDATE_SIN_COTA = `
+      create or replace function public.guard_lesson_progress()
+      returns trigger language plpgsql security definer set search_path = '' as $fn$
+      begin
+        new.seconds_watched := greatest(new.seconds_watched, old.seconds_watched);
+        new.last_seen_at    := now();
+        if old.completed then
+          new.completed    := true;
+          new.completed_at := old.completed_at;
+        elsif public.lesson_progress_completes(new.lesson_id, new.seconds_watched) then
+          new.completed    := true;
+          new.completed_at := now();
+        else
+          new.completed    := false;
+          new.completed_at := null;
+        end if;
+        return new;
+      end;
+      $fn$;`;
+
+    const GUARD_INSERT_SIN_COTA = `
+      create or replace function public.guard_lesson_progress_insert()
+      returns trigger language plpgsql security definer set search_path = '' as $fn$
+      begin
+        new.last_seen_at := now();
+        new.completed    := public.lesson_progress_completes(new.lesson_id, new.seconds_watched);
+        new.completed_at := case when new.completed then now() else null end;
+        return new;
+      end;
+      $fn$;`;
+
+    test('UPDATE · con la cota revertida, la auto-certificacion instantanea vuelve a pasar', async () => {
+      const { db } = await bootDatabase({ afterMigrations: [GUARD_UPDATE_SIN_COTA] });
+      await seed(db);
+      await asStudent(db, () =>
+        attempt(
+          db,
+          `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+           values ($1, $2, $3, 1)`,
+          [ID.student, ID.courseA, ID.lessonA],
+        ),
+      );
+      // La MISMA escritura que el primer test de este describe prueba que queda acotada: sin la
+      // cota, pasa completa y certifica en el acto — sin backdate, sin esperar nada.
+      const r = await asStudent(db, () =>
+        attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
+          DURACION_LESSON_A,
+          ID.lessonA,
+        ]),
+      );
+      assert.equal(r.ok, true, r.message);
+      const fila = await progresoDe(db, ID.lessonA);
+      assert.equal(
+        fila.seconds_watched,
+        DURACION_LESSON_A,
+        'la cota seguia activa: el mutante esta mal escrito',
+      );
+      assert.equal(fila.completed, true, 'con la cota revertida deberia auto-certificarse instantaneamente');
+      await db.close();
+    });
+
+    test('INSERT · con la cota revertida, un alta directa en el umbral certifica de arranque', async () => {
+      const { db } = await bootDatabase({ afterMigrations: [GUARD_INSERT_SIN_COTA] });
+      await seed(db);
+      const lessonId = ID.lessonPreviewB;
+      const r = await asStudent(db, () =>
+        attempt(
+          db,
+          `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+           values ($1, $2, $3, 810)`,
+          [ID.student, ID.courseA, lessonId],
+        ),
+      );
+      assert.equal(r.ok, true, r.message);
+      const fila = await progresoDe(db, lessonId);
+      assert.equal(fila.seconds_watched, 810, 'la cota seguia activa: el mutante esta mal escrito');
+      assert.equal(fila.completed, true, 'con la cota revertida deberia certificar en el INSERT mismo');
+      await db.close();
+    });
+
+    test('el fix no rompe el camino legitimo: con la cota puesta, sigue certificando con tiempo real de por medio', async () => {
+      // Control simetrico (mismo espiritu que T-012 H-1): si la cota estuviera mal y bloqueara
+      // TODO incremento (no solo los imposibles), el progreso real dejaria de completar nunca.
+      const { db } = await bootDatabase();
+      await seed(db);
+      await asStudent(db, () =>
+        attempt(
+          db,
+          `insert into public.lesson_progress (user_id, course_id, lesson_id, seconds_watched)
+           values ($1, $2, $3, 1)`,
+          [ID.student, ID.courseA, ID.lessonA],
+        ),
+      );
+      await retrasarReloj(db, ID.lessonA, 3000);
+      const r = await asStudent(db, () =>
+        attempt(db, `update public.lesson_progress set seconds_watched = $1 where lesson_id = $2`, [
+          UMBRAL_LESSON_A,
+          ID.lessonA,
+        ]),
+      );
+      assert.equal(r.ok, true, r.message);
+      const fila = await progresoDe(db, ID.lessonA);
+      assert.equal(fila.completed, true);
+      await db.close();
+    });
   });
 });

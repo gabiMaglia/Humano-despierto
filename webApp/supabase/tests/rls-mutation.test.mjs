@@ -32,6 +32,26 @@ const asService = async (db, fn) => {
   }
 };
 
+/**
+ * T-015 (0008_progress_clock_cap) acota cuanto puede subir `seconds_watched` segun el tiempo de
+ * reloj real transcurrido desde `old.last_seen_at` — que el guard escribe siempre con `now()`.
+ * El test de "no retrocede" de mas abajo escribe un salto grande en una sola sentencia sin que
+ * pase tiempo real entre escrituras: no es lo que ese test prueba (prueba la MONOTONIA, no el
+ * tope, que tiene su propia cobertura en insert-guards.test.mjs), asi que se lo desacopla
+ * apagando el trigger SOLO para la escritura de preparacion.
+ */
+const retrasarReloj = async (db, lessonId, segundosAtras) => {
+  await db.exec(`alter table public.lesson_progress disable trigger lesson_progress_monotonic;`);
+  try {
+    await db.query(
+      `update public.lesson_progress set last_seen_at = now() - ($1 || ' seconds')::interval where lesson_id = $2`,
+      [segundosAtras, lessonId],
+    );
+  } finally {
+    await db.exec(`alter table public.lesson_progress enable trigger lesson_progress_monotonic;`);
+  }
+};
+
 /** EXECUTE efectivo de cada funcion de `public`, mas su ACL cruda. */
 const functionPrivileges = async (db) =>
   (
@@ -604,6 +624,9 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
     });
 
     test('el progreso no retrocede (race de dos pestañas)', async () => {
+      // T-015: sin esto, el tope de reloj (0008) recortaria el salto a 900 en una escritura sin
+      // tiempo real de por medio — correcto para un ataque, pero no es lo que este test prueba.
+      await retrasarReloj(db, ID.lessonA, 3000);
       await asStudent(db, () =>
         attempt(db, `update public.lesson_progress set seconds_watched = 900 where lesson_id = $1`, [ID.lessonA]),
       );
