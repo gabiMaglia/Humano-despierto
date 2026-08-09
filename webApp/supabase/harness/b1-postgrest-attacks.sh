@@ -24,15 +24,19 @@ tok() {
     -H "Content-Type: application/json" -d "{\"email\":\"$1\",\"password\":\"$PASS\"}" |
     python3 -c "import sys,json;print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null
 }
+# Usuarios PROPIOS de este script, con prefijo b1-. Nacieron de que el stack local
+# es compartido (D-07) y los fixtures de todos rompieron esta suite tres veces: un
+# ticket le cambió la contraseña al usuario que usaba, otro le sembró una inscripción,
+# y un tercero lo promovió a admin. Un verificador que depende de fixtures ajenos da
+# rojos que no son del código, y eso enseña a ignorar los rojos.
 alta() {
   curl -s -X POST "$API/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" \
     -d "{\"email\":\"$1\",\"password\":\"$PASS\"${2:+,\"data\":$2}}" >/dev/null
-  # El stack local es compartido y otros procesos mutan los fixtures (D-07): a un
-  # agente le hizo falta cambiarle la contraseña a este mismo usuario y dejó el
-  # script sin poder autenticar. Se reafirma la contraseña para que la corrida sea
-  # hermética y no dependa de que nadie más la haya tocado.
+  # Se reafirman contraseña Y rol: el signup no los pisa si el usuario ya existía.
   x "update auth.users set encrypted_password = crypt('$PASS', gen_salt('bf'))
      where email = '$1';"
+  x "update public.profiles set role = '${3:-student}'
+     where id = (select id from auth.users where email = '$1');"
 }
 
 # Espera un código HTTP concreto. $1 rótulo · $2 esperado · $3 método · $4 path · $5 jwt · $6 body
@@ -55,13 +59,12 @@ esperar() {
 }
 
 echo "── preparando actores y contenido"
-alta "alumna@test.local" '{"role":"admin"}'   # manda role=admin en el signup a propósito
-alta "docente@test.local"
-ALUMNA_JWT=$(tok "alumna@test.local"); DOCENTE_JWT=$(tok "docente@test.local")
+alta "b1-alumna@test.local" '{"role":"admin"}' student   # manda role=admin en el signup a propósito
+alta "b1-docente@test.local" '' teacher
+ALUMNA_JWT=$(tok "b1-alumna@test.local"); DOCENTE_JWT=$(tok "b1-docente@test.local")
 [ -z "$ALUMNA_JWT" ] && { echo "no pude autenticar; ¿está levantado el stack?"; exit 2; }
-ALUMNA=$(q "select id from auth.users where email='alumna@test.local';")
-DOCENTE=$(q "select id from auth.users where email='docente@test.local';")
-x "update public.profiles set role='teacher' where id='$DOCENTE';"
+ALUMNA=$(q "select id from auth.users where email='b1-alumna@test.local';")
+DOCENTE=$(q "select id from auth.users where email='b1-docente@test.local';")
 x "insert into public.courses (slug,title,discipline,level,price_cents,teacher_id,status)
    values ('curso-ajeno','Curso Ajeno','tarot','inicial',10000,'$DOCENTE','published')
    on conflict (slug) do update set teacher_id='$DOCENTE', status='published';"
