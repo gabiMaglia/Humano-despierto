@@ -199,7 +199,16 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
         (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()
       )[0];
 
-      const continueLessonId = lastProgress?.lesson_id ?? publishedLessons[0]?.id ?? null;
+      // "Continuar" lleva a la primera lección PENDIENTE, en orden del currículum.
+      // Antes usaba el `last_seen_at` más reciente, que cumple la letra del criterio
+      // ("la última lección vista") pero traiciona su propósito: con la data real de
+      // la alumna, la última vista estaba completada y el botón la devolvía a una
+      // clase que ya había terminado. Si no queda ninguna pendiente —curso completo—
+      // se cae a la última vista, que es el repaso natural.
+      const completedIds = new Set(progress.filter((p) => p.completed).map((p) => p.lesson_id));
+      const primeraPendiente = publishedLessons.find((l) => !completedIds.has(l.id));
+      const continueLessonId =
+        primeraPendiente?.id ?? lastProgress?.lesson_id ?? publishedLessons[0]?.id ?? null;
       const lastSeenAt = lastProgress?.last_seen_at ?? null;
 
       const dashboardCourse: DashboardCourse = {
