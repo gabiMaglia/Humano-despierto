@@ -31,8 +31,16 @@
 -- UNA leccion de UN curso (tarot-iniciatico / modulo III / "La cruz celta como mapa del
 -- alma"): es todo lo que describen COURSE_DETAIL y LESSON. Los otros 8 cursos del catalogo
 -- nacen con sus 0 modulos -- no hay mock de curriculum para ellos, inventarlo violaria P-3.
--- video_id es placeholder (formato valido, "SEEDlessonN"): no hay video real en Fase 2:
--- Advisory. No queda publicable por T-005/T-006 hasta que una docente cargue el real.
+--
+-- T-006: los video_id de T-003 ("SEEDlessonN") tenian formato valido pero no eran videos
+-- reales -- no reproducian nada, asi que no servian para probar la IFrame Player API. Se
+-- reemplazan por 5 cortos oficiales de Blender Foundation/Studio (dominio CC, canal propio
+-- estable hace mas de una decada, embeddable confirmado via oembed publico): Spring,
+-- Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel. duration_seconds sale de
+-- "lengthSeconds" real de cada video (leido de ytInitialPlayerResponse en la pagina publica
+-- de YouTube, sin API key -- la misma fuente que usaria getDuration() del player una vez
+-- cargado), no de una estimacion: el umbral del 90% de ADR-007 se certifica contra un numero
+-- verificado, no inventado.
 
 begin;
 
@@ -196,15 +204,22 @@ insert into public.lessons (
 select gen_random_uuid(), target.course_id, target.module_id, v.position, v.title,
   'youtube', v.video_id, v.duration_seconds, v.is_preview, true
 from target, (values
-  (1, 'Tirada de tres cartas',              'SEEDlesson1', 2292, true),
-  (2, 'El presente, lo oculto, el consejo', 'SEEDlesson2', 2528, false),
-  (3, 'Apertura del hexagrama',             'SEEDlesson3', 2814, false),
-  (4, 'La cruz celta como mapa del alma',   'SEEDlesson4', 3138, false),
-  (5, 'El árbol de la vida',                'SEEDlesson5', 3840, false)
+  -- video_id / duration_seconds verificados el 2026-08-07 contra la pagina publica de YouTube
+  -- (oembed + lengthSeconds), no inventados. Los 5 son Blender Foundation/Studio, CC, embeddable.
+  (1, 'Tirada de tres cartas',              'WhWc3b3KhnY', 464, true),  -- Spring
+  (2, 'El presente, lo oculto, el consejo', 'YE7VzlLtp-4', 597, false), -- Big Buck Bunny
+  (3, 'Apertura del hexagrama',             'TLkA0RELQ1g', 654, false), -- Elephants Dream
+  (4, 'La cruz celta como mapa del alma',   'eRsGyueVLvQ', 888, false), -- Sintel
+  (5, 'El árbol de la vida',                'R6MlUcmOul8', 734, false)  -- Tears of Steel
 ) as v(position, title, video_id, duration_seconds, is_preview);
 
 -- ---------------------------------------------------------------- lesson_chapters (LESSON.chapters)
 -- Todas pertenecen a la leccion IV del modulo III ("La cruz celta como mapa del alma").
+--
+-- T-006: start_seconds re-escalado a la duracion REAL del video que reemplaza al placeholder
+-- (Sintel, 888s) desde los tiempos originales del mock (que asumian 3138s). Factor 888/3138,
+-- redondeado hacia abajo -- si no se reescala, el ultimo capitulo ("46:10") cae fuera de un
+-- video de 14:48 y saltar ahi tira el player al final en vez de al capitulo.
 
 with target as (
   select l.id as lesson_id, l.course_id
@@ -216,11 +231,11 @@ with target as (
 insert into public.lesson_chapters (id, course_id, lesson_id, position, start_seconds, label)
 select gen_random_uuid(), target.course_id, target.lesson_id, v.position, v.start_seconds, v.label
 from target, (values
-  (1, 0,    'Apertura · ritual de entrada'),
-  (2, 270,  'Las diez posiciones, una por una'),
-  (3, 1100, 'Cómo leer las relaciones entre cartas'),
-  (4, 1920, 'Dos consultas reales en grupo'),
-  (5, 2770, 'Cierre · qué llevarse a la práctica')
+  (1, 0,   'Apertura · ritual de entrada'),
+  (2, 76,  'Las diez posiciones, una por una'),
+  (3, 311, 'Cómo leer las relaciones entre cartas'),
+  (4, 543, 'Dos consultas reales en grupo'),
+  (5, 784, 'Cierre · qué llevarse a la práctica')
 ) as v(position, start_seconds, label);
 
 -- ---------------------------------------------------------------- lesson_resources (LESSON.resources)
