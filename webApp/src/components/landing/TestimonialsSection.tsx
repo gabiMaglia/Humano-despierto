@@ -15,8 +15,13 @@ export default function TestimonialsSection() {
         <h2 className="mb-4 text-center font-display text-4xl tracking-wider text-ink">
           Quienes han <em className="font-quote italic text-lila-300">cruzado</em>
         </h2>
-        <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
+        <p className="mx-auto mb-2 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
           Lo que dicen las iniciadas que sostienen consultas hoy.
+        </p>
+        {/* T-017 criterio 3: sin tabla de reviews en el esquema, esta seccion queda como
+            placeholder VISIBLE en vez de simular un dato real. */}
+        <p className="mx-auto mb-14 text-center font-display text-[10px] uppercase tracking-[0.2em] text-ink-faint">
+          — testimonios ilustrativos —
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">

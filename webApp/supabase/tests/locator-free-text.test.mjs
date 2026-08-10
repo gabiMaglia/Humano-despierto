@@ -90,6 +90,11 @@ const COLUMNAS = [
   ['profiles.slug',                (v) => [`update public.profiles set slug = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.glyph',               (v) => [`update public.profiles set glyph = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.bio',                 (v) => [`update public.profiles set bio = $1 where id = $2`, [v, ID.teacherA]]],
+  // T-017 · agregadas junto con la ficha publica de la docente (0011): misma clase que `bio` --
+  // texto libre, escrito por la propia docente, legible por `anon` sin inscripcion.
+  ['profiles.headline',            (v) => [`update public.profiles set headline = $1 where id = $2`, [v, ID.teacherA]]],
+  ['profiles.location',            (v) => [`update public.profiles set location = $1 where id = $2`, [v, ID.teacherA]]],
+  ['profiles.quote',               (v) => [`update public.profiles set quote = $1 where id = $2`, [v, ID.teacherA]]],
 ];
 
 /**

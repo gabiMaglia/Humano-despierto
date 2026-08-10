@@ -1,3 +1,8 @@
+// T-017 · MOCK DECLARADO A PROPOSITO, fuera de alcance del ticket. El PO acotó el pedido a
+// "cursos, alumnos y docentes"; `community.ts` (Círculo) no tiene tabla en el esquema de 9
+// tablas ratificado (T-001) -- no hay `threads`/`posts`/`channels` de foro. Desmockearlo es
+// diseñar una feature nueva (foro con canales, hilos, moderación), no conectar un dato
+// existente. Ver `engram/03_backlog.md` T-017.
 export const COM = {
   stats: [
     { n:"CDXVIII", label:"Estudiantes en órbita" },

@@ -1,8 +1,12 @@
 import CourseCard from "@/components/molecules/CourseCard";
 import SectionHeader from "@/components/atoms/SectionHeader";
-import { COURSES } from "@/lib/mocks/landing";
+import { getPublishedCourses } from "@/lib/server/courses";
+import { formatPriceCents } from "@/lib/utils/format";
 
-export default function FeaturedCourses() {
+export default async function FeaturedCourses() {
+  const courses = await getPublishedCourses();
+  const featured = courses.filter((c) => c.featured).slice(0, 3);
+
   return (
     <section className="px-6 py-24 md:px-12">
       <div className="mx-auto max-w-7xl">
@@ -13,8 +17,21 @@ export default function FeaturedCourses() {
           subtitle="Todos disponibles desde el primer día. El aprendizaje sigue tu propio ritmo."
         />
         <div className="grid gap-6 md:grid-cols-3">
-          {COURSES.map((course) => (
-            <CourseCard key={course.slug} {...course} weeks={course.weeks} />
+          {featured.map((course) => (
+            <CourseCard
+              key={course.slug}
+              num={course.romanNum ?? ""}
+              tag={course.discipline}
+              level={course.level}
+              title={course.title}
+              titleEm={course.titleEm ?? undefined}
+              desc={course.desc ?? ""}
+              teacher={course.teacherName}
+              price={formatPriceCents(course.priceCents, course.currency)}
+              moon={course.moonGlyph ?? undefined}
+              featured={course.featured}
+              slug={course.slug}
+            />
           ))}
         </div>
         <div className="mt-12 text-center">
