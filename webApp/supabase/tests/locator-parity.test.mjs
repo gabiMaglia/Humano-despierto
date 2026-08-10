@@ -30,7 +30,7 @@ const FUENTE_CLIENTE = join(aqui, '..', '..', 'src', 'lib', 'validation', 'teach
  */
 
 // Casos elegidos por lo que rompieron histórica­mente, no por cubrir el espacio.
-const CORPUS = [
+export const CORPUS = [
   // localizadores: ambos deben rechazar
   'Manual — drive.google.com/file/d/LEAKED123',
   'PDF.com/malicious',                    // el que divergió: mayúscula antes del punto
@@ -39,6 +39,13 @@ const CORPUS = [
   'material en bit.ly/abc',
   'docs.google.com/document/d/xyz',
   '1AbCdEfGhIjKlMnOpQrStUvWxYz9',         // id largo con mezcla de casos
+  // Estos dos los agregó el META-TEST, no una intuición: sin ellos, romper la regla 1
+  // o la 2 no producía ninguna divergencia, porque todos los casos con `://` o `www.`
+  // del corpus TAMBIEN los atrapaba la regla 3 (el TLD). Una regla tapada por otra no
+  // está verificada, aunque el corpus parezca cubrirla. Estos no tienen TLD conocido,
+  // así que cada uno solo lo puede atrapar su propia regla.
+  'ver ftp://servidor-interno/material',  // solo regla 1: tiene `://`, sin TLD de la lista
+  'entrá a www.espacio-interno',          // solo regla 2: tiene `www.`, sin TLD de la lista
   // prosa legítima: ambos deben aceptar
   'El curso termina.Me parece importante volver',
   'Ocho semanas.Co-creamos el material',
@@ -69,8 +76,8 @@ const literalARegExp = (lit) => {
  * detectar divergencia silenciosa tenía divergencia silenciosa adentro. Si una regla
  * no se lee del fuente, no está verificada — da igual cuántas sí.
  */
-async function cargarEspejoDelCliente() {
-  const src = await readFile(FUENTE_CLIENTE, 'utf8');
+export async function cargarEspejoDelCliente(fuente = FUENTE_CLIENTE) {
+  const src = await readFile(fuente, 'utf8');
 
   // Reglas 1-3: el array de patrones.
   const bloque = src.match(/const LOCATOR_PATTERNS: RegExp\[\] = \[([\s\S]*?)\n\];/);
