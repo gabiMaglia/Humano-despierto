@@ -1,3 +1,8 @@
+// T-017 · MOCK DECLARADO A PROPOSITO, fuera de alcance del ticket. El PO acotó el pedido a
+// "cursos, alumnos y docentes"; `blog.ts` (Diario) no tiene tabla en el esquema de 9 tablas
+// ratificado (T-001) -- no hay `posts` ni `authors`. Desmockearlo no es conectar un dato
+// existente: es diseñar una feature nueva (blog/CMS con autoría, publicación, etc.), con su
+// propio ADR y ticket. Ver `engram/03_backlog.md` T-017.
 export const BLOG = {
   featured: {
     cat:"ASTROLOGÍA · ENSAYO", glyph:"☉",
