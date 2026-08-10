@@ -53,28 +53,51 @@ const CORPUS = [
   'Ritual-de-Luna-Nueva-Enero2026',
 ];
 
-/** Extrae el predicado del cliente leyendo su archivo fuente, no una copia. */
+const literalARegExp = (lit) => {
+  const m = lit.match(/^\/(.*)\/([a-z]*)$/s);
+  assert.ok(m, `no pude parsear el literal: ${lit}`);
+  return new RegExp(m[1], m[2]);
+};
+
+/**
+ * Extrae el predicado del cliente leyendo su archivo fuente, **las cuatro reglas**.
+ *
+ * La primera versión de este helper leía del fuente las 3 de `LOCATOR_PATTERNS` y
+ * tenía la cuarta —la corrida larga de 25+— **copiada a mano acá adentro**. QA lo
+ * demostró mutando el umbral real a `{40,}`: divergencia genuina en la dirección
+ * peligrosa, y el test seguía 18/18 en verde. O sea que el mecanismo construido para
+ * detectar divergencia silenciosa tenía divergencia silenciosa adentro. Si una regla
+ * no se lee del fuente, no está verificada — da igual cuántas sí.
+ */
 async function cargarEspejoDelCliente() {
   const src = await readFile(FUENTE_CLIENTE, 'utf8');
+
+  // Reglas 1-3: el array de patrones.
   const bloque = src.match(/const LOCATOR_PATTERNS: RegExp\[\] = \[([\s\S]*?)\n\];/);
   assert.ok(bloque, 'no encontré LOCATOR_PATTERNS en validation/teacher.ts — ¿lo renombraron?');
-  const literales = bloque[1]
+  const patrones = bloque[1]
     .split('\n')
     .map((l) => l.trim())
     // `startsWith('/')` sola tambien agarra las lineas de comentario `//`.
     .filter((l) => l.startsWith('/') && !l.startsWith('//'))
-    .map((l) => l.replace(/,\s*$/, ''));
-  assert.ok(literales.length >= 3, `esperaba al menos 3 patrones, encontré ${literales.length}`);
-  const patrones = literales.map((lit) => {
-    const m = lit.match(/^\/(.*)\/([a-z]*)$/s);
-    assert.ok(m, `no pude parsear el literal: ${lit}`);
-    return new RegExp(m[1], m[2]);
-  });
+    .map((l) => l.replace(/,\s*$/, ''))
+    .map(literalARegExp);
+  assert.ok(patrones.length >= 3, `esperaba al menos 3 patrones, encontré ${patrones.length}`);
+
+  // Regla 4: la corrida larga. También del fuente — su umbral y sus tres condiciones.
+  const cuerpo = src.match(/function hasLocator\(v: string\): boolean \{([\s\S]*?)\n\}/);
+  assert.ok(cuerpo, 'no encontré hasLocator() en validation/teacher.ts');
+  const corrida = cuerpo[1].match(/v\.match\((\/[^/]+\/[a-z]*)\)/);
+  assert.ok(corrida, 'no encontré el regex de la corrida larga dentro de hasLocator()');
+  const reCorrida = literalARegExp(corrida[1]);
+  const condiciones = [...cuerpo[1].matchAll(/\/\[([^\]]+)\]\/\.test\(run\)/g)].map((m) =>
+    literalARegExp(`/[${m[1]}]/`),
+  );
+  assert.equal(condiciones.length, 3, `esperaba 3 condiciones sobre la corrida, encontré ${condiciones.length}`);
+
   return (v) =>
     patrones.some((re) => re.test(v)) ||
-    (v.match(/[A-Za-z0-9_]{25,}/g) ?? []).some(
-      (run) => /[0-9]/.test(run) && /[a-z]/.test(run) && /[A-Z]/.test(run),
-    );
+    (v.match(reCorrida) ?? []).some((run) => condiciones.every((re) => re.test(run)));
 }
 
 describe('ADR-009 · el CHECK de la DB y su espejo del cliente dan el mismo veredicto', () => {

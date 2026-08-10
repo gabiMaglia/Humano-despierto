@@ -130,7 +130,15 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
       {M.testimonials.length > 0 && (
         <section className="border-t border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12">
           <div className="mx-auto max-w-5xl">
-            <SectionDivider label="Voces de quienes pasaron" className="mb-10" />
+            <SectionDivider label="Voces de quienes pasaron" className="mb-4" />
+            {/* Mismo criterio que la landing (T-017 c.3): sin tabla de reviews —sin
+                moderación ni vínculo a una inscripción verificada— estas citas son
+                contenido curado, no testimonios de alumnas reales. Se marca acá también:
+                marcarlo en un lado y no en el otro es peor que no marcarlo, porque
+                sugiere que estos sí son auténticos. */}
+            <p className="mb-10 text-center font-display text-[10px] uppercase tracking-[0.2em] text-ink-faint">
+              — testimonios ilustrativos —
+            </p>
             <div className="grid gap-5 md:grid-cols-3">
               {M.testimonials.map((t, i) => (
                 <blockquote key={`${t.who}-${i}`} className="cosmos-card relative p-7">
