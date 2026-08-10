@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
+import { fullNameSchema } from "@/lib/validation/profile";
 import type { SolidType } from "@/components/cosmos/PlatonicSolid";
 
 const PlatonicSolid = dynamic(() => import("@/components/cosmos/PlatonicSolid"), { ssr: false });
@@ -47,6 +48,18 @@ export default function EntrarPage() {
     setLoading(true);
 
     const supabase = createClient();
+
+    // El CHECK de la DB alcanza a `profiles.full_name` (ADR-009), porque es texto
+    // libre visible en el catálogo público. Sin este espejo, un nombre rechazado
+    // llega como un error crudo de Postgres en vez de un mensaje.
+    if (tab !== "entrar") {
+      const nombreOk = fullNameSchema.safeParse(nombre);
+      if (!nombreOk.success) {
+        setLoading(false);
+        setError(nombreOk.error.issues[0].message);
+        return;
+      }
+    }
 
     const { error: authError } =
       tab === "entrar"

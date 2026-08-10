@@ -20,7 +20,12 @@ import { z } from "zod";
 const LOCATOR_PATTERNS: RegExp[] = [
   /:\/\//,
   /(^|[^a-z0-9])www\./i,
-  /[a-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^a-z]|$)/i,
+  // SIN la bandera /i, a proposito: es el espejo exacto de la migracion 0010. Con
+  // insensibilidad a mayusculas, un typo de prosa castellana ("termina.Me parece")
+  // se lee como un dominio .me y bloquea texto legitimo. Un dominio pegado viene en
+  // minuscula; el typo capitaliza porque arranca oracion. Si esta linea y el CHECK de
+  // la DB dejan de coincidir, el usuario ve un error de Postgres crudo o al reves.
+  /[a-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^a-z]|$)/,
 ];
 
 function hasLocator(v: string): boolean {
@@ -38,7 +43,7 @@ const NO_URL_MESSAGE = (field: string) =>
   `"${field}" no puede contener un link — es texto libre visible en el catálogo público, sin inscripción.`;
 
 /** Aplica el rechazo a un campo de texto libre que la DB ya cierra con un CHECK. */
-const noLocator = <T extends z.ZodType<string | undefined>>(schema: T, field: string) =>
+export const noLocator = <T extends z.ZodType<string | undefined>>(schema: T, field: string) =>
   schema.refine((v) => !v || rejectUrl(field, v), { message: NO_URL_MESSAGE(field) });
 
 export const slugSchema = z
