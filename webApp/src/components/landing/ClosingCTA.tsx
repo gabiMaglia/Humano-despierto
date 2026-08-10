@@ -20,7 +20,7 @@ export default function ClosingCTA() {
       </h2>
 
       <p className="mx-auto mb-9 max-w-[540px] font-quote italic text-xl leading-relaxed text-ink-soft">
-        Próxima cohorte abre con la luna nueva del 6 de mayo.
+        Todos los recorridos están abiertos. Empezás cuando quieras.
         Inscripciones cierran al filo del eclipse.
       </p>
 

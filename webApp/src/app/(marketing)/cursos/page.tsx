@@ -1,6 +1,7 @@
 import CourseCard from "@/components/molecules/CourseCard";
 import PageHeader from "@/components/layout/PageHeader";
-import { CATALOG_COURSES } from "@/lib/mocks/courses";
+import { getPublishedCourses } from "@/lib/server/courses";
+import { formatPriceCents } from "@/lib/utils/format";
 
 const FILTERS = {
   disciplina: [
@@ -14,15 +15,10 @@ const FILTERS = {
     { label:"Intermedio", count:22, active:true  },
     { label:"Maestría",   count:8,  active:false },
   ],
-  formato: [
-    { label:"Live + grabado", count:20, active:true  },
-    { label:"Solo grabado",   count:22, active:false },
-    { label:"Presencial",     count:6,  active:false },
-  ],
-  cohorte: [
-    { label:"☾ Luna nueva · 6 may",    count:12, active:true  },
-    { label:"◐ Creciente · 14 may",    count:8,  active:false },
-    { label:"● Llena · 22 may",         count:6,  active:false },
+  duracion: [
+    { label:"Hasta 6 semanas",  count:12, active:false },
+    { label:"De 6 a 10",        count:8,  active:false },
+    { label:"Más de 10",        count:6,  active:false },
   ],
 };
 
@@ -45,13 +41,15 @@ function FilterGroup({ title, items }: { title: string; items: { label: string; 
   );
 }
 
-export default function CatalogPage() {
+export default async function CatalogPage() {
+  const courses = await getPublishedCourses();
+
   return (
     <div className="min-h-screen bg-cosmos-0">
       <PageHeader
         badge="48 cursos · 4 disciplinas"
         title={<>El compendio <em className="font-quote italic text-lila-300">vivo</em></>}
-        subtitle="Cada cohorte abre con la luna nueva. Los cursos a tu propio ritmo siempre están disponibles."
+        subtitle="Todos los recorridos están abiertos. Se cursan a tu propio ritmo, sin fecha de inicio."
       />
 
       {/* Body */}
@@ -70,8 +68,7 @@ export default function CatalogPage() {
           </div>
           <FilterGroup title="Disciplina" items={FILTERS.disciplina} />
           <FilterGroup title="Nivel"      items={FILTERS.nivel} />
-          <FilterGroup title="Formato"    items={FILTERS.formato} />
-          <FilterGroup title="Próxima cohorte" items={FILTERS.cohorte} />
+          <FilterGroup title="Duración" items={FILTERS.duracion} />
           <button className="mt-2 font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-lila-300 transition-colors">
             Limpiar filtros ✕
           </button>
@@ -96,8 +93,21 @@ export default function CatalogPage() {
 
           {/* Grid */}
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {CATALOG_COURSES.map((course) => (
-              <CourseCard key={course.slug} {...course} />
+            {courses.map((course) => (
+              <CourseCard
+                key={course.slug}
+                num={course.romanNum ?? ""}
+                tag={course.discipline}
+                level={course.level}
+                title={course.title}
+                titleEm={course.titleEm ?? undefined}
+                desc={course.desc ?? ""}
+                teacher={course.teacherName}
+                price={formatPriceCents(course.priceCents, course.currency)}
+                moon={course.moonGlyph ?? undefined}
+                featured={course.featured}
+                slug={course.slug}
+              />
             ))}
           </div>
 

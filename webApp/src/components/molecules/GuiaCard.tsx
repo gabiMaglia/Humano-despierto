@@ -1,18 +1,10 @@
 import Link from "next/link";
+import type { Guia } from "@/lib/mocks/guia";
 
-interface GuiaCardData {
-  slug: string;
-  name: string;
-  glyph: string;
-  role: string;
-  location: string;
-  coursesCount: string;
-  rating: string;
-  sun: string;
-  moon: string;
-  asc: string;
-  quote: string;
-}
+type GuiaCardData = Pick<
+  Guia,
+  "slug" | "name" | "glyph" | "role" | "location" | "coursesCount" | "rating" | "sun" | "moon" | "asc" | "quote"
+>;
 
 export default function GuiaCard({ slug, name, glyph, role, location, coursesCount, sun, moon, asc, quote }: GuiaCardData) {
   return (

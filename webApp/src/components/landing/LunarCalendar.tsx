@@ -50,7 +50,7 @@ export default function LunarCalendar() {
           El cielo <em className="font-quote italic text-lila-300">marca el ritmo</em>
         </h2>
         <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
-          Los lives, rituales y cohortes se sincronizan con las fases de la luna.
+          Un mapa del cielo para acompañar la práctica, no un calendario de clases.
         </p>
 
         {/* Moon phases */}
@@ -60,11 +60,6 @@ export default function LunarCalendar() {
               <Moon phase={d.phase} today={"today" in d && d.today} />
               <span className="font-display text-[11px] tracking-[0.2em] text-ink">{d.date}</span>
               <span className="font-quote italic text-sm text-ink-soft">{d.label}</span>
-              {"event" in d && d.event && (
-                <span className="absolute -bottom-6 font-display text-[10px] tracking-[0.1em] text-gold-400">
-                  {d.event}
-                </span>
-              )}
             </div>
           ))}
         </div>

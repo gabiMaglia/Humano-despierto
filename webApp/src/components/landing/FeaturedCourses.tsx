@@ -7,10 +7,10 @@ export default function FeaturedCourses() {
     <section className="px-6 py-24 md:px-12">
       <div className="mx-auto max-w-7xl">
         <SectionHeader
-          eyebrow="Cursos en cohorte abierta"
+          eyebrow="Recorridos abiertos"
           title="El compendio"
           titleEm="vivo"
-          subtitle="Cada cohorte abre con la luna nueva. El aprendizaje sigue el ritmo del cielo."
+          subtitle="Todos disponibles desde el primer día. El aprendizaje sigue tu propio ritmo."
         />
         <div className="grid gap-6 md:grid-cols-3">
           {COURSES.map((course) => (

@@ -5,7 +5,7 @@ import SectionDivider from "@/components/atoms/SectionDivider";
 import { cn } from "@/lib/utils/cn";
 
 const CHECKOUT = {
-  course: { num:"II", tag:"Tarot · Maestría", title:"Tarot iniciático", subtitle:"los 22 arcanos como espejo del alma", maestra:"Sol Mayor", weeks:"10 semanas", sessions:"XXI sesiones", cohort:"Luna nueva · 6 mayo MMXXVI", spots:"XII de XV plazas tomadas" },
+  course: { num:"II", tag:"Tarot · Maestría", title:"Tarot iniciático", subtitle:"los 22 arcanos como espejo del alma", maestra:"Sol Mayor", weeks:"10 semanas", sessions:"XXI sesiones", access:"Acceso inmediato", pace:"A tu propio ritmo" },
   pricing: {
     full:  { label:"Pago único",    price:"$ 280", sub:"Una sola ofrenda · ahorrás $ 20", best:true  },
     three: { label:"Tres lunas",    price:"$ 100", sub:"× 3 meses · primera al inscribir", best:false },
@@ -13,14 +13,14 @@ const CHECKOUT = {
   },
   includes: [
     "Acceso de por vida a las grabaciones",
-    "21 sesiones live por Zoom con Sol",
+    "XXI sesiones grabadas, tuyas para siempre",
     "Mazo de tarot Marsella enviado",
     "Cuaderno de bitácora encuadernado",
     "Círculo cerrado de práctica",
   ],
 } as const;
 
-const STEPS = ["Cohorte","Plan","Datos","Pacto"] as const;
+const STEPS = ["Curso","Plan","Datos","Pacto"] as const;
 const STEP_NUMS = ["I","II","III","IV"] as const;
 
 type PlanKey = keyof typeof CHECKOUT.pricing;
@@ -218,14 +218,11 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Cohort */}
+            {/* Acceso */}
             <div className="border-b border-lila-300/18 px-5 py-4">
-              <p className="mb-1 font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Próxima cohorte</p>
-              <p className="mb-2 font-display text-sm tracking-wide text-lila-300">{CHECKOUT.course.cohort}</p>
-              <div className="mb-1 h-1.5 rounded-full bg-lila-300/18 overflow-hidden">
-                <div className="h-full rounded-full bg-gold-400/60 w-4/5" />
-              </div>
-              <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{CHECKOUT.course.spots}</p>
+              <p className="mb-1 font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Cuándo empezás</p>
+              <p className="mb-2 font-display text-sm tracking-wide text-lila-300">{CHECKOUT.course.access}</p>
+              <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{CHECKOUT.course.pace}</p>
             </div>
 
             {/* Includes */}
