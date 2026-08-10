@@ -10,7 +10,6 @@ export interface CourseCardData {
   teacher: string;
   price: string;
   weeks?: string;
-  format?: string;
   level?: string;
   moon?: string;
   featured?: boolean;
@@ -23,18 +22,22 @@ interface Props extends CourseCardData {
 
 export default function CourseCard({
   num, tag, title, titleEm, desc, teacher, price,
-  weeks, format, level, moon, featured, slug, className,
+  weeks, level, moon, featured, slug, className,
 }: Props) {
   return (
+    // Altura fija y estructura de alto determinado: el tag, el titulo, la descripcion
+    // y el pie ocupan siempre lo mismo, sin importar cuanto texto traiga cada curso.
+    // Antes cada card medía distinto segun el largo de la descripcion y la grilla
+    // quedaba despareja.
     <article
       className={cn(
-        "cosmos-card group relative cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lila-glow",
+        "cosmos-card group relative flex h-full cursor-pointer flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lila-glow",
         featured && "border-lila-300/40 bg-cosmos-elev",
         className
       )}
     >
       {/* Image placeholder */}
-      <div className="relative overflow-hidden bg-linear-to-br from-lila-700 to-cosmos-2 aspect-[4/3]">
+      <div className="relative shrink-0 overflow-hidden bg-linear-to-br from-lila-700 to-cosmos-2 aspect-[4/3]">
         <div
           className="absolute inset-0"
           style={{
@@ -60,17 +63,19 @@ export default function CourseCard({
       </div>
 
       {/* Body */}
-      <div className="p-5 md:p-6">
-        <div className="mb-3 flex items-center justify-between font-display text-eyebrow uppercase tracking-[0.2em]">
-          <span className="text-gold-400">✦ {tag}</span>
-          <div className="flex items-center gap-1.5 text-ink-faint">
+      <div className="flex flex-1 flex-col p-5 md:p-6">
+        <div className="mb-3 flex h-[1lh] items-center justify-between overflow-hidden font-display text-eyebrow uppercase tracking-[0.2em]">
+          <span className="truncate text-gold-400">✦ {tag}</span>
+          <div className="flex shrink-0 items-center gap-1.5 text-ink-faint">
             {level && <span>{level}</span>}
             {level && weeks && <span>·</span>}
             {weeks && <span>☾ {weeks}</span>}
           </div>
         </div>
 
-        <h3 className="mb-2.5 font-display text-xl leading-snug tracking-wide text-ink">
+        {/* Dos líneas fijas: un título corto y uno largo ocupan lo mismo, así la
+            descripción y el pie no se desplazan de una card a otra. */}
+        <h3 className="mb-2.5 line-clamp-2 h-[2lh] font-display text-xl leading-snug tracking-wide text-ink">
           {title}
           {titleEm && (
             <>
@@ -80,9 +85,14 @@ export default function CourseCard({
           )}
         </h3>
 
-        <p className="mb-4 font-body text-sm leading-relaxed text-ink-soft">{desc}</p>
+        {/* Alto fijo de 3 líneas. Si la descripción es más larga, se scrollea acá
+            dentro en vez de estirar la card. */}
+        <p className="mb-4 h-[3lh] overflow-y-auto pr-1 font-body text-sm leading-relaxed text-ink-soft [scrollbar-color:var(--color-lila-300)_transparent] [scrollbar-width:thin]">
+          {desc}
+        </p>
 
-        <div className="flex items-center justify-between border-t border-lila-300/18 pt-3.5">
+        {/* mt-auto: el pie queda pegado abajo aunque el resto no llene el alto. */}
+        <div className="mt-auto flex items-center justify-between border-t border-lila-300/18 pt-3.5">
           <div className="flex items-center gap-2.5">
             <Avatar size="sm" />
             <span className="font-body text-xs text-ink-soft">{teacher}</span>

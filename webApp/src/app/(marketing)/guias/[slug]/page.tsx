@@ -1,20 +1,20 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
-import { GUIA_DATA } from "@/lib/mocks/guia";
+import { GUIAS, type GuiaPlaneta } from "@/lib/mocks/guia";
 
 const ZODIAC = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"] as const;
 const ROMAN  = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"] as const;
 
-function BirthChart() {
+function BirthChart({ planets }: { planets: GuiaPlaneta[] }) {
   const size = 280, cx = 140, cy = 140;
   const r1 = 130, r2 = 110, r3 = 90, r4 = 50;
   const polar = (angle: number, radius: number) => {
     const a = (angle - 90) * Math.PI / 180;
     return [cx + Math.cos(a) * radius, cy + Math.sin(a) * radius] as const;
   };
-  const { planets } = GUIA_DATA.birthChart;
 
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="text-lila-300">
@@ -65,8 +65,9 @@ function BirthChart() {
 }
 
 export default async function GuiaPage({ params }: { params: Promise<{ slug: string }> }) {
-  await params;
-  const M = GUIA_DATA;
+  const { slug } = await params;
+  const M = GUIAS.find((g) => g.slug === slug);
+  if (!M) notFound();
 
   return (
     <div className="min-h-screen bg-cosmos-0">
@@ -103,7 +104,7 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
               <span key={cls} className={`absolute h-5 w-5 ${cls} border-gold-400/60`} />
             ))}
           </div>
-          <BirthChart />
+          <BirthChart planets={M.birthChart.planets} />
           <p className="font-display text-eyebrow tracking-[0.2em] text-ink-faint text-center">
             — CARTA NATAL · {M.birthChart.date} —
           </p>
@@ -197,10 +198,10 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           Una <em className="font-quote italic text-lila-300">guía</em> que sostenga el camino
         </h2>
         <p className="mb-8 font-quote italic text-lg text-ink-soft">
-          Sol abre dos cohortes al año · próxima en luna nueva del 6 de mayo
+          Sus recorridos están abiertos · se cursan cuando quieras, a tu ritmo
         </p>
         <div className="flex flex-col sm:flex-row gap-3.5 justify-center">
-          <Link href="/cursos/tarot-iniciatico" className="btn-ritual btn-ritual-primary rounded-pill">Tarot iniciático · 6 mayo ↦</Link>
+          <Link href="/cursos/tarot-iniciatico" className="btn-ritual btn-ritual-primary rounded-pill">Tarot iniciático ↦</Link>
           <a href="#cursos" className="btn-ritual btn-ritual-ghost rounded-pill">Ver todos sus cursos</a>
         </div>
       </section>

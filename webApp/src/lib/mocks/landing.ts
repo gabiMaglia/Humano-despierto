@@ -1,7 +1,7 @@
 // Extracted from design_handoff_humano_humano/reference/hifi/desktop.jsx
 
 export const HERO = {
-  badge: "Cohorte de Luna Nueva · Mayo",
+  badge: "Inscripción abierta · Todo el año",
   h1: {
     pre:  "Una escuela para",
     em:   "oficios sutiles",
@@ -38,14 +38,14 @@ export const COURSES = [
     num: "II", tag: "Tarot",
     title: "Tarot", titleEm: "iniciático",
     desc: "Los 22 arcanos como espejo. Aprenderás a sostener consultas con ética y profundidad simbólica.",
-    teacher: "Sol Mayor", price: "$ 280", weeks: "10 sem · live + grabado",
+    teacher: "Sol Mayor", price: "$ 280", weeks: "10 semanas · a tu ritmo",
     featured: true, slug: "tarot-iniciatico",
   },
   {
     num: "III", tag: "Reiki",
     title: "Reiki", titleEm: "nivel I",
     desc: "Iniciación en la imposición de manos. Cuerpo sutil, chakras, ética del canal.",
-    teacher: "Aurora Violeta", price: "$ 180", weeks: "6 sem · presencial",
+    teacher: "Aurora Violeta", price: "$ 180", weeks: "6 semanas · a tu ritmo",
     featured: false, slug: "reiki-nivel-1",
   },
 ] as const;
@@ -63,9 +63,9 @@ export const MAESTRA = {
 export const LUNAR_DAYS = [
   { phase: "new",      date: "6 MAY",  label: "sembrar"  },
   { phase: "crescent", date: "10",     label: "iniciar"  },
-  { phase: "half",     date: "14",     label: "crecer",    event: "LIVE NATAL"      },
+  { phase: "half",     date: "14",     label: "crecer"   },
   { phase: "gibbous",  date: "18",     label: "culminar" },
-  { phase: "full",     date: "22 MAY", label: "liberar",   event: "RITUAL ABIERTO", today: true },
+  { phase: "full",     date: "22 MAY", label: "liberar",   today: true },
   { phase: "gibbous",  date: "26",     label: "integrar" },
   { phase: "half",     date: "30",     label: "soltar"   },
   { phase: "crescent", date: "3 JUN",  label: "descansar"},
