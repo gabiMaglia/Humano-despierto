@@ -1,4 +1,7 @@
 import { z } from "zod";
+// El predicado vive en un modulo plano para que el test de paridad ejecute ESTA
+// misma funcion en vez de reconstruirla parseando el fuente (ver locator.mjs).
+import { hasLocator } from "@/lib/validation/locator.mjs";
 
 // Validación de formularios del panel docente (T-005 c.8). Sin `server-only`
 // a propósito: son schemas puros, sin secreto ni cliente de datos — los
@@ -17,29 +20,6 @@ import { z } from "zod";
 //   1. `://` cualquier esquema · 2. `www.` · 3. host con TLD conocido
 //   4. id de Drive suelto: 25+ de [A-Za-z0-9_] con dígito Y mayúscula Y minúscula.
 //      `-` queda fuera del charset o "Ritual-de-Luna-Nueva-Enero2026" sería falso positivo.
-const LOCATOR_PATTERNS: RegExp[] = [
-  /:\/\//,
-  /(^|[^a-z0-9])www\./i,
-  // Espejo EXACTO de la migracion 0010. Dos cosas, y confundirlas ya costo un bug:
-  //
-  //  1. La alternancia de TLD va en minuscula y sin /i, a proposito: un dominio pegado
-  //     viene en minuscula y el typo de prosa castellana ("termina.Me parece")
-  //     capitaliza porque arranca oracion. Sin eso se bloquea texto legitimo.
-  //  2. Las clases de alrededor SI cubren mayusculas — [A-Za-z0-9] y [^A-Za-z], no
-  //     [a-z0-9]/[^a-z]. En SQL, pasar de ~* a ~ NO toca las clases POSIX
-  //     [[:alnum:]]/[[:alpha:]], que siempre incluyen ambos casos. Al sacar /i aca sin
-  //     ajustar las clases, "PDF.com/x" quedaba bloqueado por la DB y aceptado por el
-  //     cliente: la direccion peligrosa. Son operaciones distintas, no la misma.
-  /[A-Za-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^A-Za-z]|$)/,
-];
-
-function hasLocator(v: string): boolean {
-  if (LOCATOR_PATTERNS.some((re) => re.test(v))) return true;
-  return (v.match(/[A-Za-z0-9_]{25,}/g) ?? []).some(
-    (run) => /[0-9]/.test(run) && /[a-z]/.test(run) && /[A-Z]/.test(run),
-  );
-}
-
 function rejectUrl(field: string, v: string): boolean {
   return !hasLocator(v);
 }

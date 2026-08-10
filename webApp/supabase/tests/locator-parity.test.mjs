@@ -1,17 +1,11 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { bootDatabase } from '../harness/db.mjs';
-
-const aqui = dirname(fileURLToPath(import.meta.url));
-const FUENTE_CLIENTE = join(aqui, '..', '..', 'src', 'lib', 'validation', 'teacher.ts');
 
 /**
  * PARIDAD entre las dos definiciones del mismo invariante (ADR-009):
  * el CHECK de la DB (`public.text_has_locator`) y su espejo en el cliente
- * (`LOCATOR_PATTERNS` + la regla de id largo, en validation/teacher.ts).
+ * (`hasLocator`, en validation/locator.mjs).
  *
  * POR QUE EXISTE. Ya divergieron dos veces, las dos por el mismo malentendido:
  *
@@ -24,9 +18,10 @@ const FUENTE_CLIENTE = join(aqui, '..', '..', 'src', 'lib', 'validation', 'teach
  *     cliente — la dirección peligrosa. Lo encontró QA, no la suite: los 182 tests
  *     seguían en verde mientras el bug existía.
  *
- * El test lee el regex del ARCHIVO FUENTE, no una copia: si alguien toca el espejo y
- * no la migración (o al revés), esto se pone rojo. Esa es la única forma de que dos
- * definiciones del mismo invariante no se separen en silencio.
+ * El test IMPORTA la función real del cliente (`validation/locator.mjs`) — no la
+ * reconstruye. Reconstruirla falló dos veces: reconstruir una definición es tener dos
+ * definiciones, y ahí es donde se separan sin que nadie lo note. Importándola, una regla
+ * nueva queda ejercitada automáticamente porque es literalmente el mismo código.
  */
 
 // Casos elegidos por lo que rompieron histórica­mente, no por cubrir el espacio.
@@ -60,59 +55,21 @@ export const CORPUS = [
   'Ritual-de-Luna-Nueva-Enero2026',
 ];
 
-const literalARegExp = (lit) => {
-  const m = lit.match(/^\/(.*)\/([a-z]*)$/s);
-  assert.ok(m, `no pude parsear el literal: ${lit}`);
-  return new RegExp(m[1], m[2]);
-};
-
 /**
- * Extrae el predicado del cliente leyendo su archivo fuente, **las cuatro reglas**.
- *
- * La primera versión de este helper leía del fuente las 3 de `LOCATOR_PATTERNS` y
- * tenía la cuarta —la corrida larga de 25+— **copiada a mano acá adentro**. QA lo
- * demostró mutando el umbral real a `{40,}`: divergencia genuina en la dirección
- * peligrosa, y el test seguía 18/18 en verde. O sea que el mecanismo construido para
- * detectar divergencia silenciosa tenía divergencia silenciosa adentro. Si una regla
- * no se lee del fuente, no está verificada — da igual cuántas sí.
+ * El espejo del cliente ya NO se reconstruye parseando el fuente: se importa la función
+ * real. Las dos versiones anteriores fallaron por lo mismo — reconstruir una definición
+ * es tener dos definiciones, y ahí es donde se separan en silencio. Primero por una regla
+ * copiada a mano; después porque el parser solo entendía las reglas del array y una regla
+ * nueva con otra forma quedaba invisible sin error.
  */
-export async function cargarEspejoDelCliente(fuente = FUENTE_CLIENTE) {
-  const src = await readFile(fuente, 'utf8');
-
-  // Reglas 1-3: el array de patrones.
-  const bloque = src.match(/const LOCATOR_PATTERNS: RegExp\[\] = \[([\s\S]*?)\n\];/);
-  assert.ok(bloque, 'no encontré LOCATOR_PATTERNS en validation/teacher.ts — ¿lo renombraron?');
-  const patrones = bloque[1]
-    .split('\n')
-    .map((l) => l.trim())
-    // `startsWith('/')` sola tambien agarra las lineas de comentario `//`.
-    .filter((l) => l.startsWith('/') && !l.startsWith('//'))
-    .map((l) => l.replace(/,\s*$/, ''))
-    .map(literalARegExp);
-  assert.ok(patrones.length >= 3, `esperaba al menos 3 patrones, encontré ${patrones.length}`);
-
-  // Regla 4: la corrida larga. También del fuente — su umbral y sus tres condiciones.
-  const cuerpo = src.match(/function hasLocator\(v: string\): boolean \{([\s\S]*?)\n\}/);
-  assert.ok(cuerpo, 'no encontré hasLocator() en validation/teacher.ts');
-  const corrida = cuerpo[1].match(/v\.match\((\/[^/]+\/[a-z]*)\)/);
-  assert.ok(corrida, 'no encontré el regex de la corrida larga dentro de hasLocator()');
-  const reCorrida = literalARegExp(corrida[1]);
-  const condiciones = [...cuerpo[1].matchAll(/\/\[([^\]]+)\]\/\.test\(run\)/g)].map((m) =>
-    literalARegExp(`/[${m[1]}]/`),
-  );
-  assert.equal(condiciones.length, 3, `esperaba 3 condiciones sobre la corrida, encontré ${condiciones.length}`);
-
-  return (v) =>
-    patrones.some((re) => re.test(v)) ||
-    (v.match(reCorrida) ?? []).some((run) => condiciones.every((re) => re.test(run)));
-}
+const { hasLocator } = await import('../../src/lib/validation/locator.mjs');
+export const cliente = hasLocator;
 
 describe('ADR-009 · el CHECK de la DB y su espejo del cliente dan el mismo veredicto', () => {
-  let db, cliente;
+  let db;
 
   before(async () => {
     ({ db } = await bootDatabase());
-    cliente = await cargarEspejoDelCliente();
   });
 
   after(async () => { await db?.close?.(); });
