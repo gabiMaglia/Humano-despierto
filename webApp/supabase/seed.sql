@@ -206,11 +206,11 @@ select gen_random_uuid(), target.course_id, target.module_id, v.position, v.titl
 from target, (values
   -- video_id / duration_seconds verificados el 2026-08-07 contra la pagina publica de YouTube
   -- (oembed + lengthSeconds), no inventados. Los 5 son Blender Foundation/Studio, CC, embeddable.
-  (1, 'Tirada de tres cartas',              'WhWc3b3KhnY', 464, true),  -- Spring
+  (1, 'Tirada de tres cartas',              'WhWc3b3KhnY', 465, true),  -- Spring
   (2, 'El presente, lo oculto, el consejo', 'YE7VzlLtp-4', 597, false), -- Big Buck Bunny
-  (3, 'Apertura del hexagrama',             'TLkA0RELQ1g', 654, false), -- Elephants Dream
+  (3, 'Apertura del hexagrama',             'TLkA0RELQ1g', 655, false), -- Elephants Dream
   (4, 'La cruz celta como mapa del alma',   'eRsGyueVLvQ', 888, false), -- Sintel
-  (5, 'El árbol de la vida',                'R6MlUcmOul8', 734, false)  -- Tears of Steel
+  (5, 'El árbol de la vida',                'R6MlUcmOul8', 735, false)  -- Tears of Steel
 ) as v(position, title, video_id, duration_seconds, is_preview);
 
 -- ---------------------------------------------------------------- lesson_chapters (LESSON.chapters)
