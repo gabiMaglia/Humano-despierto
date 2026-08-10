@@ -20,12 +20,17 @@ import { z } from "zod";
 const LOCATOR_PATTERNS: RegExp[] = [
   /:\/\//,
   /(^|[^a-z0-9])www\./i,
-  // SIN la bandera /i, a proposito: es el espejo exacto de la migracion 0010. Con
-  // insensibilidad a mayusculas, un typo de prosa castellana ("termina.Me parece")
-  // se lee como un dominio .me y bloquea texto legitimo. Un dominio pegado viene en
-  // minuscula; el typo capitaliza porque arranca oracion. Si esta linea y el CHECK de
-  // la DB dejan de coincidir, el usuario ve un error de Postgres crudo o al reves.
-  /[a-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^a-z]|$)/,
+  // Espejo EXACTO de la migracion 0010. Dos cosas, y confundirlas ya costo un bug:
+  //
+  //  1. La alternancia de TLD va en minuscula y sin /i, a proposito: un dominio pegado
+  //     viene en minuscula y el typo de prosa castellana ("termina.Me parece")
+  //     capitaliza porque arranca oracion. Sin eso se bloquea texto legitimo.
+  //  2. Las clases de alrededor SI cubren mayusculas — [A-Za-z0-9] y [^A-Za-z], no
+  //     [a-z0-9]/[^a-z]. En SQL, pasar de ~* a ~ NO toca las clases POSIX
+  //     [[:alnum:]]/[[:alpha:]], que siempre incluyen ambos casos. Al sacar /i aca sin
+  //     ajustar las clases, "PDF.com/x" quedaba bloqueado por la DB y aceptado por el
+  //     cliente: la direccion peligrosa. Son operaciones distintas, no la misma.
+  /[A-Za-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^A-Za-z]|$)/,
 ];
 
 function hasLocator(v: string): boolean {
