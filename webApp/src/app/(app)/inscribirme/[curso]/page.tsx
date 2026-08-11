@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import { cn } from "@/lib/utils/cn";
@@ -47,9 +48,9 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-cosmos-0 text-ink">
       {/* Top bar */}
       <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-4 flex flex-wrap items-center gap-4 md:gap-8">
-        <a href="/cursos/tarot-iniciatico" className="font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors whitespace-nowrap">
+        <Link href="/cursos/tarot-iniciatico" className="font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors whitespace-nowrap">
           ← Volver al curso
-        </a>
+        </Link>
 
         {/* Step indicator */}
         <div className="flex flex-1 items-center justify-center gap-2 md:gap-3">

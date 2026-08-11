@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Nav from "@/components/layout/Nav";
 import ProgressRing from "@/components/atoms/ProgressRing";
 import { getCurrentUser } from "@/lib/server/auth";
@@ -27,9 +28,9 @@ export default async function DashboardPage() {
           <p className="max-w-md font-body text-sm text-ink-soft">
             Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
           </p>
-          <a href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
+          <Link href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
             Explorar el catálogo ↦
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -67,13 +68,13 @@ export default async function DashboardPage() {
           </div>
           <div className="flex flex-col items-start gap-2">
             {continuing.continueLessonId ? (
-              <a href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
+              <Link href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
                 Continuar ↦
-              </a>
+              </Link>
             ) : (
-              <a href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
+              <Link href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
                 Ver curso ↦
-              </a>
+              </Link>
             )}
             {continuing.lastSeenAt && (
               <span className="font-quote italic text-sm text-ink-soft">
@@ -87,7 +88,7 @@ export default async function DashboardPage() {
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="font-display text-lg tracking-wide text-ink">Tu camino actual</h2>
-            <a href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</a>
+            <Link href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</Link>
           </div>
           <div className="space-y-4">
             {courses.map((c, i) => (
@@ -112,9 +113,9 @@ export default async function DashboardPage() {
                 <div className="flex-none flex flex-col items-center gap-2">
                   <ProgressRing value={c.progressPercent} />
                   {c.progressPercent < 100 && c.continueLessonId && (
-                    <a href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
+                    <Link href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
                       Continuar ↦
-                    </a>
+                    </Link>
                   )}
                 </div>
               </article>

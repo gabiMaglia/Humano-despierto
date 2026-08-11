@@ -1,3 +1,4 @@
+import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
 import SectionHeader from "@/components/atoms/SectionHeader";
 import { getPublishedCourses } from "@/lib/server/courses";
@@ -35,9 +36,9 @@ export default async function FeaturedCourses() {
           ))}
         </div>
         <div className="mt-12 text-center">
-          <a href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
+          <Link href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
             Ver todos los cursos ↦
-          </a>
+          </Link>
         </div>
       </div>
     </section>
