@@ -22,3 +22,13 @@ export function formatTotalDuration(seconds: number): string {
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
 }
+
+/** "11 de agosto de 2026" — la fecha del certificado (T-018), no una hora: el día alcanza. */
+export function formatCertificateDate(isoDate: string): string {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(isoDate));
+}
