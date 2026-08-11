@@ -574,4 +574,221 @@ on conflict (user_id, lesson_id) do update set
 
 reset session_replication_role;
 
+-- ============================================================================================
+-- T-021 · Campus — pedido explicito del PO: "un hilo vacio en cada curso se lee como abandono,
+-- no como espacio nuevo". 10 alumnas NUEVAS (no las 3 de T-017 -- esas ya tienen su rol en el
+-- panel/progreso y mezclarlas hubiera atado dos seeds que deben poder evolucionar separado),
+-- cada una con inscripcion ACTIVA en el curso cuyo hilo comenta (si no, RLS la rechaza -- ver
+-- 0014 y `tests/campus-posts.test.mjs`) y una entrada escrita en primera persona sobre el
+-- CONTENIDO real de ese modulo/curso, no relleno generico. Repartidas en 7 de los 9 cursos y
+-- las 3 disciplinas con docente propia (astrologia, tarot, reiki, herbal) -- ninguna concentra
+-- todo en tarot-iniciatico. Las docentes YA EXISTENTES (Luna Arce, Sol Mayor, Aurora Violeta,
+-- sembradas mas arriba) responden en varios de esos hilos: no es un foro con una sola voz.
+-- Ademas, un puñado de mensajes en el hilo GENERAL (course_id null): dos alumnas nuevas se
+-- presentan y una docente da la bienvenida -- el hilo general tambien arranca habitado.
+--
+-- Idempotente como el resto del archivo: `auth.users`/`enrollments` con su ON CONFLICT natural,
+-- `campus_posts` con ID FIJO propio de este seed (namespace 'd0000000-...') y
+-- ON CONFLICT (id) DO UPDATE -- no hay otra clave natural en la tabla (no es un dato que el
+-- USUARIO edite en produccion, es contenido de arranque). El guard trigger de 0014
+-- (`campus_posts_guard`) no interfiere: corre como `postgres`, que `is_service_context()`
+-- reconoce como contexto de servicio y deja pasar.
+
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values
+  ('c0000000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'antonella.guzman@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Antonella Guzmán"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'rocio.beltran@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Rocío Beltrán"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'nazarena.ibarra@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Nazarena Ibarra"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000004', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'yamila.cortez@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Yamila Cortez"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000005', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'ezequiel.prado@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Ezequiel Prado"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000006', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'milagros.sosa@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Milagros Sosa"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000007', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'agustina.vera@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Agustina Vera"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000008', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'tomas.aguirre@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Tomás Aguirre"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000009', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'florencia.nunez@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Florencia Núñez"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('c0000000-0000-4000-8000-000000000010', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'ignacio.bazan@seed.humano.local',
+   crypt('seed-student-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Ignacio Bazán"}'::jsonb,
+   now(), now(), '', '', '', '')
+on conflict (id) do nothing;
+
+update public.profiles set full_name = v.full_name
+from (values
+  ('c0000000-0000-4000-8000-000000000001'::uuid, 'Antonella Guzmán'),
+  ('c0000000-0000-4000-8000-000000000002'::uuid, 'Rocío Beltrán'),
+  ('c0000000-0000-4000-8000-000000000003'::uuid, 'Nazarena Ibarra'),
+  ('c0000000-0000-4000-8000-000000000004'::uuid, 'Yamila Cortez'),
+  ('c0000000-0000-4000-8000-000000000005'::uuid, 'Ezequiel Prado'),
+  ('c0000000-0000-4000-8000-000000000006'::uuid, 'Milagros Sosa'),
+  ('c0000000-0000-4000-8000-000000000007'::uuid, 'Agustina Vera'),
+  ('c0000000-0000-4000-8000-000000000008'::uuid, 'Tomás Aguirre'),
+  ('c0000000-0000-4000-8000-000000000009'::uuid, 'Florencia Núñez'),
+  ('c0000000-0000-4000-8000-000000000010'::uuid, 'Ignacio Bazán')
+) as v(id, full_name)
+where public.profiles.id = v.id and public.profiles.role = 'student';
+
+-- Inscripcion ACTIVA de cada alumna nueva en el curso cuyo hilo comenta. Sin esto la RLS de
+-- 0014 (`can_write_campus_post`) la rechaza -- que es exactamente el comportamiento que
+-- `tests/campus-posts.test.mjs` y `harness/b1-postgrest-attacks.sh` verifican por separado.
+insert into public.enrollments (user_id, course_id, status, granted_by)
+select v.user_id, c.id, 'active', null
+from (values
+  ('c0000000-0000-4000-8000-000000000001'::uuid, 'carta-natal-esencial'),
+  ('c0000000-0000-4000-8000-000000000002'::uuid, 'carta-natal-esencial'),
+  ('c0000000-0000-4000-8000-000000000003'::uuid, 'transitos-retornos'),
+  ('c0000000-0000-4000-8000-000000000004'::uuid, 'tarot-iniciatico'),
+  ('c0000000-0000-4000-8000-000000000005'::uuid, 'tarot-iniciatico'),
+  ('c0000000-0000-4000-8000-000000000006'::uuid, 'arcanos-menores'),
+  ('c0000000-0000-4000-8000-000000000007'::uuid, 'reiki-nivel-1'),
+  ('c0000000-0000-4000-8000-000000000008'::uuid, 'reiki-nivel-1'),
+  ('c0000000-0000-4000-8000-000000000009'::uuid, 'herbario-lunar'),
+  ('c0000000-0000-4000-8000-000000000010'::uuid, 'tinturas-iniciales')
+) as v(user_id, slug)
+join public.courses c on c.slug = v.slug
+on conflict (user_id, course_id) do update set status = excluded.status;
+
+-- Las entradas de las alumnas, en el hilo de SU curso. `created_at`/`updated_at` escalonados
+-- (no `now()` para las 10 iguales) para que el feed tenga un orden legible; se fijan iguales
+-- entre si para que no aparezcan como "editadas" sin haberlo sido.
+insert into public.campus_posts (id, course_id, author_id, body, created_at, updated_at)
+select v.id, c.id, v.author_id, v.body, v.at, v.at
+from (values
+  ('d0000000-0000-4000-8000-000000000001'::uuid, 'carta-natal-esencial',
+   'c0000000-0000-4000-8000-000000000001'::uuid,
+   'En mi carta la Casa X está vacía — ningún planeta ahí. En la clase de esta semana quedé con la duda: ¿"vacía" significa que no hay vocación clara, o hay que mirar el regente igual?',
+   timestamptz '2026-08-03 09:12:00'),
+  ('d0000000-0000-4000-8000-000000000002'::uuid, 'carta-natal-esencial',
+   'c0000000-0000-4000-8000-000000000002'::uuid,
+   'Tengo Luna en cuadratura con Saturno y durante años pensé que "no podía sentir". Recién ahora, con el módulo de aspectos, entiendo que no era eso — era otra cosa. Gracias por poner nombre a algo que cargué sin entender.',
+   timestamptz '2026-08-04 20:47:00'),
+  ('d0000000-0000-4000-8000-000000000003'::uuid, 'transitos-retornos',
+   'c0000000-0000-4000-8000-000000000003'::uuid,
+   '¿Cómo distingo un tránsito de Saturno real de simplemente estar pasando un mal año? Hace tres meses siento que todo pesa el doble y no sé si es el cielo o soy yo.',
+   timestamptz '2026-08-05 08:30:00'),
+  ('d0000000-0000-4000-8000-000000000004'::uuid, 'tarot-iniciatico',
+   'c0000000-0000-4000-8000-000000000004'::uuid,
+   'Llevo tres tiradas seguidas donde sale la Torre. Sé que no hay que leerlo como catástrofe pero cuesta no asustarse. ¿Cómo lo sostienen ustedes cuando una carta insiste?',
+   timestamptz '2026-08-02 19:05:00'),
+  ('d0000000-0000-4000-8000-000000000005'::uuid, 'tarot-iniciatico',
+   'c0000000-0000-4000-8000-000000000005'::uuid,
+   'Pregunta práctica: ¿se puede leer el propio tarot con honestidad, o siempre termina uno viendo lo que quiere ver? Vengo intentando y no confío en mis propias tiradas.',
+   timestamptz '2026-08-06 11:22:00'),
+  ('d0000000-0000-4000-8000-000000000006'::uuid, 'arcanos-menores',
+   'c0000000-0000-4000-8000-000000000006'::uuid,
+   'En el módulo de Espadas vs. Bastos me cuesta distinguirlos en una tirada de conflicto — los dos parecen "tensión". ¿Hay alguna pregunta que ayude a diferenciarlos rápido?',
+   timestamptz '2026-08-07 16:40:00'),
+  ('d0000000-0000-4000-8000-000000000007'::uuid, 'reiki-nivel-1',
+   'c0000000-0000-4000-8000-000000000007'::uuid,
+   'Durante la práctica de manos sentí calor en algunas zonas y en otras nada. ¿Es normal esa diferencia o quiere decir que hice algo mal?',
+   timestamptz '2026-08-03 18:15:00'),
+  ('d0000000-0000-4000-8000-000000000008'::uuid, 'reiki-nivel-1',
+   'c0000000-0000-4000-8000-000000000008'::uuid,
+   '¿El reiki a distancia se ve en este nivel o recién en nivel III? Pregunto porque tengo a alguien lejos a quien me gustaría acompañar.',
+   timestamptz '2026-08-06 09:50:00'),
+  ('d0000000-0000-4000-8000-000000000009'::uuid, 'herbario-lunar',
+   'c0000000-0000-4000-8000-000000000009'::uuid,
+   'Estoy en el hemisferio sur y las fases que da el módulo suenan pensadas para el hemisferio norte, ¿no? ¿Cambia algo la cosecha si acá la estación está invertida?',
+   timestamptz '2026-08-04 14:00:00'),
+  ('d0000000-0000-4000-8000-000000000010'::uuid, 'tinturas-iniciales',
+   'c0000000-0000-4000-8000-000000000010'::uuid,
+   'En casa solo consigo alcohol de caña de 40°. El módulo pide 70° para la maceración — ¿sirve igual o cambia demasiado el resultado final?',
+   timestamptz '2026-08-05 15:33:00')
+) as v(id, slug, author_id, body, at)
+join public.courses c on c.slug = v.slug
+on conflict (id) do update set body = excluded.body, updated_at = excluded.updated_at;
+
+-- Respuestas de las TRES docentes ya existentes, en varios (no todos) de esos hilos.
+with teachers as (
+  select id, full_name from public.profiles
+  where full_name in ('Luna Arce', 'Sol Mayor', 'Aurora Violeta')
+)
+insert into public.campus_posts (id, course_id, author_id, body, created_at, updated_at)
+select v.id, c.id, t.id, v.body, v.at, v.at
+from (values
+  ('d0000000-0000-4000-8000-000000000101'::uuid, 'carta-natal-esencial', 'Luna Arce',
+   'Vacía nunca es "sin nada": mirá dónde está el regente de la Casa X y qué aspectos recibe — la vocación se lee ahí, no en la casilla sola. Lo vemos con ejemplos reales en el módulo III.',
+   timestamptz '2026-08-03 21:40:00'),
+  ('d0000000-0000-4000-8000-000000000102'::uuid, 'transitos-retornos', 'Luna Arce',
+   'Las dos cosas son ciertas a la vez, y esa es justamente la pregunta que abre el módulo III: un tránsito no reemplaza tu historia, la atraviesa. Traé tu carta a la próxima clase si querés que lo miremos juntas.',
+   timestamptz '2026-08-05 20:10:00'),
+  ('d0000000-0000-4000-8000-000000000103'::uuid, 'tarot-iniciatico', 'Sol Mayor',
+   'Cuando una carta insiste, no está anunciando un desastre — está pidiendo que dejes de esquivar algo que ya sabés. La Torre tres veces no es "más Torre": es la misma pregunta que todavía no contestaste. Lo hablamos en el círculo del jueves.',
+   timestamptz '2026-08-03 08:05:00'),
+  ('d0000000-0000-4000-8000-000000000104'::uuid, 'arcanos-menores', 'Sol Mayor',
+   'Preguntate si el conflicto vive en la cabeza (Espadas) o en la voluntad (Bastos): uno pelea con argumentos, el otro con impulso. La mayoría de las consultas mezclan los dos palos — el trabajo es ver cuál domina en ESTA tirada.',
+   timestamptz '2026-08-08 10:12:00'),
+  ('d0000000-0000-4000-8000-000000000105'::uuid, 'reiki-nivel-1', 'Aurora Violeta',
+   'Es normal, y es información, no error: donde todavía no sentís nada, sostené la misma calma — la sensación no es el objetivo, es un efecto secundario que aparece con el tiempo. Seguí sin apurar.',
+   timestamptz '2026-08-04 07:55:00'),
+  ('d0000000-0000-4000-8000-000000000106'::uuid, 'herbario-lunar', 'Aurora Violeta',
+   'La fase lunar es la misma en los dos hemisferios — lo que se invierte es la estación, no la luna. Para vos eso significa: mirá qué planta tenés disponible en TU otoño, no en el ejemplo del módulo, y aplicá la misma lógica de fase sobre lo que sí está creciendo ahí.',
+   timestamptz '2026-08-05 09:20:00')
+) as v(id, slug, teacher_name, body, at)
+join public.courses c on c.slug = v.slug
+join teachers t on t.full_name = v.teacher_name
+on conflict (id) do update set body = excluded.body, updated_at = excluded.updated_at;
+
+-- El hilo GENERAL (course_id null): dos presentaciones y una bienvenida de docente, para que
+-- tampoco arranque vacío. No exige inscripcion (0014, criterio 4) -- cualquiera con sesion.
+with teachers as (
+  select id, full_name from public.profiles
+  where full_name in ('Luna Arce', 'Sol Mayor', 'Aurora Violeta')
+)
+insert into public.campus_posts (id, course_id, author_id, body, created_at, updated_at)
+select v.id, null, coalesce(t.id, v.author_id), v.body, v.at, v.at
+from (values
+  ('d0000000-0000-4000-8000-000000000201'::uuid,
+   'c0000000-0000-4000-8000-000000000001'::uuid, null::text,
+   'Hola a todas, soy nueva en el Campus — vengo de Rosario, llegué buscando entender mi carta natal y me quedé por la comunidad.',
+   timestamptz '2026-08-03 09:00:00'),
+  ('d0000000-0000-4000-8000-000000000202'::uuid,
+   'c0000000-0000-4000-8000-000000000010'::uuid, null::text,
+   '¿Alguien más está cursando dos cosas a la vez? Estoy con tinturas y reiki y no sé bien cómo organizar el tiempo entre las dos.',
+   timestamptz '2026-08-05 15:20:00'),
+  ('d0000000-0000-4000-8000-000000000203'::uuid, null::uuid, 'Sol Mayor',
+   'Bienvenidas a las que llegaron esta semana. El Campus es lento a propósito: no hace falta escribir todos los días para pertenecer.',
+   timestamptz '2026-08-06 12:00:00')
+) as v(id, author_id, teacher_name, body, at)
+left join teachers t on t.full_name = v.teacher_name
+on conflict (id) do update set body = excluded.body, updated_at = excluded.updated_at;
+
 commit;
