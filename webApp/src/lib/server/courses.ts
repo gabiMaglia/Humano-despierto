@@ -5,6 +5,7 @@ export interface PublishedCourseSummary {
   slug: string;
   title: string;
   titleEm: string | null;
+  subtitle: string | null;
   desc: string | null;
   discipline: string;
   level: string;
@@ -14,6 +15,9 @@ export interface PublishedCourseSummary {
   moonGlyph: string | null;
   featured: boolean;
   teacherName: string;
+  // Reemplazo de `courses.duration_weeks` (eliminada, ADR-004/T-001): agregado real de
+  // `lessons.duration_seconds` publicadas del curso. Usado por T-019 para el filtro de duración.
+  totalDurationSeconds: number;
 }
 
 export interface CourseDetailLesson {
@@ -56,10 +60,20 @@ interface TeacherRow {
   bio: string | null;
 }
 
+interface PublishedCourseLessonRow {
+  duration_seconds: number;
+  is_published: boolean;
+}
+
+interface PublishedCourseModuleRow {
+  lessons: PublishedCourseLessonRow[] | null;
+}
+
 interface PublishedCourseRow {
   slug: string;
   title: string;
   title_em: string | null;
+  subtitle: string | null;
   intro: string | null;
   discipline: string;
   level: string;
@@ -69,6 +83,7 @@ interface PublishedCourseRow {
   moon_glyph: string | null;
   featured: boolean;
   teacher: TeacherRow | TeacherRow[] | null;
+  course_modules: PublishedCourseModuleRow[] | null;
 }
 
 interface CourseDetailLessonRow {
@@ -113,9 +128,10 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      `slug, title, title_em, intro, discipline, level, price_cents, currency, roman_num,
+      `slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency, roman_num,
        moon_glyph, featured,
-       teacher:profiles!courses_teacher_id_fkey(full_name, bio)`
+       teacher:profiles!courses_teacher_id_fkey(full_name, bio),
+       course_modules(lessons(duration_seconds, is_published))`
     )
     .eq("status", "published")
     .order("published_at", { ascending: true });
@@ -127,10 +143,17 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
   const rows = (data ?? []) as unknown as PublishedCourseRow[];
   return rows.map((row) => {
     const teacher = firstTeacher(row.teacher);
+    const totalDurationSeconds = (row.course_modules ?? []).reduce((sum, m) => {
+      const moduleSeconds = (m.lessons ?? [])
+        .filter((l) => l.is_published)
+        .reduce((s, l) => s + l.duration_seconds, 0);
+      return sum + moduleSeconds;
+    }, 0);
     return {
       slug: row.slug,
       title: row.title,
       titleEm: row.title_em,
+      subtitle: row.subtitle,
       desc: row.intro,
       discipline: row.discipline,
       level: row.level,
@@ -140,6 +163,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       moonGlyph: row.moon_glyph,
       featured: row.featured,
       teacherName: teacher?.full_name ?? "—",
+      totalDurationSeconds,
     };
   });
 }
