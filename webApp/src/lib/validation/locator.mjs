@@ -39,8 +39,17 @@ export const LOCATOR_PATTERNS = [
   /[A-Za-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^A-Za-z]|$)/,
 ];
 
-/** true si el texto parece contener un localizador (URL, host o id largo). */
+/**
+ * true si el texto parece contener un localizador (URL, host o id largo).
+ *
+ * Entrada no-string devuelve `false` en vez de tirar. Recomendacion de QA en la ronda 6:
+ * hoy ningun call site pasa null/undefined, pero el `CHECK` de la DB ante NULL da NULL
+ * -o sea, pasa- y el JS tiraba TypeError. Esa asimetria no era alcanzable, pero el dia
+ * que un campo opcional llegue vacio conviene que las dos definiciones sigan diciendo lo
+ * mismo en vez de que una reviente.
+ */
 export function hasLocator(v) {
+  if (typeof v !== 'string') return false;
   if (LOCATOR_PATTERNS.some((re) => re.test(v))) return true;
   return (v.match(/[A-Za-z0-9_]{25,}/g) ?? []).some(
     (run) => /[0-9]/.test(run) && /[a-z]/.test(run) && /[A-Z]/.test(run),
