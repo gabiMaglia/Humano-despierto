@@ -41,6 +41,12 @@ export const CORPUS = [
   // así que cada uno solo lo puede atrapar su propia regla.
   'ver ftp://servidor-interno/material',  // solo regla 1: tiene `://`, sin TLD de la lista
   'entrá a www.espacio-interno',          // solo regla 2: tiene `www.`, sin TLD de la lista
+  // Acentos pegados al límite de las reglas 2 y 3. Los agregó QA, y no eran un caso
+  // borde: el SQL usaba clases POSIX, que dependen del locale, y en `en_US.UTF-8` una
+  // `ó` cuenta como alfanumérica — el JS es ASCII. Divergían en LAS DOS direcciones a
+  // la vez, y este es un producto en castellano. Corregido en la migración 0012.
+  'resumen del cursoó.com/x',             // SQL bloqueaba, JS aceptaba — la peligrosa
+  'info.comÓptico avanzado',              // SQL aceptaba, JS bloqueaba
   // prosa legítima: ambos deben aceptar
   'El curso termina.Me parece importante volver',
   'Ocho semanas.Co-creamos el material',
