@@ -39,6 +39,23 @@ alta() {
      where id = (select id from auth.users where email = '$1');"
 }
 
+# T-021 · crea un campus_post real por HTTP y devuelve su id (o vacio si fallo). Necesita
+# `Prefer: return=representation` porque `esperar` solo mira el status code, y los ataques de
+# moderacion/edicion de abajo necesitan un id real sobre el que atacar.
+crear_post() {
+  local course_json=null jwt=$2 author=$3 body=$4
+  [ "$1" != "null" ] && course_json="\"$1\""
+  curl -s -X POST "$API/rest/v1/campus_posts" -H "apikey: $ANON" -H "Authorization: Bearer $jwt" \
+       -H "Content-Type: application/json" -H "Prefer: return=representation" \
+       -d "{\"course_id\":$course_json,\"author_id\":\"$author\",\"body\":\"$body\"}" |
+    python3 -c "import sys,json
+try:
+    d = json.load(sys.stdin)
+    print(d[0]['id'] if isinstance(d, list) and d else '')
+except Exception:
+    print('')" 2>/dev/null
+}
+
 # Espera un código HTTP concreto. $1 rótulo · $2 esperado · $3 método · $4 path · $5 jwt · $6 body
 esperar() {
   local rot=$1 esp=$2 met=$3 path=$4 jwt=$5 body=${6:-}
@@ -135,6 +152,103 @@ echo "── el camino legitimo de service_role POR HTTP (punto ciego que tenia 
 esperar "service_role lee video_id"        200 GET "lessons?select=id,video_id&limit=1" "$SRV"
 esperar "service_role lee lesson_resources" 200 GET "lesson_resources?select=drive_file_id,url&limit=1" "$SRV"
 esperar "service_role puede inscribir"     201 POST "enrollments" "$SRV" "{\"user_id\":\"$ALUMNA\",\"course_id\":\"$CURSO\",\"status\":\"active\"}"
+x "delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
+
+echo ""
+echo "── T-021 · Campus: hilo de curso e hilo general, contra PostgREST real"
+# criterio 1: sin inscripcion, ni un mensaje en el hilo del curso.
+esperar "(1) escribir en el hilo de curso SIN inscripcion" 403 POST "campus_posts" "$ALUMNA_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$ALUMNA\",\"body\":\"no deberia poder escribir aca\"}"
+
+# Se habilita el camino legitimo (inscripcion real) para poder atacar moderacion/edicion sobre
+# filas de verdad — no alcanza con el 403 de arriba, hace falta un mensaje real para atacarlo.
+x "insert into public.enrollments (user_id,course_id,status) values ('$ALUMNA','$CURSO','active')
+   on conflict (user_id,course_id) do update set status='active';"
+
+ALUMNA_POST=$(crear_post "$CURSO" "$ALUMNA_JWT" "$ALUMNA" "Pregunta real de una alumna ya inscripta")
+DOCENTE_POST=$(crear_post "$CURSO" "$DOCENTE_JWT" "$DOCENTE" "Respuesta de la docente en su propio hilo")
+if [ -n "$ALUMNA_POST" ] && [ -n "$DOCENTE_POST" ]; then
+  printf '  ok    %-52s alumna=%s docente=%s\n' "POST campus_posts CON inscripcion (control positivo)" "$ALUMNA_POST" "$DOCENTE_POST"
+else
+  printf '  FALLA %-52s\n' "no se pudo crear el mensaje legitimo del hilo de curso"; fallos=$((fallos+1))
+fi
+
+# criterio 5(b): moderar sin ser quien corresponde. La alumna esta inscripta (ve el hilo,
+# WITH CHECK/USING la dejan llegar al guard trigger) pero no es la docente dueña ni admin.
+esperar "(2) moderar curso ajeno: alumna inscripta borra el mensaje de la docente" 403 \
+  PATCH "campus_posts?id=eq.$DOCENTE_POST" "$ALUMNA_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$ALUMNA\",\"deleted_reason\":\"no me gusta\"}"
+
+# criterio 5(c): editar el mensaje de otra persona.
+esperar "(3) editar mensaje de otro: alumna reescribe el cuerpo del mensaje de la docente" 403 \
+  PATCH "campus_posts?id=eq.$DOCENTE_POST" "$ALUMNA_JWT" '{"body":"lo reescribo yo"}'
+
+echo ""
+echo "── Campus: los caminos legitimos que tienen que seguir funcionando"
+esperar "la docente SI modera su propio hilo (soft delete, con motivo)" 204 \
+  PATCH "campus_posts?id=eq.$ALUMNA_POST" "$DOCENTE_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$DOCENTE\",\"deleted_reason\":\"control positivo\"}"
+esperar "hard DELETE bloqueado incluso para la docente moderadora" 403 \
+  DELETE "campus_posts?id=eq.$DOCENTE_POST" "$DOCENTE_JWT"
+esperar "cualquiera con sesion escribe en el hilo general, sin inscripcion a nada" 201 \
+  POST "campus_posts" "$ALUMNA_JWT" "{\"course_id\":null,\"author_id\":\"$ALUMNA\",\"body\":\"hola desde el hilo general\"}"
+
+# criterio 5(d): el UPDATE que NO cambia nada. La policy de UPDATE deja alcanzar cualquier fila
+# legible a proposito (para devolver 42501 explicito en vez de filtrar la fila en silencio), asi
+# que el guard es el unico que decide. La version anterior solo preguntaba si el cuerpo cambiaba:
+# un PATCH no-op de un tercero pasaba, y `set_updated_at` dejaba el mensaje ajeno "(editado)".
+esperar "(3b) PATCH no-op sobre el mensaje de otro: tampoco" 403 \
+  PATCH "campus_posts?id=eq.$DOCENTE_POST" "$ALUMNA_JWT" '{"deleted_reason":null}'
+
+echo ""
+echo "── Campus · criterio 4 (ADR-009): el CHECK anti-localizador rige TODOS los hilos"
+esperar "(4) link en el hilo de CURSO: rechazado" 400 \
+  POST "campus_posts" "$ALUMNA_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$ALUMNA\",\"body\":\"Manual: drive.google.com/file/d/LEAKED123\"}"
+esperar "(4b) el MISMO link en el hilo GENERAL: rechazado" 400 \
+  POST "campus_posts" "$ALUMNA_JWT" \
+  "{\"course_id\":null,\"author_id\":\"$ALUMNA\",\"body\":\"Manual: drive.google.com/file/d/LEAKED123\"}"
+
+# El caso que la version anterior de este bloque NO probaba, y por eso lo dio por bueno: un
+# localizador de un curso AJENO, pegado en el hilo del curso propio. La cohorte entera del curso
+# propio lo leia sin tener acceso al curso de origen. El test viejo posteaba en el hilo propio y
+# esperaba 201: nunca cruzaba dos cursos, asi que confirmaba la fuga en vez de detectarla.
+esperar "(4c) localizador ajeno al hilo, en el hilo del curso propio" 400 \
+  POST "campus_posts" "$ALUMNA_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$ALUMNA\",\"body\":\"posta el video del otro curso: https://youtu.be/OTHERCOURSEVID (no hace falta pagarlo)\"}"
+
+# Control de mutacion: con el CHECK viejo (condicionado por hilo) el ataque de arriba SI pasa.
+# Sin esto, un esquema que rechazara todo por cualquier otro motivo pasaria (4c) igual de bien.
+x "alter table public.campus_posts drop constraint campus_posts_body_no_locator;
+   alter table public.campus_posts add constraint campus_posts_body_no_locator
+     check (course_id is not null or not public.text_has_locator(body));"
+esperar "control negativo · con el CHECK viejo (4c) vuelve a pasar" 201 \
+  POST "campus_posts" "$ALUMNA_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$ALUMNA\",\"body\":\"revertido: https://youtu.be/OTHERCOURSEVID\"}"
+
+# La fila que acaba de crear el control TIENE que borrarse antes de reponer el CHECK estricto:
+# `add constraint` valida las filas existentes, asi que con esa fila viva el ALTER falla, y como
+# `x` corre las dos sentencias en una transaccion el DROP se revierte junto con el ADD. Resultado
+# la primera vez que escribi esto: el harness terminaba en verde dejando el esquema DEBILITADO,
+# con el CHECK viejo puesto. Es el mismo modo de falla que el retro ya registro tres veces —
+# un verificador que pasa por construccion. Por eso abajo se AFIRMA que el CHECK volvio.
+x "delete from public.campus_posts where body like 'revertido:%';
+   alter table public.campus_posts drop constraint campus_posts_body_no_locator;
+   alter table public.campus_posts add constraint campus_posts_body_no_locator
+     check (not public.text_has_locator(body));"
+REPUESTO=$(docker exec "$DBC" psql -U postgres -tAc \
+  "select pg_get_constraintdef(oid) from pg_constraint where conname='campus_posts_body_no_locator';")
+if grep -q 'course_id IS NOT NULL' <<<"$REPUESTO"; then
+  printf '  FALLA %-52s\n       el control de mutacion dejo el CHECK viejo puesto: %s\n' \
+    "reponer el CHECK estricto despues del control" "$REPUESTO"
+  fallos=$((fallos+1))
+else
+  printf '  ok    %-52s %s\n' "CHECK estricto repuesto tras el control" "sin condicion por hilo"
+fi
+
+# Limpieza del Campus: deja la tabla como la encontro. `x` corre como postgres
+# (is_service_context()), asi que el hard delete no lo bloquea el guard trigger.
+x "delete from public.campus_posts where author_id in ('$ALUMNA','$DOCENTE');"
 x "delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
 
 echo ""

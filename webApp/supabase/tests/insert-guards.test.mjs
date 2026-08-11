@@ -177,6 +177,12 @@ const INSERT_ESPERADO = {
   // SIN guard, decidido: `user_id` es el unico campo sensible y lo compuerta el WITH CHECK de
   // `lesson_notes_insert_own` (user_id = auth.uid()). El control es una policy, no el grant.
   lesson_notes: ['user_id', 'course_id', 'lesson_id', 'at_seconds', 'body'],
+
+  // T-021 · Campus. `deleted_at`/`deleted_by`/`deleted_reason` FUERA del INSERT a proposito
+  // (nadie nace borrado): estan en el grant de UPDATE (la via de moderacion), nunca en el de
+  // INSERT. `author_id` SI viaja en el INSERT (lo manda el cliente) pero el WITH CHECK de
+  // `campus_posts_insert` exige `author_id = auth.uid()` y el guard trigger lo revalida.
+  campus_posts: ['course_id', 'author_id', 'body'],
 };
 
 const listaEsperada = Object.entries(INSERT_ESPERADO)
