@@ -107,20 +107,6 @@ export async function setEnrollmentAction(
 
   const db = getAdminSupabaseClient();
 
-  // T-020: hace falta el estado ANTERIOR para saber si esto es una activación nueva (dispara
-  // los mails 1 y 4) o solo una reconfirmación/baja — reinscribir a alguien que ya estaba activa
-  // no tiene por qué mandarle de nuevo "te inscribieron".
-  const { data: previous, error: previousError } = await db
-    .from("enrollments")
-    .select("status")
-    .eq("user_id", userId)
-    .eq("course_id", courseId)
-    .maybeSingle();
-
-  if (previousError) {
-    return { error: `No se pudo leer la inscripción: ${previousError.message}`, success: null };
-  }
-
   const { error } = await db
     .from("enrollments")
     .upsert(
@@ -135,7 +121,13 @@ export async function setEnrollmentAction(
   // El mail se dispara DESPUÉS de que la inscripción ya quedó otorgada, y esta llamada nunca
   // tira (T-020 criterio 2, garantizado en `notify.ts`/`send.ts`) — un SMTP caído no puede
   // deshacer lo de arriba ni impedir el `return` de éxito de abajo.
-  if (status === "active" && previous?.status !== "active") {
+  //
+  // No se lee el estado ANTERIOR para decidir si notificar (T-020, juez ciego D3): esa lectura
+  // seguida de este upsert es exactamente la carrera que dos activaciones concurrentes pueden
+  // ganar las dos. `notifyEnrollmentActivated` se llama siempre que el estado nuevo es "active"
+  // — es `claimMailSlot` (UNIQUE de `mail_log`, migración 0019), no esta lectura, quien decide
+  // atómicamente si el mail ya se mandó antes para este (alumna, curso).
+  if (status === "active") {
     await notifyEnrollmentActivated({ studentId: userId, courseId });
   }
 

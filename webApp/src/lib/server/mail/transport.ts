@@ -44,12 +44,24 @@ function encodeHeaderText(value: string): string {
 }
 
 /** RFC 5321 §4.5.2: toda línea que empieza con "." se duplica el punto, o el server la lee como
- * el terminador de DATA a mitad de mensaje y trunca el mail. */
+ * el terminador de DATA a mitad de mensaje y trunca el mail. Depende de que TODO el mensaje use
+ * `\r\n` como separador de línea — ver `normalizeLineEndings`. */
 function dotStuff(body: string): string {
   return body
     .split("\r\n")
     .map((line) => (line.startsWith(".") ? `.${line}` : line))
     .join("\r\n");
+}
+
+/** SMTP exige `\r\n` en TODA la sesión (RFC 5321 §2.3.8) — `dotStuff` de arriba parte por
+ * `\r\n`, así que un `\n` suelto (p.ej. si algún template terminara uniendo líneas con
+ * `Array.join("\n")`, como señaló el juez ciego contra `renderEmailText`) no se reconoce como
+ * fin de línea: el punto inicial de esa línea no se duplica si hiciera falta, y contra un MTA
+ * real (no Mailpit, que es permisivo) el mensaje puede llegar mal delimitado. Se normaliza ACÁ,
+ * en el borde de salida — el resto de la app puede seguir usando `\n` como cualquier string de
+ * JS, este es el único lugar que le importa al protocolo. */
+function normalizeLineEndings(value: string): string {
+  return value.replace(/\r\n|\r|\n/g, "\r\n");
 }
 
 function buildMimeMessage(message: MailMessage): string {
@@ -84,7 +96,7 @@ function buildMimeMessage(message: MailMessage): string {
     `--${boundary}--`,
   ].join("\r\n");
 
-  return dotStuff(`${headers}\r\n\r\n${body}`);
+  return dotStuff(normalizeLineEndings(`${headers}\r\n\r\n${body}`));
 }
 
 interface SmtpResponse {
@@ -92,7 +104,15 @@ interface SmtpResponse {
   message: string;
 }
 
-/** Lee UNA respuesta SMTP completa (soporta multilínea: "250-a\r\n250-b\r\n250 c\r\n"). */
+/**
+ * Lee UNA respuesta SMTP completa (soporta multilínea: "250-a\r\n250-b\r\n250 c\r\n").
+ *
+ * Escucha 'close'/'end' ADEMÁS de 'data'/'error' — hallazgo del juez ciego contra un servidor
+ * que corta la conexión a mitad de diálogo (FIN limpio, sin emitir 'error'): sin esto, la
+ * promesa se queda esperando datos que ya no van a llegar, para siempre. Un cierre mientras se
+ * espera una respuesta es, por definición, una respuesta que no llegó — se rechaza, no se
+ * ignora.
+ */
 function readResponse(socket: net.Socket): Promise<SmtpResponse> {
   return new Promise((resolve, reject) => {
     let buffer = "";
@@ -110,12 +130,20 @@ function readResponse(socket: net.Socket): Promise<SmtpResponse> {
       cleanup();
       reject(err);
     };
+    const onClose = () => {
+      cleanup();
+      reject(new Error("SMTP: la conexión se cerró esperando una respuesta"));
+    };
     const cleanup = () => {
       socket.off("data", onData);
       socket.off("error", onError);
+      socket.off("close", onClose);
+      socket.off("end", onClose);
     };
     socket.on("data", onData);
     socket.on("error", onError);
+    socket.on("close", onClose);
+    socket.on("end", onClose);
   });
 }
 
@@ -147,14 +175,25 @@ export class SmtpTransport implements MailTransport {
     const { host, port, timeoutMs = 5000 } = this.options;
     const socket = net.connect({ host, port });
 
+    // UN deadline para TODO el diálogo (conectar + EHLO + ... + QUIT), no solo el connect —
+    // hallazgo bloqueante del juez ciego. La versión anterior armaba un `onTimeout` nuevo por
+    // paso con `socket.setTimeout()`, pero: (a) `socket.setTimeout()` NO cierra el socket por sí
+    // solo, solo emite `'timeout'` — sin un handler que destruya, el evento no hace nada; y (b)
+    // el `onTimeout` de después del connect intentaba `reject` sobre una promesa que ya se
+    // había resuelto, un no-op. Acá hay un solo `setTimeout` de Node (no `socket.setTimeout`,
+    // para no depender de que el socket considere "inactividad" cada read/write) que, al
+    // vencer, DESTRUYE el socket con un error — eso dispara `'error'` en cualquier promesa que
+    // esté pendiente en ESE momento (la del connect, o `readResponse` esperando una respuesta
+    // que nunca llega), sea cual sea el paso del diálogo. Reproducido contra un servidor que
+    // acepta la conexión y no contesta nada ("mudo"): sin este fix quedaba colgado; con el fix,
+    // se corta a los `timeoutMs`.
+    const deadline = setTimeout(() => {
+      socket.destroy(new Error(`SMTP: no respondió dentro de ${timeoutMs}ms (${host}:${port})`));
+    }, timeoutMs);
+
     try {
       await new Promise<void>((resolve, reject) => {
-        const onTimeout = () => reject(new Error(`SMTP: timeout conectando a ${host}:${port}`));
-        socket.setTimeout(timeoutMs, onTimeout);
-        socket.once("connect", () => {
-          socket.setTimeout(timeoutMs, onTimeout);
-          resolve();
-        });
+        socket.once("connect", resolve);
         socket.once("error", reject);
       });
 
@@ -168,6 +207,7 @@ export class SmtpTransport implements MailTransport {
         // QUIT es cortesía — si el server ya cerró, el mail igual salió (250 anterior).
       });
     } finally {
+      clearTimeout(deadline);
       socket.destroy();
     }
   }

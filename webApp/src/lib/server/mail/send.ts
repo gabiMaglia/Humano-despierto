@@ -47,15 +47,31 @@ export interface SendMailInput {
   text: string;
 }
 
+// Malla de seguridad, no el límite normal (ese es `SmtpTransport`'s `timeoutMs`, 5s hoy): el
+// juez ciego pidió un tope acá ADEMÁS del del transporte, para que ningún camino — el de hoy,
+// o el de un transporte futuro que implemente `MailTransport` sin manejar bien sus propios
+// timeouts — pueda dejar colgado al Server Action que llamó a `sendMail`. Bastante mayor que el
+// timeout del transporte: si el transporte hace su trabajo, este `race` nunca gana.
+const HARD_CAP_MS = 15_000;
+
 /**
  * Envía un mail. NUNCA rechaza la promesa — cualquier falla de transporte (SMTP caído, DNS,
  * timeout, config ausente) se atrapa acá y se loguea; el resultado es informativo, no una
- * excepción que el caller tenga que manejar para no romper su propia operación.
+ * excepción que el caller tenga que manejar para no romper su propia operación. Tampoco cuelga
+ * más de `HARD_CAP_MS`, pase lo que pase del lado del transporte.
  */
 export async function sendMail(input: SendMailInput): Promise<SendResult> {
   try {
     const transport = getTransport();
-    await transport.send({ ...input, from: getFromAddress() });
+    await Promise.race([
+      transport.send({ ...input, from: getFromAddress() }),
+      new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`sendMail: tope duro de ${HARD_CAP_MS}ms superado`)),
+          HARD_CAP_MS
+        ).unref?.();
+      }),
+    ]);
     return { ok: true };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);

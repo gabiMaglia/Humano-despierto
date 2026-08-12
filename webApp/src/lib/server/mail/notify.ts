@@ -51,6 +51,39 @@ async function getUserEmail(userId: string): Promise<{ email: string; name: stri
   return { email: authData.user.email, name: profile.full_name || "—" };
 }
 
+export type MailType = "welcome" | "enrollment_granted" | "course_completed" | "teacher_new_student";
+
+/**
+ * Reclama el turno de mandar UN mail (T-020, juez ciego, D2+D3). "¿Ya mandé este mail?" no se
+ * decide con una lectura seguida de una escritura —eso es exactamente la carrera que D3
+ * encontró, y ninguna cantidad de código de aplicación la cierra sola, dos requests SIEMPRE
+ * pueden intercalarse entre la lectura de una y la escritura de la otra—. Se decide con un
+ * INSERT que puede fallar por la `UNIQUE(recipient_user_id, mail_type, scope_key)` de
+ * `mail_log` (migración 0019): el primero que reclama, manda; el que pierde la carrera (23505)
+ * no manda nada. Mismo patrón que la unicidad de `certificates` (0013), aplicado a "una sola
+ * vez" en vez de "una sola fila".
+ *
+ * `scope_key` es lo que distingue una repetición LEGÍTIMA (la misma alumna en dos cursos) de un
+ * duplicado — ver el comentario largo en la migración. Cualquier error que no sea "ya
+ * reclamado" (23505) se trata como "no se pudo confirmar la exclusividad" y TAMBIÉN se aborta
+ * el envío: ante la duda, no mandar es más seguro que arriesgar un duplicado — no hay ningún
+ * criterio que exija entrega garantizada, y D2 es justamente sobre mandar de más.
+ */
+async function claimMailSlot(recipientUserId: string, mailType: MailType, scopeKey: string): Promise<boolean> {
+  const db = getAdminSupabaseClient();
+  const { error } = await db
+    .from("mail_log")
+    .insert({ recipient_user_id: recipientUserId, mail_type: mailType, scope_key: scopeKey });
+
+  if (!error) return true;
+  if (error.code !== "23505") {
+    console.error(
+      `[mail] no se pudo reclamar el turno de envío (${mailType}/${scopeKey}), se aborta el envío: ${error.message}`
+    );
+  }
+  return false;
+}
+
 interface CourseInfo {
   title: string;
   slug: string;
@@ -105,7 +138,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     ]);
     if (!course) return;
 
-    if (student) {
+    if (student && (await claimMailSlot(input.studentId, "enrollment_granted", input.courseId))) {
       try {
         const { subject, html, text } = renderEnrollmentGrantedMail({
           studentName: student.name,
@@ -123,7 +156,14 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
       console.error("[mail] no se pudo resolver la docente:", err);
       return null;
     });
-    if (teacher && student) {
+    // scope_key incluye a la ALUMNA, no solo el curso: la docente tiene que enterarse de CADA
+    // alumna nueva, no solo la primera — con scope_key = curso a secas, la segunda alumna del
+    // mismo curso jamás generaría aviso porque la primera ya "gastó" ese scope.
+    if (
+      teacher &&
+      student &&
+      (await claimMailSlot(course.teacherId, "teacher_new_student", `${input.courseId}:${input.studentId}`))
+    ) {
       try {
         const { subject, html, text } = renderTeacherNewStudentMail({
           teacherName: teacher.name,
@@ -141,10 +181,19 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
   }
 }
 
-/** Mail 3/4 — dispara desde `entrar/actions.ts::sendWelcomeEmailAction`, self-service, nunca con
- * un destinatario que venga del cliente (ver ese archivo). */
+/**
+ * Mail 3/4 — dispara desde `entrar/actions.ts::sendWelcomeEmailAction`, self-service, nunca con
+ * un destinatario que venga del cliente (ver ese archivo). D2 (juez ciego): sin destinatario
+ * parametrizable no hay relay abierto hacia un TERCERO, pero antes de `claimMailSlot` no había
+ * nada que impidiera invocar la action repetidas veces contra la PROPIA sesión (que puede ser
+ * la de una cuenta creada con el email de otra persona, sin verificar — `enable_confirmations
+ * = false`) y bombardearla igual. `scope_key` fijo ("account"): bienvenida es una vez por
+ * cuenta, para siempre, no una vez por curso — no hay nada que la repita legítimamente.
+ */
 export async function notifyWelcome(input: { userId: string }): Promise<void> {
   try {
+    if (!(await claimMailSlot(input.userId, "welcome", "account"))) return;
+
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
@@ -159,15 +208,23 @@ export async function notifyWelcome(input: { userId: string }): Promise<void> {
   }
 }
 
-/** Mail 2/4 — dispara desde `leccion/[id]/actions.ts::saveLessonProgress` la primera vez que se
+/**
+ * Mail 2/4 — dispara desde `leccion/[id]/actions.ts::saveLessonProgress` la primera vez que se
  * emite el certificado (T-018) de un curso para ese alumno. `certificateCode` ya viene resuelto
- * por el caller (`ensureCertificate`) — este módulo no vuelve a tocar la tabla `certificates`. */
+ * por el caller (`ensureCertificate`) — este módulo no vuelve a tocar la tabla `certificates`.
+ * El chequeo de "¿ya había certificado?" del caller acota el caso común, pero tiene la MISMA
+ * forma de carrera que D3 (leer, después actuar) si dos lecciones se completan a la vez —
+ * `certificateCode` como `scope_key` cierra esa ventana acá también, sin depender de que el
+ * caller la haya cerrado bien.
+ */
 export async function notifyCourseCompleted(input: {
   userId: string;
   courseTitle: string;
   certificateCode: string;
 }): Promise<void> {
   try {
+    if (!(await claimMailSlot(input.userId, "course_completed", input.certificateCode))) return;
+
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
