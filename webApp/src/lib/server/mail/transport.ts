@@ -1,5 +1,6 @@
 import "server-only";
 import net from "node:net";
+import { stripHeaderInjection, formatAddress } from "@/lib/mail/address.mjs";
 
 // T-020 · capa de transporte de mail — criterio 5: "reemplazable, el día que haya proveedor
 // real se cambia el transporte y nada más". Por eso la interfaz es chica (un solo método) y no
@@ -9,6 +10,10 @@ import net from "node:net";
 // pregunta de "librería pesada sin ADR" — nodemailer u otro cliente HTTP de un ESP entran acá
 // el día que exista ese ADR, implementando la misma interfaz). Mailpit no pide auth ni STARTTLS
 // en local, así que alcanza con el diálogo mínimo: EHLO/MAIL FROM/RCPT TO/DATA/QUIT.
+//
+// El formateo de direcciones (`formatAddress`/`formatDisplayName`, RFC 5322) vive en
+// `@/lib/mail/address.mjs` — módulo plano, no acá — para que el test de regresión
+// (`supabase/tests/mail-address.test.mjs`) importe la MISMA función en vez de reconstruirla.
 
 export interface MailAddress {
   email: string;
@@ -27,62 +32,15 @@ export interface MailTransport {
   send(message: MailMessage): Promise<void>;
 }
 
-/** Saca CR/LF de cualquier valor que vaya a un header — sin esto, un `full_name` con un salto
- * de línea (nadie lo escribe a mano, pero un cliente HTTP directo contra el Server Action sí
- * podría) inyecta headers SMTP arbitrarios (p.ej. un `Bcc:` propio). Ningún dato de usuario entra
- * a un header sin pasar por acá. */
-function stripHeaderInjection(value: string): string {
-  return value.replace(/[\r\n]+/g, " ").trim();
-}
-
 /** RFC 2047 encoded-word: los nombres reales van a tener tildes/ñ. Si el valor es ASCII puro se
  * deja tal cual (más legible en el header crudo); si no, se codifica entero en base64 UTF-8.
  * Uso: el `Subject` (unstructured — no vive dentro de una address-list, no hay nada que
- * encomillar ahí). Para el display-name de una dirección usar `formatDisplayName`, NO esto. */
+ * encomillar ahí). Para el display-name de una dirección, `formatAddress` de
+ * `@/lib/mail/address.mjs` — NO esto, esa gramática es distinta (ver import de arriba). */
 function encodeHeaderText(value: string): string {
   const clean = stripHeaderInjection(value);
   if (/^[\x20-\x7e]*$/.test(clean)) return clean;
   return `=?UTF-8?B?${Buffer.from(clean, "utf-8").toString("base64")}?=`;
-}
-
-// RFC 5322 §3.2.3: un display-name es una `phrase` hecha de `atom`s — y `atext` excluye estos
-// "specials" (más la comilla doble y la barra, que necesitan su propio escape dentro de un
-// quoted-string). Un nombre con CUALQUIERA de estos NO puede salir como atom crudo: "Doe, Jane"
-// sin comillas es una address-list de DOS elementos para cualquier parser que respete la
-// gramática (Mailpit incluida, con la librería estándar de Go) — la coma cierra el primer
-// address-spec y arranca uno nuevo, que como no trae "<...>" cae en el balde de "sin nombre".
-const RFC5322_SPECIALS = /[()<>[\]:;@\\,."]/;
-
-/** Escapa `\` y `"` con `\` — RFC 5322 §3.2.4, `quoted-pair` dentro de un `quoted-string`. */
-function escapeQuotedString(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-/**
- * Display-name de una dirección (`To`/`From`). Dos caminos EXCLUYENTES, nunca combinados:
- *   · no-ASCII (tildes, ñ) -> RFC 2047 encoded-word, SIN comillas — un quoted-string no
- *     decodifica lo que tiene adentro, así que envolver un encoded-word en comillas lo deja
- *     literal (`"=?UTF-8?B?...?="` en la bandeja del destinatario, no el nombre).
- *   · ASCII con "specials" (coma, punto, dos puntos, comillas, paréntesis, `<>`, `@`, `\`) ->
- *     quoted-string, escapando `\`/`"` por dentro.
- *   · ASCII sin specials -> atom crudo, como antes.
- */
-function formatDisplayName(name: string): string {
-  const clean = stripHeaderInjection(name);
-  if (!/^[\x20-\x7e]*$/.test(clean)) {
-    return `=?UTF-8?B?${Buffer.from(clean, "utf-8").toString("base64")}?=`;
-  }
-  if (RFC5322_SPECIALS.test(clean)) {
-    return `"${escapeQuotedString(clean)}"`;
-  }
-  return clean;
-}
-
-function formatAddress({ email, name }: MailAddress): string {
-  const safeEmail = stripHeaderInjection(email);
-  const cleanName = name ? stripHeaderInjection(name) : "";
-  if (!cleanName) return `<${safeEmail}>`;
-  return `${formatDisplayName(cleanName)} <${safeEmail}>`;
 }
 
 /** RFC 5321 §4.5.2: toda línea que empieza con "." se duplica el punto, o el server la lee como
