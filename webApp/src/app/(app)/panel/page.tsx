@@ -3,6 +3,7 @@ import Nav from "@/components/layout/Nav";
 import ProgressRing from "@/components/atoms/ProgressRing";
 import { getCurrentUser } from "@/lib/server/auth";
 import { getStudentDashboard } from "@/lib/server/enrollment";
+import { ensureCertificate } from "@/lib/server/certificates";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { toRoman } from "@/lib/utils/roman";
 
@@ -35,6 +36,20 @@ export default async function DashboardPage() {
       </div>
     );
   }
+
+  // T-018 · el certificado se emite al completar TODAS las lecciones publicadas — no lo declara
+  // nadie, `ensureCertificate` vuelve a verificarlo server-side (ADR-007 extendido). Se pide
+  // acá, perezoso, para los cursos que YA están al 100%: cubre tanto al que lo completó recién
+  // (todavía sin fila en `certificates`) como a datos de seed sembrados directo en la base
+  // (delfina.curso-completo, sin haber pasado nunca por `saveLessonProgress`).
+  const certificateEntries = await Promise.all(
+    courses
+      .filter((c) => c.progressPercent === 100)
+      .map(async (c) => [c.courseId, await ensureCertificate(c.courseId)] as const)
+  );
+  const certificateByCourse = new Map(
+    certificateEntries.filter((entry): entry is [string, string] => entry[1] !== null)
+  );
 
   const continuing = courses.find((c) => c.progressPercent < 100) ?? courses[0];
 
@@ -116,6 +131,16 @@ export default async function DashboardPage() {
                     <Link href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
                       Continuar ↦
                     </Link>
+                  )}
+                  {c.progressPercent === 100 && certificateByCourse.get(c.courseId) && (
+                    <a
+                      href={`/certificado/${certificateByCourse.get(c.courseId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-display text-eyebrow tracking-cosmic text-gold-400 hover:text-lila-300 transition-colors whitespace-nowrap"
+                    >
+                      Ver certificado ↦
+                    </a>
                   )}
                 </div>
               </article>
