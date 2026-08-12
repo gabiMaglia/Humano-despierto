@@ -298,4 +298,67 @@ describe('T-018 · certificado verificable', () => {
       assert.equal(r.rows.length, 0);
     });
   });
+
+  // ---------------------------------------------------------------- 0017 · queda huérfano
+  //
+  // 0013 prometía en su cabecera que la fila sobrevive "aunque el perfil o el curso
+  // desaparezcan" (por eso las FK son `on delete set null`) y a la vez instalaba un guard que
+  // rechazaba TODO update. El `SET NULL` de la FK **es un update**, así que la promesa era
+  // inalcanzable: una cuenta con certificado emitido no se podía dar de baja nunca, ni con
+  // `service_role`. Lo encontró un agente de T-020 intentando limpiar sus fixtures.
+  //
+  // El impacto no son los fixtures: es cualquier baja de cuenta en una escuela que, por
+  // definición, va a tener alumnas con certificado.
+  describe('0017 · borrar el perfil deja el certificado huérfano, no lo bloquea', () => {
+    test('borrar el perfil funciona y la fila conserva los cuatro campos públicos', async () => {
+      const antes = await asService(db, () =>
+        db.query(
+          `select student_name, course_title, teacher_name, completed_at
+             from public.certificates where user_id = $1 and course_id = $2`,
+          [ID.student, ID.courseA],
+        ),
+      );
+      assert.equal(antes.rows.length, 1, 'no hay certificado del que probar la orfandad');
+
+      await asService(db, () => db.query(`delete from public.profiles where id = $1`, [ID.student]));
+
+      const despues = await asService(db, () =>
+        db.query(
+          `select student_name, course_title, teacher_name, completed_at
+             from public.certificates where course_id = $1 and user_id is null`,
+          [ID.courseA],
+        ),
+      );
+      assert.equal(despues.rows.length, 1, 'el certificado desapareció al borrar el perfil');
+      assert.deepEqual(despues.rows[0], antes.rows[0], 'el snapshot cambió al perder el vínculo');
+    });
+
+    // El desvinculo se permite por FORMA, no por quien lo ejecuta. Estos tres son los que
+    // distinguen "cortar el vinculo" de "falsificar el certificado", y sin ellos el arreglo
+    // de 0017 seria simplemente "permitir updates de user_id".
+    test('control: reasignar el certificado huérfano a otra persona sigue prohibido', async () => {
+      await assert.rejects(
+        asService(db, () =>
+          db.query(`update public.certificates set user_id = $1 where user_id is null`, [ID.teacherA]),
+        ),
+        /no se modifica ni se borra/,
+      );
+    });
+
+    test('control: cambiar el nombre del certificado sigue prohibido', async () => {
+      await assert.rejects(
+        asService(db, () =>
+          db.query(`update public.certificates set student_name = 'Otra Persona' where user_id is null`),
+        ),
+        /no se modifica ni se borra/,
+      );
+    });
+
+    test('control: borrar el certificado sigue prohibido', async () => {
+      await assert.rejects(
+        asService(db, () => db.query(`delete from public.certificates where user_id is null`)),
+        /no se modifica ni se borra/,
+      );
+    });
+  });
 });
