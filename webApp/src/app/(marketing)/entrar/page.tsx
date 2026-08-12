@@ -6,6 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { fullNameSchema } from "@/lib/validation/profile";
+import { sendWelcomeEmailAction } from "./actions";
 import type { SolidType } from "@/components/cosmos/PlatonicSolid";
 
 const PlatonicSolid = dynamic(() => import("@/components/cosmos/PlatonicSolid"), { ssr: false });
@@ -75,6 +76,14 @@ export default function EntrarPage() {
     if (authError) {
       setError(authError.message);
       return;
+    }
+
+    // T-020 mail 3/4: bienvenida, solo en el flujo de alta — nunca al iniciar sesión.
+    // `enable_confirmations = false` (config.toml) deja la sesión puesta apenas `signUp`
+    // resuelve, así que el Server Action ya encuentra a `getCurrentUser()` con quién trabajar.
+    // No se espera esta llamada para navegar: un mail que tarda no puede demorar el login.
+    if (tab === "registro") {
+      void sendWelcomeEmailAction();
     }
 
     router.push("/panel");

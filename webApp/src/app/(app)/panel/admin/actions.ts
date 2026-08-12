@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/server/auth";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
+import { notifyEnrollmentActivated } from "@/lib/server/mail/notify";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import type { AppRole } from "@/lib/stores/useAuthStore";
 
@@ -106,6 +107,20 @@ export async function setEnrollmentAction(
 
   const db = getAdminSupabaseClient();
 
+  // T-020: hace falta el estado ANTERIOR para saber si esto es una activación nueva (dispara
+  // los mails 1 y 4) o solo una reconfirmación/baja — reinscribir a alguien que ya estaba activa
+  // no tiene por qué mandarle de nuevo "te inscribieron".
+  const { data: previous, error: previousError } = await db
+    .from("enrollments")
+    .select("status")
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+
+  if (previousError) {
+    return { error: `No se pudo leer la inscripción: ${previousError.message}`, success: null };
+  }
+
   const { error } = await db
     .from("enrollments")
     .upsert(
@@ -115,6 +130,13 @@ export async function setEnrollmentAction(
 
   if (error) {
     return { error: `No se pudo actualizar la inscripción: ${error.message}`, success: null };
+  }
+
+  // El mail se dispara DESPUÉS de que la inscripción ya quedó otorgada, y esta llamada nunca
+  // tira (T-020 criterio 2, garantizado en `notify.ts`/`send.ts`) — un SMTP caído no puede
+  // deshacer lo de arriba ni impedir el `return` de éxito de abajo.
+  if (status === "active" && previous?.status !== "active") {
+    await notifyEnrollmentActivated({ studentId: userId, courseId });
   }
 
   revalidatePath("/panel/admin");
