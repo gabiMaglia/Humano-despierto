@@ -310,6 +310,91 @@ describe('T-022 · Diario — RLS de diario_posts', () => {
     });
   });
 
+  // ---------------------------------------------------------------- QA ronda 2 · H1
+  // La coincidencia exacta cubria SOLO `body` (migracion 0018). `title`/`slug`/`excerpt` solo
+  // tenian la heuristica de FORMA (`text_has_locator`, CHECK), que NO atrapa un id desnudo: un
+  // `video_id` de YouTube son 11 caracteres sin `://`, sin `www.` y sin llegar al umbral de 25
+  // de la corrida opaca. Reproducido por QA, cerrado en la migracion 0020: ahora las CUATRO
+  // columnas legibles sin sesion pasan por `body_has_known_locator`.
+  describe('H1 (QA ronda 2) · la coincidencia exacta rige TODAS las columnas legibles sin sesion, no solo body', () => {
+    for (const [campo, valor] of [
+      ['title', SECRET.videoId],
+      ['slug', SECRET.videoId.toLowerCase()], // slug es siempre minuscula por su propio CHECK de forma
+      ['excerpt', SECRET.videoId],
+    ]) {
+      test(`un id real DESNUDO (sin forma de URL) en ${campo} se rechaza`, async () => {
+        const overrides = { slug: campo === 'slug' ? valor : `post-id-desnudo-en-${campo}` };
+        overrides[campo] = valor;
+        const r = await insertPost(db, asOwnerTeacher, ID.teacherA, overrides);
+        assert.equal(r.ok, false, `${campo} acepto un id real desnudo — la fuga que reprodujo QA`);
+        assert.equal(r.code, PRIV_DENIED, `${campo} fallo por otra razon: ${r.message}`);
+      });
+    }
+
+    test('el id real desnudo del drive_file_id tambien se rechaza en title', async () => {
+      const r = await insertPost(db, asOwnerTeacher, ID.teacherA, {
+        slug: 'post-drive-id-desnudo-titulo',
+        title: SECRET.driveFileId,
+      });
+      assert.equal(r.ok, false);
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('lo mismo al EDITAR title/slug/excerpt de un post existente', async () => {
+      const created = await insertPost(db, asOwnerTeacher, ID.teacherA, { slug: 'post-a-editar-con-fuga-titulo' });
+      assert.equal(created.ok, true, created.message);
+      const r = await asOwnerTeacher(db, () =>
+        attempt(db, `update public.diario_posts set title = $1 where id = $2`, [SECRET.videoId, created.rows[0].id]),
+      );
+      assert.equal(r.ok, false, 'se pudo editar el titulo para colar el id real');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+  });
+
+  // ---------------------------------------------------------------- QA ronda 2 · H2
+  // `body_has_known_locator()` comparaba el localizador CRUDO contra el texto CRUDO: un espacio,
+  // un guion, un caracter invisible o un cambio de mayuscula DENTRO del id real bastaban para
+  // evadirlo. Cerrado en 0020 normalizando (minusculas + solo alfanumerico) los dos lados antes
+  // de comparar.
+  describe('H2 (QA ronda 2) · la coincidencia exacta resiste ofuscacion de caracteres', () => {
+    const OFUSCACIONES = [
+      ['con espacios adentro', 'dQw4 w9Wg XcQ'],
+      ['con guiones adentro', 'dQw4-w9Wg-XcQ'],
+      ['con un caracter invisible (U+200B) adentro', 'dQw4' + '\u200B' + 'w9WgXcQ'],
+      ['en mayusculas', 'DQW4W9WGXCQ'],
+      ['mayusculas mezcladas con guiones y espacios', 'DqW4-w9Wg XcQ'],
+    ];
+
+    for (const [rotulo, valor] of OFUSCACIONES) {
+      test(`el id real ${rotulo} se rechaza igual en el cuerpo`, async () => {
+        const r = await insertPost(db, asOwnerTeacher, ID.teacherA, {
+          slug: `post-ofuscado-${OFUSCACIONES.findIndex(([r2]) => r2 === rotulo)}`,
+          body: `El video es este: ${valor} — buscalo`,
+        });
+        assert.equal(r.ok, false, `la ofuscacion "${rotulo}" evadio la coincidencia exacta`);
+        assert.equal(r.code, PRIV_DENIED);
+      });
+    }
+
+    test('control positivo: un titulo legitimo con guiones y mayusculas (slug-like) sigue pasando', async () => {
+      // El mismo corpus de 0008/0016: verificar que normalizar los dos lados no vuelve golosa
+      // la regla contra texto real de la docente.
+      const r = await insertPost(db, asOwnerTeacher, ID.teacherA, {
+        slug: 'post-titulo-legitimo-con-guiones',
+        title: 'Ritual de Luna Nueva - Enero 2026',
+        excerpt: 'Modulo I: Introduccion a la practica (version 2.1)',
+      });
+      assert.equal(r.ok, true, r.message);
+    });
+
+    test('control: la ofuscacion NO altera el localizador real que se sigue sirviendo por Server Action', async () => {
+      // La normalizacion es solo para COMPARAR, nunca para lo que se guarda: el body ofuscado
+      // rechazado no debe dejar residuo, y el video_id real en `lessons` sigue intacto.
+      const antes = await asRawOwner(db, `select video_id from public.lessons where id = $1`, [ID.lessonA]);
+      assert.equal(antes[0].video_id, SECRET.videoId);
+    });
+  });
+
   // ---------------------------------------------------------------- criterio 5 · barrido de titulo/slug/excerpt
   describe('title/slug/excerpt SI llevan la heuristica de forma completa (misma clase que courses)', () => {
     test('un link en el titulo se rechaza', async () => {
@@ -438,6 +523,96 @@ describe('T-022 · controles de mutacion', () => {
     });
     assert.equal(r.ok, false, 'con el grant de mas, el guard dejo de sostener la regla');
     assert.equal(r.code, PRIV_DENIED);
+    await db.close();
+  });
+
+  // ---------------------------------------------------------------- QA ronda 2 · H1
+  test('c.5 · reproduce el hallazgo de QA: con el guard viejo (solo `body`), un id real desnudo en `title` se publica y queda legible', async () => {
+    const { db } = await bootDatabase({
+      // Version EXACTA de 0018: solo revisa `new.body`, nunca title/slug/excerpt.
+      afterMigrations: [`
+        create or replace function public.guard_diario_posts()
+        returns trigger language plpgsql set search_path = '' as $$
+        begin
+          if (tg_op = 'INSERT' or new.body is distinct from old.body)
+             and public.body_has_known_locator(new.body) then
+            raise exception 'diario_posts.body contiene un localizador' using errcode = '42501';
+          end if;
+          if public.is_service_context() then return new; end if;
+          if tg_op = 'INSERT' then
+            if new.teacher_id is distinct from auth.uid() then
+              raise exception 'autoria' using errcode = '42501';
+            end if;
+            if new.status is distinct from 'draft' then raise exception 'draft' using errcode = '42501'; end if;
+            if new.published_at is not null then raise exception 'fecha' using errcode = '42501'; end if;
+            return new;
+          end if;
+          if new.teacher_id is distinct from old.teacher_id then raise exception 'reasignacion' using errcode = '42501'; end if;
+          if new.status is distinct from old.status then raise exception 'status' using errcode = '42501'; end if;
+          if new.published_at is distinct from old.published_at then raise exception 'fecha' using errcode = '42501'; end if;
+          return new;
+        end;
+        $$;
+      `],
+    });
+    await seed(db);
+
+    const r = await insertPost(db, asOwnerTeacher, ID.teacherA, {
+      slug: 'post-title-desnudo-guard-viejo',
+      title: SECRET.videoId,
+    });
+    assert.equal(r.ok, true, 'con el guard viejo, el id desnudo en title NO paso — el control no reproduce el hallazgo de QA');
+
+    await asService(db, () =>
+      attempt(db, `update public.diario_posts set status = 'published' where id = $1`, [r.rows[0].id]),
+    );
+    const anon = await asAnon(db, () =>
+      attempt(db, `select title from public.diario_posts where id = $1`, [r.rows[0].id]),
+    );
+    assert.equal(anon.ok, true, anon.message);
+    assert.equal(anon.rows[0].title, SECRET.videoId, 'el id filtrado no quedo legible: el control no prueba lo que dice');
+    await db.close();
+  });
+
+  // ---------------------------------------------------------------- QA ronda 2 · H2
+  test('c.6 · reproduce el hallazgo de QA: con la comparacion sin normalizar (0016 original), la ofuscacion evade el guard y se publica', async () => {
+    const { db } = await bootDatabase({
+      // Version EXACTA de 0016: compara el localizador crudo contra el texto crudo, sin
+      // `normalize_locator_text` de por medio.
+      afterMigrations: [`
+        create or replace function public.body_has_known_locator(v text)
+        returns boolean language sql stable security definer set search_path = '' as $$
+          select exists (
+            select 1 from public.lessons l
+            where l.video_id is not null and length(l.video_id) >= 8
+              and position(l.video_id in v) > 0
+          ) or exists (
+            select 1 from public.lesson_resources r
+            where (r.drive_file_id is not null and length(r.drive_file_id) >= 8
+                   and position(r.drive_file_id in v) > 0)
+               or (r.url is not null and length(r.url) >= 8
+                   and position(r.url in v) > 0)
+          );
+        $$;
+      `],
+    });
+    await seed(db);
+
+    const OFUSCADO = `dQw4-w9Wg XcQ`; // el mismo id real, con guion y espacio insertados
+    const r = await insertPost(db, asOwnerTeacher, ID.teacherA, {
+      slug: 'post-ofuscado-sin-normalizar',
+      body: `El video es este: ${OFUSCADO}`,
+    });
+    assert.equal(r.ok, true, 'sin normalizar, la ofuscacion NO paso — el control no reproduce el hallazgo de QA');
+
+    await asService(db, () =>
+      attempt(db, `update public.diario_posts set status = 'published' where id = $1`, [r.rows[0].id]),
+    );
+    const anon = await asAnon(db, () =>
+      attempt(db, `select body from public.diario_posts where id = $1`, [r.rows[0].id]),
+    );
+    assert.equal(anon.ok, true, anon.message);
+    assert.match(anon.rows[0].body, /dQw4-w9Wg XcQ/, 'el id ofuscado filtrado no quedo legible: el control no prueba lo que dice');
     await db.close();
   });
 });
