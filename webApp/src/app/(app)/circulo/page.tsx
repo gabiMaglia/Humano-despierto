@@ -3,9 +3,11 @@ import { getCurrentUser } from "@/lib/server/auth";
 import CampusComposer from "@/components/campus/CampusComposer";
 import CampusMessage from "@/components/campus/CampusMessage";
 
-// El hilo GENERAL: cualquier sesión, sin inscripción a ningún curso (0014, criterio 4 — el
-// único hilo del Campus legible sin inscripción, por eso el único con el CHECK anti-localizador
-// de ADR-009 activo en el cuerpo).
+// El hilo GENERAL: lo lee y escribe cualquier sesión, sin inscripción a ningún curso.
+// Es el único hilo del Campus legible sin inscripción — pero eso NO lo hace el único con
+// protección anti-localizador: ésa rige en todos los hilos (0016). Condicionarla por hilo fue
+// el defecto que QA rechazó, porque el lector de un hilo de curso tampoco tiene acceso al
+// material de los otros cursos.
 export default async function CampusGeneralPage() {
   const [user, data] = await Promise.all([getCurrentUser(), getCampusThread(null)]);
 

@@ -48,6 +48,16 @@ export const CORPUS = [
   'resumen del cursoó.com/x',             // SQL bloqueaba, JS aceptaba — la peligrosa
   'info.comÓptico avanzado',              // SQL aceptaba, JS bloqueaba
   // prosa legítima: ambos deben aceptar
+  // 0016 · los dos lados de la regla de la barra. El de arriba es prosa castellana en
+  // minuscula, que el predicado viejo bloqueaba: `me` es pronombre ademas de TLD, y en un foro
+  // sin corregir la variante sin mayuscula es al menos tan frecuente como la capitalizada.
+  // El de abajo es un localizador de verdad que el predicado viejo dejaba pasar porque la
+  // alternancia de TLD iba en minuscula. Los dos casos ejercitan la misma regla en direcciones
+  // opuestas, y sin ellos en el corpus el meta-test no puede ver si la regla esta cubierta.
+  'Gracias por la devolucion.me sirvio muchisimo para el modulo II',
+  'quede encantada.me cambio la forma de leer las cartas',
+  'posta el video del otro curso: YOUTU.BE/OTHERCOURSEVID',
+  'Manual: DRIVE.GOOGLE.COM/file/d/LEAKED123',
   'El curso termina.Me parece importante volver',
   'Ocho semanas.Co-creamos el material',
   'Detalle del temario.Info completa abajo',

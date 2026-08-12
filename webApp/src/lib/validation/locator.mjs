@@ -26,17 +26,21 @@
 export const LOCATOR_PATTERNS = [
   /:\/\//,
   /(^|[^a-z0-9])www\./i,
-  // Espejo EXACTO de la migracion 0010. Dos cosas, y confundirlas ya costo un bug:
+  // Espejo EXACTO de la migracion 0016. LA BARRA FINAL NO ES DECORATIVA: es lo unico que
+  // separa un enlace de una frase en castellano.
   //
-  //  1. La alternancia de TLD va en minuscula y sin /i, a proposito: un dominio pegado
-  //     viene en minuscula y el typo de prosa castellana ("termina.Me parece")
-  //     capitaliza porque arranca oracion. Sin eso se bloquea texto legitimo.
-  //  2. Las clases de alrededor SI cubren mayusculas — [A-Za-z0-9] y [^A-Za-z], no
-  //     [a-z0-9]/[^a-z]. En SQL, pasar de ~* a ~ NO toca las clases POSIX
-  //     [[:alnum:]]/[[:alpha:]], que siempre incluyen ambos casos. Al sacar /i aca sin
-  //     ajustar las clases, "PDF.com/x" quedaba bloqueado por la DB y aceptado por el
-  //     cliente: la direccion peligrosa. Son operaciones distintas, no la misma.
-  /[A-Za-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^A-Za-z]|$)/,
+  // Historia, porque este renglon ya se equivoco dos veces en direcciones opuestas. Antes
+  // terminaba en `([^A-Za-z]|$)` y la alternancia iba en minuscula sin /i, para no comerse
+  // el typo de prosa que capitaliza al arrancar oracion ("termina.Me parece"). Eso dejaba
+  // DOS agujeros a la vez: bloqueaba "la devolucion.me sirvio muchisimo" -- prosa legitima,
+  // y `me` es una palabra del castellano ademas de un TLD -- y NO bloqueaba
+  // "YOUTU.BE/xxxx", que es un localizador de verdad, porque la alternancia era lowercase.
+  //
+  // Exigir la ruta resuelve las dos: un enlace para compartir siempre tiene barra y una
+  // frase nunca la tiene, asi que la alternancia puede volverse insensible a mayusculas
+  // sin riesgo. La restriccion que habia que relajar y la que habia que endurecer eran la
+  // misma, tiradas para lados opuestos.
+  /[A-Za-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)\//i,
 ];
 
 /**

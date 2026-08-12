@@ -9,8 +9,16 @@ import { CAMPUS_ACTION_INITIAL_STATE, type CampusActionState } from "@/lib/campu
 // finos: la autoridad real de "quién puede escribir/editar/borrar qué" vive en RLS + el guard
 // trigger `campus_posts_guard` (migración 0014), no acá — la UI ya oculta lo que el usuario no
 // puede hacer, pero si igual llega el intento (JS manipulado, ruta directa), el `error.code` que
-// vuelve del INSERT/UPDATE ES el rechazo real, no un adorno: `42501` es RLS/guard, `23514` es el
-// CHECK anti-localizador de ADR-009 (solo puede dispararlo el hilo general, ver la migración).
+// vuelve del INSERT/UPDATE ES el rechazo real, no un adorno.
+//
+// Los dos códigos, y la diferencia importa para el mensaje que se le muestra a la persona:
+//   · `42501` — RLS, el guard trigger, o que el cuerpo contenga un localizador REAL de material
+//     pago de la plataforma (coincidencia exacta contra `lessons.video_id` /
+//     `lesson_resources.drive_file_id`, migración 0016).
+//   · `23514` — el CHECK anti-localizador de ADR-009: el cuerpo TIENE FORMA de enlace.
+// Rige en TODOS los hilos, no solo en el general. Una versión anterior de este comentario decía
+// lo contrario y describía el bug que QA rechazó: condicionar el CHECK por hilo dejaba filtrar
+// el material de un curso dentro del hilo de otro.
 
 const PRIV_DENIED = "42501";
 const CHECK_VIOLATION = "23514";

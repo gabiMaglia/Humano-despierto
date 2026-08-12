@@ -219,6 +219,20 @@ esperar "(4c) localizador ajeno al hilo, en el hilo del curso propio" 400 \
 
 # Control de mutacion: con el CHECK viejo (condicionado por hilo) el ataque de arriba SI pasa.
 # Sin esto, un esquema que rechazara todo por cualquier otro motivo pasaria (4c) igual de bien.
+#
+# El trap cubre la ventana en la que el esquema esta a proposito debilitado. El script corre con
+# `set -uo pipefail` y SIN `-e`, asi que sin esto un Ctrl-C entre el revert y la reposicion dejaba
+# la base COMPARTIDA con el CHECK debil y nadie se enteraba. Se limpia apenas se repone.
+restaurar_check() {
+  docker exec "$DBC" psql -U postgres -q -c \
+    "delete from public.campus_posts where body like 'revertido:%';
+     alter table public.campus_posts drop constraint if exists campus_posts_body_no_locator;
+     alter table public.campus_posts add constraint campus_posts_body_no_locator
+       check (not public.text_has_locator(body));" >/dev/null 2>&1
+  echo "  !!    interrumpido: CHECK estricto restaurado por el trap" >&2
+}
+trap restaurar_check INT TERM EXIT
+
 x "alter table public.campus_posts drop constraint campus_posts_body_no_locator;
    alter table public.campus_posts add constraint campus_posts_body_no_locator
      check (course_id is not null or not public.text_has_locator(body));"
@@ -238,13 +252,22 @@ x "delete from public.campus_posts where body like 'revertido:%';
      check (not public.text_has_locator(body));"
 REPUESTO=$(docker exec "$DBC" psql -U postgres -tAc \
   "select pg_get_constraintdef(oid) from pg_constraint where conname='campus_posts_body_no_locator';")
-if grep -q 'course_id IS NOT NULL' <<<"$REPUESTO"; then
-  printf '  FALLA %-52s\n       el control de mutacion dejo el CHECK viejo puesto: %s\n' \
+# La asercion tiene que afirmar QUE ESTA y que es la estricta. La primera version solo buscaba
+# la AUSENCIA de la cadena 'course_id IS NOT NULL', asi que daba ok con la constraint borrada
+# entera -- exactamente el modo de falla que este bloque existe para no repetir. Lo encontro el
+# re-chequeo independiente reproduciendo la logica en aislado con REPUESTO=''.
+if [ -z "$REPUESTO" ]; then
+  printf '  FALLA %-52s\n       el control de mutacion dejo la constraint BORRADA\n' \
+    "reponer el CHECK estricto despues del control"
+  fallos=$((fallos+1))
+elif ! grep -q 'NOT text_has_locator(body)' <<<"$REPUESTO" || grep -q 'course_id IS NOT NULL' <<<"$REPUESTO"; then
+  printf '  FALLA %-52s\n       el CHECK repuesto no es el estricto: %s\n' \
     "reponer el CHECK estricto despues del control" "$REPUESTO"
   fallos=$((fallos+1))
 else
-  printf '  ok    %-52s %s\n' "CHECK estricto repuesto tras el control" "sin condicion por hilo"
+  printf '  ok    %-52s %s\n' "CHECK estricto repuesto tras el control" "afirmado, no supuesto"
 fi
+trap - INT TERM EXIT   # ventana cerrada: el esquema ya volvio a su estado fuerte
 
 # Limpieza del Campus: deja la tabla como la encontro. `x` corre como postgres
 # (is_service_context()), asi que el hard delete no lo bloquea el guard trigger.

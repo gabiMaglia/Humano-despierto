@@ -106,8 +106,10 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
+# T-020 · la app de Next corre en el host y manda por SMTP, asi que el puerto tiene que estar
+# publicado: por defecto el contenedor solo publica la UI (8025 -> 54324) y `127.0.0.1:1025` da
+# ConnectionRefused. Toma efecto en el proximo `supabase stop && supabase start`.
+smtp_port = 54325
 # pop3_port = 54326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"

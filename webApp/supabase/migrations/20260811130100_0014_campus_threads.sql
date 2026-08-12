@@ -54,11 +54,23 @@
 -- para leer esto?" cuando la pregunta era "¿el localizador pertenece al curso de ESTE hilo?".
 -- Eso es ADR-003 regla A violada por una via lateral.
 --
--- Se cierra por el lado simple: `text_has_locator` sobre TODO `body`. Un id de Drive o de
--- YouTube nunca es contenido legitimo de un mensaje de foro, asi que no hay falso positivo que
--- justifique la excepcion — y como el CHECK es de INSERT, el mensaje nunca llega a existir. Eso
--- importa porque el criterio 2 exige que el cuerpo del mensaje moderado siga siendo legible: el
--- soft delete NO redacta, asi que moderar jamas hubiera contenido esta fuga.
+-- Primer intento de cierre: `text_has_locator` sobre TODO `body`, sin condicionar por hilo.
+--
+-- **ESO NO ALCANZO, y la migracion 0016 es la que termina el trabajo.** Se deja escrito aca
+-- porque este parrafo afirmaba haber cerrado el agujero que narra doce lineas mas arriba, y un
+-- verificador independiente demostro que el payload exacto seguia pasando: un id de YouTube son
+-- 11 caracteres sin puntos ni barras, y ninguna heuristica de FORMA lo puede ver. Ademas la
+-- version de aquel momento afirmaba que "no hay falso positivo que justifique la excepcion",
+-- que era un non sequitur — el predicado son cuatro reglas y la de TLD si producia falsos
+-- positivos, bloqueando prosa castellana ("la devolucion.me sirvio muchisimo").
+--
+-- Lo que 0016 hace: la heuristica de forma exige una ruta (y por eso puede volverse insensible
+-- a mayusculas), y se agrega COINCIDENCIA EXACTA contra los localizadores que existen de verdad
+-- en esta base. Leer la cabecera de 0016 para el detalle.
+--
+-- Lo que si vale de este parrafo: el control tiene que estar en el INSERT. El criterio 2 exige
+-- que el cuerpo del mensaje moderado siga siendo legible, o sea que el soft delete NO redacta —
+-- moderar nunca hubiera contenido esta fuga.
 --
 -- Nota aparte: el barrido AUTOMATIZADO de `tests/locator-free-text.test.mjs` deriva su clase de
 -- `has_column_privilege('anon', ...)`, y esta tabla no tiene NINGUN grant para `anon` (el Campus

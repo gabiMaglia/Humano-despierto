@@ -488,9 +488,15 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       // T-021 suma `can_read_campus_thread`/`can_write_campus_post`/`is_campus_moderator`: leen
       // `enrollments` (via `has_course_access`) igual que ella, y por la misma razon no se le
       // otorgan a `anon` — el Campus entero exige sesion, ni el hilo general es publico.
+      // 0016 suma `body_has_known_locator`, y esta SI es distinta de las de arriba: es
+      // SECURITY DEFINER y lee columnas `service_role`-only (`lessons.video_id`,
+      // `lesson_resources.drive_file_id`). Necesita EXECUTE porque la llama el guard trigger,
+      // que es SECURITY INVOKER a proposito. Es un oraculo acotado —responde si/no sobre un
+      // string que el llamador YA tiene, sin decir de que curso es ni devolver ningun
+      // localizador— y esta declarado como tal en la cabecera de 0016. A `anon` no se le otorga.
       const ESPERADO_AUTH = [
-        ...ESPERADO_ANON, 'array_has_locator', 'campus_post_authors', 'can_author',
-        'can_read_campus_thread', 'can_write_campus_post', 'has_course_access',
+        ...ESPERADO_ANON, 'array_has_locator', 'body_has_known_locator', 'campus_post_authors',
+        'can_author', 'can_read_campus_thread', 'can_write_campus_post', 'has_course_access',
         'is_campus_moderator', 'is_service_context', 'text_has_locator',
       ].sort();
       const fns = await functionPrivileges(db);

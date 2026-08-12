@@ -57,11 +57,24 @@ const MUTACIONES = [
     porque: 'sin ella el cliente deja pasar www.ejemplo.com',
   },
   {
-    regla: 'regla 3 · las clases alrededor del TLD',
-    aplicar: (s) => s.replace('/[A-Za-z0-9]\\.(com|', '/[a-z0-9]\\.(com|'),
+    // La mutación vieja (cambiar [A-Za-z0-9] por [a-z0-9]) dejó de significar algo cuando 0016
+    // le puso `/i` a esta regla: con la bandera puesta, achicar la clase no cambia nada y la
+    // mutación pasaba a ser un no-op. El meta-test lo detectó solo y se puso rojo diciendo "esta
+    // regla no está verificada" — que era exactamente cierto. Es la segunda vez que este
+    // mecanismo avisa que una regla dejó de estar cubierta sin que nadie lo notara.
+    regla: 'regla 3 · la barra que exige una ruta',
+    aplicar: (s) => s.replace('|xyz|tv)\\//i', '|xyz|tv)([^A-Za-z]|$)/i'),
     porque:
-      'es la divergencia real que encontró QA: con [a-z0-9] el cliente acepta ' +
-      '"PDF.com/x" y la DB lo bloquea — la dirección peligrosa',
+      'la barra es lo único que separa un enlace de una frase: sin ella el cliente ' +
+      'bloquea "la devolucion.me sirvio muchisimo" y la DB no — un foro en castellano ' +
+      'rechazando prosa normal',
+  },
+  {
+    regla: 'regla 3b · la insensibilidad a mayúsculas del TLD',
+    aplicar: (s) => s.replace('|xyz|tv)\\//i', '|xyz|tv)\\//'),
+    porque:
+      'sin la bandera el cliente deja pasar "YOUTU.BE/xxx" y la DB lo bloquea — ' +
+      'la dirección peligrosa, y el bypass concreto que encontró el re-chequeo',
   },
   {
     regla: 'regla 4 · el umbral de la corrida larga',
