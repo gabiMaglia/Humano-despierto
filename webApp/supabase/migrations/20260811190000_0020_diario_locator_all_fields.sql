@@ -52,6 +52,17 @@
 -- contenido. Cerrar eso no es un problema de coincidencia de texto — y no es la fuga que ADR-003
 -- pide cerrar (la fuga es "alguien pega el id real", no "alguien lo describe de memoria").
 --
+-- Y UNO MÁS, que QA encontró y que este párrafo ya estaba sub-declarando en su primera versión:
+-- **sustituir un carácter del id por un homóglifo** — una `е` cirílica, o un carácter de ancho
+-- completo — también evade. El normalizador BORRA lo que no es `[A-Za-z0-9]`, así que INSERTAR
+-- un carácter raro entre medio no evade nada (se elimina y el id vuelve a quedar contiguo);
+-- pero REEMPLAZAR uno de sus caracteres deja una cadena de 10 que no coincide con el id de 11.
+-- Es mucho más barato que "base64 o rot13", que es lo que el párrafo de arriba ejemplificaba:
+-- para quien lee el post el id se ve idéntico. Se deja SIN cerrar a propósito —el id resultante
+-- no funciona pegado en YouTube, hay que retipearlo mirándolo— pero se declara acá en vez de
+-- quedar tapado bajo la palabra "transliteración". **Tercera vez en este mismo hilo de tickets
+-- que una cabecera promete más de lo que entrega; que la cuarta no sea ésta.**
+--
 -- Por qué normalizar los DOS LADOS de la comparación, no uno: si solo se normalizara el
 -- localizador, "DQW4W9WGXCQ" en el texto del post seguiría sin matchear contra el
 -- "dQw4w9WgXcQ" ya normalizado. Los dos lados tienen que llegar al mismo alfabeto canónico
