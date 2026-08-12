@@ -17,8 +17,17 @@ import { renderTeacherNewStudentMail } from "@/lib/server/mail/templates/teacher
 // estas funciones ya verificó el permiso que corresponda (admin activando inscripción, sesión
 // propia registrándose): esta capa no vuelve a autorizar nada, solo notifica.
 
+/** `SITE_URL` (server-only, sin `NEXT_PUBLIC_`) es la única fuente del host que va DENTRO de un
+ * mail — nunca el host donde corrió el request que lo disparó, que en dev es el puerto suelto
+ * de cada worktree y en producción sería directamente el URL interno equivocado. Sin la env
+ * seteada, el mail sigue saliendo (criterio 2) pero con un link que no sirve fuera de esta
+ * máquina — por eso el fallback queda, pero nunca en silencio. */
 function getSiteUrl(): string {
-  return (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const configured = process.env.SITE_URL;
+  if (!configured) {
+    console.error("[mail] SITE_URL no está seteada — los links del mail van a apuntar a localhost.");
+  }
+  return (configured || "http://localhost:3000").replace(/\/$/, "");
 }
 
 async function getUserEmail(userId: string): Promise<{ email: string; name: string } | null> {
