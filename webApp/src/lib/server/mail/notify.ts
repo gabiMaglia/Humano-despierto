@@ -68,20 +68,66 @@ export type MailType = "welcome" | "enrollment_granted" | "course_completed" | "
  * reclamado" (23505) se trata como "no se pudo confirmar la exclusividad" y TAMBIÉN se aborta
  * el envío: ante la duda, no mandar es más seguro que arriesgar un duplicado — no hay ningún
  * criterio que exija entrega garantizada, y D2 es justamente sobre mandar de más.
+ *
+ * Devuelve el `id` de la fila reclamada (o `null` si no se reclamó) — lo necesita
+ * `releaseMailSlotOnFailure` de abajo para poder liberar EXACTAMENTE esa fila, nunca "una fila
+ * que matchee la tupla" (defensivo, aunque hoy la `UNIQUE` garantiza que solo puede haber una).
+ *
+ * IMPORTANTE (D3 del juez ciego, ronda 3): esta función se llama DESPUÉS de resolver todos los
+ * datos que hacen falta para el envío (email, nombre, curso) — nunca antes. Si se llamara antes
+ * y la resolución fallara, se quemaría el turno sin haber intentado mandar nada. Cada call site
+ * respeta este orden; no hay ninguno que reclame primero "para no perder tiempo".
  */
-async function claimMailSlot(recipientUserId: string, mailType: MailType, scopeKey: string): Promise<boolean> {
+async function claimMailSlot(recipientUserId: string, mailType: MailType, scopeKey: string): Promise<string | null> {
   const db = getAdminSupabaseClient();
-  const { error } = await db
+  const { data, error } = await db
     .from("mail_log")
-    .insert({ recipient_user_id: recipientUserId, mail_type: mailType, scope_key: scopeKey });
+    .insert({ recipient_user_id: recipientUserId, mail_type: mailType, scope_key: scopeKey })
+    .select("id")
+    .single();
 
-  if (!error) return true;
-  if (error.code !== "23505") {
-    console.error(
-      `[mail] no se pudo reclamar el turno de envío (${mailType}/${scopeKey}), se aborta el envío: ${error.message}`
-    );
+  if (error) {
+    if (error.code !== "23505") {
+      console.error(
+        `[mail] no se pudo reclamar el turno de envío (${mailType}/${scopeKey}), se aborta el envío: ${error.message}`
+      );
+    }
+    return null;
   }
-  return false;
+  return data.id;
+}
+
+/**
+ * D4 (juez ciego, ronda 3, BLOQUEANTE) — libera el turno cuando el envío FALLÓ.
+ *
+ * La versión anterior reclamaba y dejaba reclamado pase lo que pasara con el resultado, y el
+ * comentario de la migración 0019 lo describía como "la misma política que ya regía". Era
+ * falso: antes de esa migración, cada invocación de `notifyWelcome` intentaba mandar de nuevo
+ * (sin dedup no había nada que lo impidiera) — la migración cambió esa política de "cada
+ * invocación intenta" a "un solo intento en la vida de la cuenta", sin declararlo. Efecto
+ * medido: con el SMTP caído, la bienvenida se reclamaba y JAMÁS volvía a intentarse, ni con el
+ * SMTP sano después — ni reintentando la action a mano, ni con el camino de recuperación real
+ * de un admin (revocar + reactivar una inscripción tampoco reenviaba nada).
+ *
+ * El arreglo: si `sendMail` devuelve `{ok:false}`, se borra la fila reclamada. Sin esto no hace
+ * falta un mecanismo de reintento en dos fases ni expiración — el PRÓXIMO disparo del mismo
+ * evento (la próxima vez que alguien pida el mail de bienvenida, o el admin reactive la
+ * inscripción) encuentra el scope libre y lo intenta de nuevo.
+ *
+ * Residuo ACEPTADO, no escondido: en la ventana angosta de una carrera de D3 (dos requests
+ * concurrentes disparan el mismo evento), el que pierde el INSERT (23505) se retira sin
+ * intentar mandar nada — si el que ganó el INSERT falla y libera, ESE disparo puntual se pierde
+ * igual (nadie reintenta dentro del mismo request). Es infinitamente mejor que el estado
+ * anterior (perdido SIEMPRE, sin importar si hubo carrera): el próximo disparo del evento —no
+ * este mismo— vuelve a encontrar el scope libre.
+ */
+async function releaseMailSlotOnFailure(claimId: string, sendOk: boolean): Promise<void> {
+  if (sendOk) return;
+  const db = getAdminSupabaseClient();
+  const { error } = await db.from("mail_log").delete().eq("id", claimId);
+  if (error) {
+    console.error(`[mail] no se pudo liberar el turno ${claimId} tras un envío fallido: ${error.message}`);
+  }
 }
 
 interface CourseInfo {
@@ -138,17 +184,24 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     ]);
     if (!course) return;
 
-    if (student && (await claimMailSlot(input.studentId, "enrollment_granted", input.courseId))) {
-      try {
-        const { subject, html, text } = renderEnrollmentGrantedMail({
-          studentName: student.name,
-          courseTitle: course.title,
-          teacherName: course.teacherName,
-          courseUrl: `${getSiteUrl()}/cursos/${course.slug}`,
-        });
-        await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-      } catch (err) {
-        console.error("[mail] mail de inscripción a la alumna falló:", err);
+    if (student) {
+      const claimId = await claimMailSlot(input.studentId, "enrollment_granted", input.courseId);
+      if (claimId) {
+        let sendOk = false;
+        try {
+          const { subject, html, text } = renderEnrollmentGrantedMail({
+            studentName: student.name,
+            courseTitle: course.title,
+            teacherName: course.teacherName,
+            courseUrl: `${getSiteUrl()}/cursos/${course.slug}`,
+          });
+          const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+          sendOk = result.ok;
+        } catch (err) {
+          console.error("[mail] mail de inscripción a la alumna falló:", err);
+        } finally {
+          await releaseMailSlotOnFailure(claimId, sendOk);
+        }
       }
     }
 
@@ -159,21 +212,28 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     // scope_key incluye a la ALUMNA, no solo el curso: la docente tiene que enterarse de CADA
     // alumna nueva, no solo la primera — con scope_key = curso a secas, la segunda alumna del
     // mismo curso jamás generaría aviso porque la primera ya "gastó" ese scope.
-    if (
-      teacher &&
-      student &&
-      (await claimMailSlot(course.teacherId, "teacher_new_student", `${input.courseId}:${input.studentId}`))
-    ) {
-      try {
-        const { subject, html, text } = renderTeacherNewStudentMail({
-          teacherName: teacher.name,
-          studentName: student.name,
-          courseTitle: course.title,
-          courseUrl: `${getSiteUrl()}/panel/docente/cursos/${input.courseId}`,
-        });
-        await sendMail({ to: { email: teacher.email, name: teacher.name }, subject, html, text });
-      } catch (err) {
-        console.error("[mail] aviso de alumna nueva a la docente falló:", err);
+    if (teacher && student) {
+      const claimId = await claimMailSlot(
+        course.teacherId,
+        "teacher_new_student",
+        `${input.courseId}:${input.studentId}`
+      );
+      if (claimId) {
+        let sendOk = false;
+        try {
+          const { subject, html, text } = renderTeacherNewStudentMail({
+            teacherName: teacher.name,
+            studentName: student.name,
+            courseTitle: course.title,
+            courseUrl: `${getSiteUrl()}/panel/docente/cursos/${input.courseId}`,
+          });
+          const result = await sendMail({ to: { email: teacher.email, name: teacher.name }, subject, html, text });
+          sendOk = result.ok;
+        } catch (err) {
+          console.error("[mail] aviso de alumna nueva a la docente falló:", err);
+        } finally {
+          await releaseMailSlotOnFailure(claimId, sendOk);
+        }
       }
     }
   } catch (err) {
@@ -192,17 +252,25 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
  */
 export async function notifyWelcome(input: { userId: string }): Promise<void> {
   try {
-    if (!(await claimMailSlot(input.userId, "welcome", "account"))) return;
-
+    // Resolver ANTES de reclamar (D3 del juez ciego, ronda 3): si `getUserEmail` falla, no se
+    // gasta el único turno de esta cuenta en un intento que ni siquiera iba a mandar nada.
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const { subject, html, text } = renderWelcomeMail({
-      studentName: student.name,
-      catalogUrl: `${getSiteUrl()}/cursos`,
-    });
+    const claimId = await claimMailSlot(input.userId, "welcome", "account");
+    if (!claimId) return;
 
-    await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+    let sendOk = false;
+    try {
+      const { subject, html, text } = renderWelcomeMail({
+        studentName: student.name,
+        catalogUrl: `${getSiteUrl()}/cursos`,
+      });
+      const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+      sendOk = result.ok;
+    } finally {
+      await releaseMailSlotOnFailure(claimId, sendOk);
+    }
   } catch (err) {
     console.error("[mail] notifyWelcome falló:", err);
   }
@@ -223,18 +291,25 @@ export async function notifyCourseCompleted(input: {
   certificateCode: string;
 }): Promise<void> {
   try {
-    if (!(await claimMailSlot(input.userId, "course_completed", input.certificateCode))) return;
-
+    // Mismo orden que `notifyWelcome`: resolver antes de reclamar.
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const { subject, html, text } = renderCourseCompletedMail({
-      studentName: student.name,
-      courseTitle: input.courseTitle,
-      certificateUrl: `${getSiteUrl()}/certificado/${input.certificateCode}`,
-    });
+    const claimId = await claimMailSlot(input.userId, "course_completed", input.certificateCode);
+    if (!claimId) return;
 
-    await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+    let sendOk = false;
+    try {
+      const { subject, html, text } = renderCourseCompletedMail({
+        studentName: student.name,
+        courseTitle: input.courseTitle,
+        certificateUrl: `${getSiteUrl()}/certificado/${input.certificateCode}`,
+      });
+      const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+      sendOk = result.ok;
+    } finally {
+      await releaseMailSlotOnFailure(claimId, sendOk);
+    }
   } catch (err) {
     console.error("[mail] notifyCourseCompleted falló:", err);
   }

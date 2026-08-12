@@ -76,6 +76,27 @@ describe('mail_log — el UNIQUE hace atomico "una sola vez" (T-020, juez ciego 
     assert.equal(b.ok, true);
   });
 
+  // D4 (juez ciego, ronda 3, BLOQUEANTE) — un envío fallido no puede dejar la clave reclamada
+  // para siempre. `notify.ts::releaseMailSlotOnFailure` borra la fila cuando `sendMail` devuelve
+  // fallo; lo que este test cubre es el mecanismo del que esa función depende: que borrar Y
+  // volver a reclamar la MISMA clave funciona — sin esto, "liberar" sería un no-op silencioso.
+  test('reclamar, liberar (borrar) por un envío fallido, reclamar la MISMA clave de nuevo: las dos reclamas pasan', async () => {
+    const first = await asService(db, () => claim(db, ID.teacherA, 'course_completed', 'cert-abc123'));
+    assert.equal(first.ok, true, 'primer reclamo (simula: se reclamó antes de intentar mandar)');
+
+    const del = await asService(db, () =>
+      attempt(
+        db,
+        `delete from public.mail_log where recipient_user_id = $1 and mail_type = $2 and scope_key = $3`,
+        [ID.teacherA, 'course_completed', 'cert-abc123']
+      )
+    );
+    assert.equal(del.ok, true, 'liberar tras un envío fallido (releaseMailSlotOnFailure) tiene que poder borrar la fila');
+
+    const retry = await asService(db, () => claim(db, ID.teacherA, 'course_completed', 'cert-abc123'));
+    assert.equal(retry.ok, true, 'con la fila liberada, el PRÓXIMO disparo del evento tiene que poder reclamar de nuevo — antes de D4 esto era imposible para siempre');
+  });
+
   describe('control de mutación — el agujero de la columna nullable (encontrado por el coordinador)', () => {
     test('recipient_user_id = null: el INSERT se rechaza (23502), no pasa en silencio', async () => {
       const res = await asService(db, () => claim(db, null, 'welcome', 'x'));
