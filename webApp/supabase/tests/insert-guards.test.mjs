@@ -183,6 +183,12 @@ const INSERT_ESPERADO = {
   // INSERT. `author_id` SI viaja en el INSERT (lo manda el cliente) pero el WITH CHECK de
   // `campus_posts_insert` exige `author_id = auth.uid()` y el guard trigger lo revalida.
   campus_posts: ['course_id', 'author_id', 'body'],
+
+  // T-022 · Diario. `status`/`published_at` fuera del grant a proposito (ADR-008, criterio 3):
+  // publicar es privilegio de service_role, mismo patron que `courses`. `body` SI viaja en el
+  // INSERT — es contenido, no metadata de servidor — y lo protege `guard_diario_posts`
+  // (`body_has_known_locator`), no el grant.
+  diario_posts: ['teacher_id', 'slug', 'title', 'excerpt', 'body'],
 };
 
 const listaEsperada = Object.entries(INSERT_ESPERADO)
@@ -487,6 +493,8 @@ describe('T-011 · guards de INSERT', () => {
           'lessons.is_published',
           'lessons.video_id',
           'lessons.duration_seconds',
+          'diario_posts.status',
+          'diario_posts.published_at',
         ]) {
           assert.ok(!lista.includes(col), `${col} volvio al grant de INSERT de ${rol}`);
         }

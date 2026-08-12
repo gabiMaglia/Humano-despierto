@@ -95,6 +95,13 @@ const COLUMNAS = [
   ['profiles.headline',            (v) => [`update public.profiles set headline = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.location',            (v) => [`update public.profiles set location = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.quote',               (v) => [`update public.profiles set quote = $1 where id = $2`, [v, ID.teacherA]]],
+  // T-022 · Diario. `slug`/`title`/`excerpt` son metadata corta de catalogo, misma clase que
+  // `courses.*`. `body` queda deliberadamente AFUERA de esta lista — ver EXENTAS_POR_GUARD y la
+  // nota larga de la migracion 0018: lo protege `guard_diario_posts` (coincidencia exacta contra
+  // los localizadores reales, sin falsos positivos en un link legitimo), no la heuristica de forma.
+  ['diario_posts.slug',            (v) => [`update public.diario_posts set slug = $1 where id = $2`, [v, ID.postA]]],
+  ['diario_posts.title',           (v) => [`update public.diario_posts set title = $1 where id = $2`, [v, ID.postA]]],
+  ['diario_posts.excerpt',         (v) => [`update public.diario_posts set excerpt = $1 where id = $2`, [v, ID.postA]]],
 ];
 
 /**
@@ -132,6 +139,16 @@ const columnasDeLaClase = async (db) =>
 // Unica excepcion admitida: columnas cuyo dominio ya esta cerrado por un CHECK de enumeracion,
 // donde "texto libre" es falso. Se enumeran a mano para que agregar una exija justificarla.
 const EXENTAS_POR_ENUM = ['courses.currency', 'lesson_resources.type', 'lessons.video_provider'];
+
+// T-022 · Segunda excepcion admitida, con motivo distinto: la columna ES texto libre de la
+// clase (anon la lee, la docente la escribe) pero deliberadamente NO lleva la heuristica de
+// FORMA (`text_has_locator`) porque bloquearia todo link, y un post de blog es justo el lugar
+// donde un link legitimo pertenece — a diferencia de `lesson_resources.name` o `courses.intro`,
+// que nunca lo necesitan. La protege otro mecanismo de la MISMA adr (ADR-009/0016): un guard con
+// coincidencia EXACTA contra los localizadores reales (`body_has_known_locator`, ya usado por
+// `campus_posts.body`), sin bypass de service_role — invariante, no permiso. Ver la nota larga
+// en la migracion 0018 para el razonamiento completo, incluida la comparacion con el precedente.
+const EXENTAS_POR_GUARD = ['diario_posts.body'];
 
 describe('T-016 · ningun texto libre del catalogo acepta un localizador', () => {
   let db;
@@ -267,8 +284,8 @@ describe('T-016 · ningun texto libre del catalogo acepta un localizador', () =>
         .filter((c) => !c.cubierta)
         .map((c) => c.columna);
       assert.deepEqual(
-        descubiertas,
-        EXENTAS_POR_ENUM,
+        descubiertas.sort(),
+        [...EXENTAS_POR_ENUM, ...EXENTAS_POR_GUARD].sort(),
         'hay texto libre de catalogo sin CHECK de localizador (o una exencion sin justificar)',
       );
     });
