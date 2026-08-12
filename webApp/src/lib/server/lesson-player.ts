@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
@@ -96,8 +97,14 @@ function firstOf<T>(value: T | T[] | null): T | null {
  * columna localizadora, exclusiva de service_role en lectura y escritura) y sólo se pide DESPUÉS
  * de que el acceso ya se verificó con el cliente de sesión — nunca antes, nunca para decidir el
  * acceso.
+ *
+ * Envuelta en `cache()` porque el layout del segmento la llama para decidir el 404 y la pagina
+ * la vuelve a llamar para renderizar: con la deduplicacion de React es una sola resolucion por
+ * request, incluida la lectura con service_role.
  */
-export async function getLessonPlayerData(lessonId: string): Promise<LessonPlayerData | null> {
+export const getLessonPlayerData = cache(async function getLessonPlayerData(
+  lessonId: string,
+): Promise<LessonPlayerData | null> {
   const supabase = await createClient();
 
   const {
@@ -261,4 +268,4 @@ export async function getLessonPlayerData(lessonId: string): Promise<LessonPlaye
     modules,
     isAuthenticated: Boolean(user),
   };
-}
+});
