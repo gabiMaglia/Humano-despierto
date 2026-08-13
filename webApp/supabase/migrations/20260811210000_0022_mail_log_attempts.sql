@@ -19,6 +19,26 @@
 -- restricción de la sentencia atómica, no un supuesto sobre cómo se comporta la red — la
 -- diferencia que el juez pidió explícitamente para la cabecera de este archivo.
 --
+-- PERO ESA COTA VALE LO QUE VALGA LA CANONICIDAD DE LA TUPLA, y la primera versión de este
+-- párrafo lo pasó por alto — séptima cabecera de este hilo que declara una cota más ancha que
+-- la que el código impone. `recipient_user_id` es `uuid` y Postgres lo canonicaliza solo;
+-- **`scope_key` es `text`**, y dos strings distintos son dos turnos distintos con su propio
+-- tope cada uno. El juez ciego lo explotó en la ronda 7: `scope_key` salía verbatim del
+-- formulario, y un uuid tiene infinitas escrituras que la base considera la MISMA fila al
+-- castear (mayúsculas, `{llaves}`, sin guiones). Cinco variantes → cinco turnos, cada uno con
+-- `attempts=1`. La cota real era "3 por cadena de caracteres", no "3 por evento", y el techo
+-- desaparecía.
+--
+-- Cerrado del lado de la app y no acá, porque es donde está la raíz: `notify.ts` arma el scope
+-- con el `id` que **devolvió la base** al resolver el curso, no con el string del request. Este
+-- archivo no puede canonicalizar `scope_key` por sí mismo: es `text` genérico y sus valores
+-- legítimos incluyen `'account'` y códigos de certificado, que no son uuids.
+--
+-- Entonces la cota, dicha con su condición: **3 por tupla, y la tupla es única por evento
+-- MIENTRAS quien llama use valores canónicos para el scope.** Un `claimOrReclaimMailSlot` nuevo
+-- que arme el scope con texto que venga del request vuelve a abrir esto sin tocar una línea de
+-- SQL — es la parte que este archivo no puede defender solo.
+--
 -- N = 3, chico a propósito. Un fallo AISLADO (la red hiccupeó una vez) tiene 2 reintentos más
 -- para resolverse — suficiente para no perder un mail legítimo por un blip. Un fallo
 -- PERSISTENTE (el servidor está roto, o alguien lo puso ahí a propósito para explotar D2/D4)

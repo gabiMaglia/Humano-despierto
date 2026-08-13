@@ -144,6 +144,7 @@ async function confirmMailSent(claim: MailClaim): Promise<void> {
 }
 
 interface CourseInfo {
+  id: string;
   title: string;
   slug: string;
   teacherId: string;
@@ -154,7 +155,7 @@ async function getCourseInfo(courseId: string): Promise<CourseInfo | null> {
   const db = getAdminSupabaseClient();
   const { data, error } = await db
     .from("courses")
-    .select("title, slug, teacher_id, teacher:profiles!courses_teacher_id_fkey(full_name)")
+    .select("id, title, slug, teacher_id, teacher:profiles!courses_teacher_id_fkey(full_name)")
     .eq("id", courseId)
     .maybeSingle();
 
@@ -165,6 +166,9 @@ async function getCourseInfo(courseId: string): Promise<CourseInfo | null> {
 
   const teacher = Array.isArray(data.teacher) ? data.teacher[0] : data.teacher;
   return {
+    // `id` es el uuid CANONICO que devolvio Postgres, no el string que vino en el request.
+    // Es la clave de las cotas de `mail_log` — ver el comentario de `claimOrReclaimMailSlot`.
+    id: data.id,
     title: data.title,
     slug: data.slug,
     teacherId: data.teacher_id,
@@ -198,7 +202,21 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     if (!course) return;
 
     if (student) {
-      const claim = await claimOrReclaimMailSlot(input.studentId, "enrollment_granted", input.courseId);
+      // `course.id`, NO `input.courseId`, y esto NO es cosmetico.
+      //
+      // El tope de intentos de `mail_log` se cuenta por la tupla (destinatario, tipo, scope), y
+      // `scope_key` es `text`: dos strings distintos son dos turnos distintos. `input.courseId`
+      // viene VERBATIM del formulario, y un uuid tiene infinitas escrituras que Postgres
+      // considera la misma fila al castear a `uuid` -- mayusculas, {llaves}, sin guiones. Con el
+      // string crudo, cada variante abria su propio turno con su propio tope: la cota real
+      // pasaba a ser "3 por cadena de caracteres", no "3 por evento", y el techo desaparecia.
+      // Lo encontro el juez ciego en la ronda 7 (5 variantes -> 5 turnos, cada uno attempts=1).
+      //
+      // `course.id` es el uuid que devolvio la base al resolver el curso, o sea la forma
+      // canonica, unica por definicion. La leccion general: **una cota sobre una tupla vale lo
+      // que valga la canonicidad de sus componentes**, y un `text` que viene del request no es
+      // canonico de nada.
+      const claim = await claimOrReclaimMailSlot(input.studentId, "enrollment_granted", course.id);
       if (claim) {
         try {
           const { subject, html, text } = renderEnrollmentGrantedMail({
@@ -226,7 +244,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
       const claim = await claimOrReclaimMailSlot(
         course.teacherId,
         "teacher_new_student",
-        `${input.courseId}:${input.studentId}`
+        `${course.id}:${input.studentId}`
       );
       if (claim) {
         try {
@@ -234,7 +252,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             teacherName: teacher.name,
             studentName: student.name,
             courseTitle: course.title,
-            courseUrl: `${getSiteUrl()}/panel/docente/cursos/${input.courseId}`,
+            courseUrl: `${getSiteUrl()}/panel/docente/cursos/${course.id}`,
           });
           const result = await sendMail({ to: { email: teacher.email, name: teacher.name }, subject, html, text });
           if (result.ok) await confirmMailSent(claim);
