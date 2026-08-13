@@ -53,34 +53,47 @@ async function getUserEmail(userId: string): Promise<{ email: string; name: stri
 
 export type MailType = "welcome" | "enrollment_granted" | "course_completed" | "teacher_new_student";
 
+interface MailClaim {
+  id: string;
+  claimedAt: string;
+}
+
 /**
- * Reclama (o retoma, si venció) el turno de mandar UN mail — T-020, migración 0021 (ronda 5 del
- * juez ciego; ver el comentario largo de esa migración para el porqué del cambio de forma).
+ * Reclama (o retoma, si venció) el turno de mandar UN mail — T-020, migraciones 0021+0022
+ * (rondas 5 y 6 del juez ciego; ver el comentario largo de esas migraciones para el porqué del
+ * cambio de forma).
  *
- * La garantía real, dicha SIN la palabra "única" (el juez marcó que este hilo prometió
- * completitud de más, más de una vez): a lo sumo un envío CONFIRMADO por
- * `(recipient_user_id, mail_type, scope_key)` dentro de una ventana de reclamo vigente (10
- * minutos); pasada la ventana sin confirmación, el turno vuelve a estar disponible. Lo que esto
- * NO cubre — lista abierta, no exhaustiva: si nadie vuelve a disparar el mismo evento después
- * de un reclamo vencido, ese envío queda perdido sin que nadie lo note (no hay barrendero de
- * fondo, a propósito — ver la migración); y un envío que en verdad tardó más de la ventana en
- * confirmar puede, en teoría, coexistir con un reintento que si llegó a confirmar antes.
+ * LA GARANTÍA REAL, dicha con las cotas que el código de verdad impone — no una promesa sobre
+ * cómo se comporta el entorno (el juez marcó, más de una vez en este hilo, cabeceras que
+ * prometían más de lo que el código garantizaba):
+ *   · A LO SUMO 3 intentos reales de envío por `(recipient_user_id, mail_type, scope_key)`,
+ *     para siempre — lo impone `attempts < 3` en la sentencia atómica, no un supuesto.
+ *   · Dentro de esos 3 intentos, a lo sumo uno puede estar "en vuelo" por vez: un reclamo vivo
+ *     (sin confirmar, dentro de los 10 minutos) bloquea cualquier otro para el mismo scope.
+ *   · Un envío CONFIRMADO (`sent_at` puesto) nunca se retoma, agote o no agote sus intentos.
+ * Lo que esto NO cubre — lista abierta, no exhaustiva: agotados los 3 intentos sin que ninguno
+ * confirme, ese mail queda perdido para siempre y nada lo señala (no hay cola de
+ * reprocesamiento ni alerta acá — consultar `attempts >= 3 and sent_at is null` es trabajo
+ * aparte); y si nadie vuelve a disparar el mismo evento, un reclamo vencido sin agotar tampoco
+ * se reintenta solo (no hay barrendero de fondo, a propósito).
  *
- * Es UNA sola sentencia (`insert ... on conflict ... do update ... where ... returning id`) —
- * no un `select` seguido de un `insert`, que reabriría la carrera de D3 (ronda 2) por la puerta
- * de atrás. `claim_or_reclaim_mail_slot` (función SQL) es esa sentencia.
+ * Es UNA sola sentencia (`insert ... on conflict ... do update ... where ... returning id,
+ * claimed_at`) — no un `select` seguido de un `insert`, que reabriría la carrera de D3 (ronda 2)
+ * por la puerta de atrás. `claim_or_reclaim_mail_slot` (función SQL) es esa sentencia.
  *
- * Devuelve el `id` de la fila reclamada, o `null` si no se pudo reclamar (ya hay un turno vivo
- * o confirmado) — `confirmMailSent` de abajo necesita ese `id` para marcar exactamente esa fila.
+ * Devuelve `{id, claimedAt}` de la fila reclamada, o `null` si no se pudo reclamar (turno vivo,
+ * confirmado, o intentos agotados). `claimedAt` es el fencing token que `confirmMailSent`
+ * necesita (D2 del juez, ronda 6): sin él, una confirmación tardía de un intento que YA venció
+ * y fue retomado por otro proceso pisaría el `sent_at` del intento nuevo.
  *
  * Se llama DESPUÉS de resolver todos los datos que hacen falta para el envío (email, nombre,
- * curso) — nunca antes, para no quemar el turno si la resolución en sí falla.
+ * curso) — nunca antes, para no quemar un intento si la resolución en sí falla.
  */
 async function claimOrReclaimMailSlot(
   recipientUserId: string,
   mailType: MailType,
   scopeKey: string
-): Promise<string | null> {
+): Promise<MailClaim | null> {
   const db = getAdminSupabaseClient();
   const { data, error } = await db.rpc("claim_or_reclaim_mail_slot", {
     p_recipient_user_id: recipientUserId,
@@ -94,23 +107,39 @@ async function claimOrReclaimMailSlot(
     );
     return null;
   }
-  return data ?? null;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.id) return null;
+  return { id: row.id, claimedAt: row.claimed_at };
 }
 
 /**
  * Confirma que el envío SALIÓ BIEN — pone `sent_at`. Es lo único que distingue "reclamado, en
  * curso o fallido" de "confirmado": sin esto, la fila queda con `sent_at` nulo y, pasada la
- * ventana de `claim_or_reclaim_mail_slot`, vuelve a estar disponible para reintentar. NO hay
- * un `releaseOnFailure`: un envío que falla, o que el proceso ni llega a terminar de intentar,
- * simplemente no confirma — es indistinguible de "no sé si salió", que es honesto, en vez de
- * "sé que no salió", que es lo que la ronda 4 asumía sin poder garantizarlo (un `250` tardío,
- * o un proceso muerto a mitad, hacían esa suposición falsa).
+ * ventana de `claim_or_reclaim_mail_slot` (y mientras no agote sus 3 intentos), vuelve a estar
+ * disponible para reintentar. NO hay un `releaseOnFailure`: un envío que falla simplemente no
+ * confirma — es indistinguible de "no sé si salió", que es honesto, en vez de "sé que no
+ * salió", que es lo que la ronda 4 asumía sin poder garantizarlo.
+ *
+ * `claimedAt` en el `WHERE` (D2 del juez, ronda 6): el `UPDATE` solo toca la fila si su
+ * `claimed_at` sigue siendo el mismo que cuando se reclamó. Si el turno venció y otro proceso
+ * ya lo retomó (`claimed_at` avanzó), esta confirmación tardía no encuentra fila que tocar — no
+ * pisa el `sent_at` de un intento que no es el suyo.
  */
-async function confirmMailSent(claimId: string): Promise<void> {
+async function confirmMailSent(claim: MailClaim): Promise<void> {
   const db = getAdminSupabaseClient();
-  const { error } = await db.from("mail_log").update({ sent_at: new Date().toISOString() }).eq("id", claimId);
+  const { error, count } = await db
+    .from("mail_log")
+    .update({ sent_at: new Date().toISOString() }, { count: "exact" })
+    .eq("id", claim.id)
+    .eq("claimed_at", claim.claimedAt)
+    .is("sent_at", null);
+
   if (error) {
-    console.error(`[mail] no se pudo confirmar el envío ${claimId} (igual salió): ${error.message}`);
+    console.error(`[mail] no se pudo confirmar el envío ${claim.id} (igual salió): ${error.message}`);
+  } else if (count === 0) {
+    console.error(
+      `[mail] confirmación de ${claim.id} llegó tarde — el turno ya había sido retomado por otro intento; no se tocó nada (correcto, no un error)`
+    );
   }
 }
 
@@ -169,8 +198,8 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     if (!course) return;
 
     if (student) {
-      const claimId = await claimOrReclaimMailSlot(input.studentId, "enrollment_granted", input.courseId);
-      if (claimId) {
+      const claim = await claimOrReclaimMailSlot(input.studentId, "enrollment_granted", input.courseId);
+      if (claim) {
         try {
           const { subject, html, text } = renderEnrollmentGrantedMail({
             studentName: student.name,
@@ -179,7 +208,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             courseUrl: `${getSiteUrl()}/cursos/${course.slug}`,
           });
           const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-          if (result.ok) await confirmMailSent(claimId);
+          if (result.ok) await confirmMailSent(claim);
         } catch (err) {
           console.error("[mail] mail de inscripción a la alumna falló:", err);
         }
@@ -194,12 +223,12 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     // alumna nueva, no solo la primera — con scope_key = curso a secas, la segunda alumna del
     // mismo curso jamás generaría aviso porque la primera ya "gastó" ese scope.
     if (teacher && student) {
-      const claimId = await claimOrReclaimMailSlot(
+      const claim = await claimOrReclaimMailSlot(
         course.teacherId,
         "teacher_new_student",
         `${input.courseId}:${input.studentId}`
       );
-      if (claimId) {
+      if (claim) {
         try {
           const { subject, html, text } = renderTeacherNewStudentMail({
             teacherName: teacher.name,
@@ -208,7 +237,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             courseUrl: `${getSiteUrl()}/panel/docente/cursos/${input.courseId}`,
           });
           const result = await sendMail({ to: { email: teacher.email, name: teacher.name }, subject, html, text });
-          if (result.ok) await confirmMailSent(claimId);
+          if (result.ok) await confirmMailSent(claim);
         } catch (err) {
           console.error("[mail] aviso de alumna nueva a la docente falló:", err);
         }
@@ -236,15 +265,15 @@ export async function notifyWelcome(input: { userId: string }): Promise<void> {
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const claimId = await claimOrReclaimMailSlot(input.userId, "welcome", "account");
-    if (!claimId) return;
+    const claim = await claimOrReclaimMailSlot(input.userId, "welcome", "account");
+    if (!claim) return;
 
     const { subject, html, text } = renderWelcomeMail({
       studentName: student.name,
       catalogUrl: `${getSiteUrl()}/cursos`,
     });
     const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-    if (result.ok) await confirmMailSent(claimId);
+    if (result.ok) await confirmMailSent(claim);
   } catch (err) {
     console.error("[mail] notifyWelcome falló:", err);
   }
@@ -268,8 +297,8 @@ export async function notifyCourseCompleted(input: {
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const claimId = await claimOrReclaimMailSlot(input.userId, "course_completed", input.certificateCode);
-    if (!claimId) return;
+    const claim = await claimOrReclaimMailSlot(input.userId, "course_completed", input.certificateCode);
+    if (!claim) return;
 
     const { subject, html, text } = renderCourseCompletedMail({
       studentName: student.name,
@@ -277,7 +306,7 @@ export async function notifyCourseCompleted(input: {
       certificateUrl: `${getSiteUrl()}/certificado/${input.certificateCode}`,
     });
     const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-    if (result.ok) await confirmMailSent(claimId);
+    if (result.ok) await confirmMailSent(claim);
   } catch (err) {
     console.error("[mail] notifyCourseCompleted falló:", err);
   }
