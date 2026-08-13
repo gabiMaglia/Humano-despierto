@@ -54,79 +54,63 @@ async function getUserEmail(userId: string): Promise<{ email: string; name: stri
 export type MailType = "welcome" | "enrollment_granted" | "course_completed" | "teacher_new_student";
 
 /**
- * Reclama el turno de mandar UN mail (T-020, juez ciego, D2+D3). "¿Ya mandé este mail?" no se
- * decide con una lectura seguida de una escritura —eso es exactamente la carrera que D3
- * encontró, y ninguna cantidad de código de aplicación la cierra sola, dos requests SIEMPRE
- * pueden intercalarse entre la lectura de una y la escritura de la otra—. Se decide con un
- * INSERT que puede fallar por la `UNIQUE(recipient_user_id, mail_type, scope_key)` de
- * `mail_log` (migración 0019): el primero que reclama, manda; el que pierde la carrera (23505)
- * no manda nada. Mismo patrón que la unicidad de `certificates` (0013), aplicado a "una sola
- * vez" en vez de "una sola fila".
+ * Reclama (o retoma, si venció) el turno de mandar UN mail — T-020, migración 0021 (ronda 5 del
+ * juez ciego; ver el comentario largo de esa migración para el porqué del cambio de forma).
  *
- * `scope_key` es lo que distingue una repetición LEGÍTIMA (la misma alumna en dos cursos) de un
- * duplicado — ver el comentario largo en la migración. Cualquier error que no sea "ya
- * reclamado" (23505) se trata como "no se pudo confirmar la exclusividad" y TAMBIÉN se aborta
- * el envío: ante la duda, no mandar es más seguro que arriesgar un duplicado — no hay ningún
- * criterio que exija entrega garantizada, y D2 es justamente sobre mandar de más.
+ * La garantía real, dicha SIN la palabra "única" (el juez marcó que este hilo prometió
+ * completitud de más, más de una vez): a lo sumo un envío CONFIRMADO por
+ * `(recipient_user_id, mail_type, scope_key)` dentro de una ventana de reclamo vigente (10
+ * minutos); pasada la ventana sin confirmación, el turno vuelve a estar disponible. Lo que esto
+ * NO cubre — lista abierta, no exhaustiva: si nadie vuelve a disparar el mismo evento después
+ * de un reclamo vencido, ese envío queda perdido sin que nadie lo note (no hay barrendero de
+ * fondo, a propósito — ver la migración); y un envío que en verdad tardó más de la ventana en
+ * confirmar puede, en teoría, coexistir con un reintento que si llegó a confirmar antes.
  *
- * Devuelve el `id` de la fila reclamada (o `null` si no se reclamó) — lo necesita
- * `releaseMailSlotOnFailure` de abajo para poder liberar EXACTAMENTE esa fila, nunca "una fila
- * que matchee la tupla" (defensivo, aunque hoy la `UNIQUE` garantiza que solo puede haber una).
+ * Es UNA sola sentencia (`insert ... on conflict ... do update ... where ... returning id`) —
+ * no un `select` seguido de un `insert`, que reabriría la carrera de D3 (ronda 2) por la puerta
+ * de atrás. `claim_or_reclaim_mail_slot` (función SQL) es esa sentencia.
  *
- * IMPORTANTE (D3 del juez ciego, ronda 3): esta función se llama DESPUÉS de resolver todos los
- * datos que hacen falta para el envío (email, nombre, curso) — nunca antes. Si se llamara antes
- * y la resolución fallara, se quemaría el turno sin haber intentado mandar nada. Cada call site
- * respeta este orden; no hay ninguno que reclame primero "para no perder tiempo".
+ * Devuelve el `id` de la fila reclamada, o `null` si no se pudo reclamar (ya hay un turno vivo
+ * o confirmado) — `confirmMailSent` de abajo necesita ese `id` para marcar exactamente esa fila.
+ *
+ * Se llama DESPUÉS de resolver todos los datos que hacen falta para el envío (email, nombre,
+ * curso) — nunca antes, para no quemar el turno si la resolución en sí falla.
  */
-async function claimMailSlot(recipientUserId: string, mailType: MailType, scopeKey: string): Promise<string | null> {
+async function claimOrReclaimMailSlot(
+  recipientUserId: string,
+  mailType: MailType,
+  scopeKey: string
+): Promise<string | null> {
   const db = getAdminSupabaseClient();
-  const { data, error } = await db
-    .from("mail_log")
-    .insert({ recipient_user_id: recipientUserId, mail_type: mailType, scope_key: scopeKey })
-    .select("id")
-    .single();
+  const { data, error } = await db.rpc("claim_or_reclaim_mail_slot", {
+    p_recipient_user_id: recipientUserId,
+    p_mail_type: mailType,
+    p_scope_key: scopeKey,
+  });
 
   if (error) {
-    if (error.code !== "23505") {
-      console.error(
-        `[mail] no se pudo reclamar el turno de envío (${mailType}/${scopeKey}), se aborta el envío: ${error.message}`
-      );
-    }
+    console.error(
+      `[mail] no se pudo reclamar el turno de envío (${mailType}/${scopeKey}), se aborta el envío: ${error.message}`
+    );
     return null;
   }
-  return data.id;
+  return data ?? null;
 }
 
 /**
- * D4 (juez ciego, ronda 3, BLOQUEANTE) — libera el turno cuando el envío FALLÓ.
- *
- * La versión anterior reclamaba y dejaba reclamado pase lo que pasara con el resultado, y el
- * comentario de la migración 0019 lo describía como "la misma política que ya regía". Era
- * falso: antes de esa migración, cada invocación de `notifyWelcome` intentaba mandar de nuevo
- * (sin dedup no había nada que lo impidiera) — la migración cambió esa política de "cada
- * invocación intenta" a "un solo intento en la vida de la cuenta", sin declararlo. Efecto
- * medido: con el SMTP caído, la bienvenida se reclamaba y JAMÁS volvía a intentarse, ni con el
- * SMTP sano después — ni reintentando la action a mano, ni con el camino de recuperación real
- * de un admin (revocar + reactivar una inscripción tampoco reenviaba nada).
- *
- * El arreglo: si `sendMail` devuelve `{ok:false}`, se borra la fila reclamada. Sin esto no hace
- * falta un mecanismo de reintento en dos fases ni expiración — el PRÓXIMO disparo del mismo
- * evento (la próxima vez que alguien pida el mail de bienvenida, o el admin reactive la
- * inscripción) encuentra el scope libre y lo intenta de nuevo.
- *
- * Residuo ACEPTADO, no escondido: en la ventana angosta de una carrera de D3 (dos requests
- * concurrentes disparan el mismo evento), el que pierde el INSERT (23505) se retira sin
- * intentar mandar nada — si el que ganó el INSERT falla y libera, ESE disparo puntual se pierde
- * igual (nadie reintenta dentro del mismo request). Es infinitamente mejor que el estado
- * anterior (perdido SIEMPRE, sin importar si hubo carrera): el próximo disparo del evento —no
- * este mismo— vuelve a encontrar el scope libre.
+ * Confirma que el envío SALIÓ BIEN — pone `sent_at`. Es lo único que distingue "reclamado, en
+ * curso o fallido" de "confirmado": sin esto, la fila queda con `sent_at` nulo y, pasada la
+ * ventana de `claim_or_reclaim_mail_slot`, vuelve a estar disponible para reintentar. NO hay
+ * un `releaseOnFailure`: un envío que falla, o que el proceso ni llega a terminar de intentar,
+ * simplemente no confirma — es indistinguible de "no sé si salió", que es honesto, en vez de
+ * "sé que no salió", que es lo que la ronda 4 asumía sin poder garantizarlo (un `250` tardío,
+ * o un proceso muerto a mitad, hacían esa suposición falsa).
  */
-async function releaseMailSlotOnFailure(claimId: string, sendOk: boolean): Promise<void> {
-  if (sendOk) return;
+async function confirmMailSent(claimId: string): Promise<void> {
   const db = getAdminSupabaseClient();
-  const { error } = await db.from("mail_log").delete().eq("id", claimId);
+  const { error } = await db.from("mail_log").update({ sent_at: new Date().toISOString() }).eq("id", claimId);
   if (error) {
-    console.error(`[mail] no se pudo liberar el turno ${claimId} tras un envío fallido: ${error.message}`);
+    console.error(`[mail] no se pudo confirmar el envío ${claimId} (igual salió): ${error.message}`);
   }
 }
 
@@ -163,7 +147,7 @@ async function getCourseInfo(courseId: string): Promise<CourseInfo | null> {
  * Mails 1/4 y 4/4 — misma disparada: `panel/admin/actions.ts::setEnrollmentAction` cuando el
  * admin activa una inscripción que NO estaba activa. Un solo punto de entrada (en vez de dos
  * funciones que el caller tendría que invocar por separado) porque comparten los mismos datos
- * de curso/alumna — evita pedirlos dos veces — pero cada envío tiene su propio try/catch: si el
+ * de curso/alumna — evita pedirlos dos veces — pero cada envío tiene su propio reclamo: si el
  * mail a la alumna falla, el aviso a la docente igual se intenta, y viceversa.
  *
  * `notifyTeacherNewStudent` interno recibe `studentName` ya resuelto como STRING — nunca el
@@ -185,9 +169,8 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     if (!course) return;
 
     if (student) {
-      const claimId = await claimMailSlot(input.studentId, "enrollment_granted", input.courseId);
+      const claimId = await claimOrReclaimMailSlot(input.studentId, "enrollment_granted", input.courseId);
       if (claimId) {
-        let sendOk = false;
         try {
           const { subject, html, text } = renderEnrollmentGrantedMail({
             studentName: student.name,
@@ -196,11 +179,9 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             courseUrl: `${getSiteUrl()}/cursos/${course.slug}`,
           });
           const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-          sendOk = result.ok;
+          if (result.ok) await confirmMailSent(claimId);
         } catch (err) {
           console.error("[mail] mail de inscripción a la alumna falló:", err);
-        } finally {
-          await releaseMailSlotOnFailure(claimId, sendOk);
         }
       }
     }
@@ -213,13 +194,12 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
     // alumna nueva, no solo la primera — con scope_key = curso a secas, la segunda alumna del
     // mismo curso jamás generaría aviso porque la primera ya "gastó" ese scope.
     if (teacher && student) {
-      const claimId = await claimMailSlot(
+      const claimId = await claimOrReclaimMailSlot(
         course.teacherId,
         "teacher_new_student",
         `${input.courseId}:${input.studentId}`
       );
       if (claimId) {
-        let sendOk = false;
         try {
           const { subject, html, text } = renderTeacherNewStudentMail({
             teacherName: teacher.name,
@@ -228,11 +208,9 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             courseUrl: `${getSiteUrl()}/panel/docente/cursos/${input.courseId}`,
           });
           const result = await sendMail({ to: { email: teacher.email, name: teacher.name }, subject, html, text });
-          sendOk = result.ok;
+          if (result.ok) await confirmMailSent(claimId);
         } catch (err) {
           console.error("[mail] aviso de alumna nueva a la docente falló:", err);
-        } finally {
-          await releaseMailSlotOnFailure(claimId, sendOk);
         }
       }
     }
@@ -243,34 +221,30 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
 
 /**
  * Mail 3/4 — dispara desde `entrar/actions.ts::sendWelcomeEmailAction`, self-service, nunca con
- * un destinatario que venga del cliente (ver ese archivo). D2 (juez ciego): sin destinatario
- * parametrizable no hay relay abierto hacia un TERCERO, pero antes de `claimMailSlot` no había
- * nada que impidiera invocar la action repetidas veces contra la PROPIA sesión (que puede ser
- * la de una cuenta creada con el email de otra persona, sin verificar — `enable_confirmations
- * = false`) y bombardearla igual. `scope_key` fijo ("account"): bienvenida es una vez por
- * cuenta, para siempre, no una vez por curso — no hay nada que la repita legítimamente.
+ * un destinatario que venga del cliente (ver ese archivo). D2 (juez ciego, ronda 3): sin
+ * destinatario parametrizable no hay relay abierto hacia un TERCERO, pero sin el reclamo de
+ * `mail_log` no había nada que impidiera invocar la action repetidas veces contra la PROPIA
+ * sesión (que puede ser la de una cuenta creada con el email de otra persona, sin verificar —
+ * `enable_confirmations = false`) y bombardearla igual. `scope_key` fijo ("account"):
+ * bienvenida es una vez por cuenta, no una vez por curso — no hay nada que la repita
+ * legítimamente.
  */
 export async function notifyWelcome(input: { userId: string }): Promise<void> {
   try {
-    // Resolver ANTES de reclamar (D3 del juez ciego, ronda 3): si `getUserEmail` falla, no se
-    // gasta el único turno de esta cuenta en un intento que ni siquiera iba a mandar nada.
+    // Resolver ANTES de reclamar: si `getUserEmail` falla, no se gasta el turno de esta cuenta
+    // en un intento que ni siquiera iba a mandar nada.
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const claimId = await claimMailSlot(input.userId, "welcome", "account");
+    const claimId = await claimOrReclaimMailSlot(input.userId, "welcome", "account");
     if (!claimId) return;
 
-    let sendOk = false;
-    try {
-      const { subject, html, text } = renderWelcomeMail({
-        studentName: student.name,
-        catalogUrl: `${getSiteUrl()}/cursos`,
-      });
-      const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-      sendOk = result.ok;
-    } finally {
-      await releaseMailSlotOnFailure(claimId, sendOk);
-    }
+    const { subject, html, text } = renderWelcomeMail({
+      studentName: student.name,
+      catalogUrl: `${getSiteUrl()}/cursos`,
+    });
+    const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+    if (result.ok) await confirmMailSent(claimId);
   } catch (err) {
     console.error("[mail] notifyWelcome falló:", err);
   }
@@ -280,10 +254,9 @@ export async function notifyWelcome(input: { userId: string }): Promise<void> {
  * Mail 2/4 — dispara desde `leccion/[id]/actions.ts::saveLessonProgress` la primera vez que se
  * emite el certificado (T-018) de un curso para ese alumno. `certificateCode` ya viene resuelto
  * por el caller (`ensureCertificate`) — este módulo no vuelve a tocar la tabla `certificates`.
- * El chequeo de "¿ya había certificado?" del caller acota el caso común, pero tiene la MISMA
- * forma de carrera que D3 (leer, después actuar) si dos lecciones se completan a la vez —
- * `certificateCode` como `scope_key` cierra esa ventana acá también, sin depender de que el
- * caller la haya cerrado bien.
+ * `certificateCode` como `scope_key` cierra la misma clase de carrera que en los otros tres
+ * mails, sin depender de que el chequeo previo del caller ("¿ya había certificado?") la haya
+ * cerrado bien.
  */
 export async function notifyCourseCompleted(input: {
   userId: string;
@@ -295,21 +268,16 @@ export async function notifyCourseCompleted(input: {
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const claimId = await claimMailSlot(input.userId, "course_completed", input.certificateCode);
+    const claimId = await claimOrReclaimMailSlot(input.userId, "course_completed", input.certificateCode);
     if (!claimId) return;
 
-    let sendOk = false;
-    try {
-      const { subject, html, text } = renderCourseCompletedMail({
-        studentName: student.name,
-        courseTitle: input.courseTitle,
-        certificateUrl: `${getSiteUrl()}/certificado/${input.certificateCode}`,
-      });
-      const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-      sendOk = result.ok;
-    } finally {
-      await releaseMailSlotOnFailure(claimId, sendOk);
-    }
+    const { subject, html, text } = renderCourseCompletedMail({
+      studentName: student.name,
+      courseTitle: input.courseTitle,
+      certificateUrl: `${getSiteUrl()}/certificado/${input.certificateCode}`,
+    });
+    const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+    if (result.ok) await confirmMailSent(claimId);
   } catch (err) {
     console.error("[mail] notifyCourseCompleted falló:", err);
   }
