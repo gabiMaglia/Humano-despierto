@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/server/auth";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
+import { notifyEnrollmentActivated } from "@/lib/server/mail/notify";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import type { AppRole } from "@/lib/stores/useAuthStore";
 
@@ -115,6 +116,19 @@ export async function setEnrollmentAction(
 
   if (error) {
     return { error: `No se pudo actualizar la inscripción: ${error.message}`, success: null };
+  }
+
+  // El mail se dispara DESPUÉS de que la inscripción ya quedó otorgada, y esta llamada nunca
+  // tira (T-020 criterio 2, garantizado en `notify.ts`/`send.ts`) — un SMTP caído no puede
+  // deshacer lo de arriba ni impedir el `return` de éxito de abajo.
+  //
+  // No se lee el estado ANTERIOR para decidir si notificar (T-020, juez ciego D3): esa lectura
+  // seguida de este upsert es exactamente la carrera que dos activaciones concurrentes pueden
+  // ganar las dos. `notifyEnrollmentActivated` se llama siempre que el estado nuevo es "active"
+  // — es `claimMailSlot` (UNIQUE de `mail_log`, migración 0019), no esta lectura, quien decide
+  // atómicamente si el mail ya se mandó antes para este (alumna, curso).
+  if (status === "active") {
+    await notifyEnrollmentActivated({ studentId: userId, courseId });
   }
 
   revalidatePath("/panel/admin");

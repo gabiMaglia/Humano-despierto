@@ -1,11 +1,56 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { ensureCertificate } from "@/lib/server/certificates";
+import { notifyCourseCompleted } from "@/lib/server/mail/notify";
 
 export interface ProgressResult {
   secondsWatched: number;
   completed: boolean;
   completedAt: string | null;
+}
+
+/**
+ * Mail 2/4 (T-020): dispara solo la primera vez que ESTE alumno completa ESTE curso. Se
+ * chequea si ya existía certificado ANTES de pedirlo — `ensureCertificate` es idempotente
+ * (T-018: devuelve el código exista o no la fila), así que sin este chequeo previo se mandaría
+ * el mail en cada guardado de progreso posterior de cualquier lección ya completa del curso.
+ * Nunca bloquea ni puede tirar: cualquier falla queda en el log, el progreso ya se guardó arriba.
+ */
+async function maybeNotifyCourseCompleted(
+  userId: string,
+  courseId: string
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const { data: existing, error: existingError } = await supabase
+      .from("certificates")
+      .select("code")
+      .eq("user_id", userId)
+      .eq("course_id", courseId)
+      .maybeSingle();
+    // Ya había certificado, o no se pudo confirmar que NO lo había — en ambos casos no se
+    // reintenta el mail: mejor un falso negativo ocasional que mandarlo de más.
+    if (existingError || existing) return;
+
+    const code = await ensureCertificate(courseId);
+    if (!code) return; // esta lección lo completó todo salvo que a ensureCertificate,
+    // que vuelve a verificar server-side (ADR-007), le falte alguna otra lección publicada.
+
+    const { data: course } = await supabase
+      .from("courses")
+      .select("title")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    await notifyCourseCompleted({
+      userId,
+      courseTitle: course?.title ?? "tu curso",
+      certificateCode: code,
+    });
+  } catch (err) {
+    console.error("[mail] maybeNotifyCourseCompleted falló:", err);
+  }
 }
 
 /**
@@ -41,13 +86,16 @@ export async function saveLessonProgress(
     .update({ seconds_watched: seconds, last_seen_at: nowIso })
     .eq("user_id", user.id)
     .eq("lesson_id", lessonId)
-    .select("seconds_watched, completed, completed_at")
+    .select("seconds_watched, completed, completed_at, course_id")
     .maybeSingle();
 
   if (updateError) {
     throw new Error(`No se pudo guardar el progreso: ${updateError.message}`);
   }
   if (updated) {
+    if (updated.completed) {
+      await maybeNotifyCourseCompleted(user.id, updated.course_id);
+    }
     return {
       secondsWatched: updated.seconds_watched,
       completed: updated.completed,
@@ -93,6 +141,9 @@ export async function saveLessonProgress(
       if (retryError) {
         throw new Error(`No se pudo guardar el progreso: ${retryError.message}`);
       }
+      if (retried.completed) {
+        await maybeNotifyCourseCompleted(user.id, lesson.course_id);
+      }
       return {
         secondsWatched: retried.seconds_watched,
         completed: retried.completed,
@@ -102,6 +153,9 @@ export async function saveLessonProgress(
     throw new Error(`No se pudo iniciar el progreso: ${insertError.message}`);
   }
 
+  if (inserted.completed) {
+    await maybeNotifyCourseCompleted(user.id, lesson.course_id);
+  }
   return {
     secondsWatched: inserted.seconds_watched,
     completed: inserted.completed,
