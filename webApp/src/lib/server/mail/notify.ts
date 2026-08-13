@@ -30,13 +30,23 @@ function getSiteUrl(): string {
   return (configured || "http://localhost:3000").replace(/\/$/, "");
 }
 
-async function getUserEmail(userId: string): Promise<{ email: string; name: string } | null> {
+/**
+ * Devuelve tambien el `id` CANONICO -- el que resolvio la base, no el string que vino en el
+ * request. Es la misma razon por la que `getCourseInfo` devuelve el suyo: cualquier scope de
+ * `mail_log` armado con este valor tiene que ser unico por evento, y un uuid escrito distinto
+ * (mayusculas, {llaves}, sin guiones) es la MISMA fila para Postgres pero OTRO `text` para el
+ * scope. `auth-js` valida el uuid con una regex insensible a mayusculas, asi que las
+ * permutaciones de caja llegan enteras hasta aca.
+ */
+async function getUserEmail(
+  userId: string,
+): Promise<{ id: string; email: string; name: string } | null> {
   const db = getAdminSupabaseClient();
 
   const [{ data: authData, error: authError }, { data: profile, error: profileError }] =
     await Promise.all([
       db.auth.admin.getUserById(userId),
-      db.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+      db.from("profiles").select("id, full_name").eq("id", userId).maybeSingle(),
     ]);
 
   if (authError || !authData?.user?.email) {
@@ -48,7 +58,7 @@ async function getUserEmail(userId: string): Promise<{ email: string; name: stri
     return null;
   }
 
-  return { email: authData.user.email, name: profile.full_name || "—" };
+  return { id: profile.id, email: authData.user.email, name: profile.full_name || "—" };
 }
 
 export type MailType = "welcome" | "enrollment_granted" | "course_completed" | "teacher_new_student";
@@ -244,7 +254,11 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
       const claim = await claimOrReclaimMailSlot(
         course.teacherId,
         "teacher_new_student",
-        `${course.id}:${input.studentId}`
+        // Los DOS componentes canonicos, no solo el curso. La ronda 7 cerro el lado del curso
+        // y la 8 encontro que el scope compuesto vale lo que valga su componente MAS DEBIL:
+        // con `input.studentId` crudo, permutar la caja del uuid de la alumna abria un turno
+        // nuevo por variante (~3e4 scopes para el mismo evento, cada uno con su tope de 3).
+        `${course.id}:${student.id}`
       );
       if (claim) {
         try {

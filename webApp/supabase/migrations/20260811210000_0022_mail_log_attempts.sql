@@ -34,10 +34,24 @@
 -- archivo no puede canonicalizar `scope_key` por sí mismo: es `text` genérico y sus valores
 -- legítimos incluyen `'account'` y códigos de certificado, que no son uuids.
 --
--- Entonces la cota, dicha con su condición: **3 por tupla, y la tupla es única por evento
--- MIENTRAS quien llama use valores canónicos para el scope.** Un `claimOrReclaimMailSlot` nuevo
--- que arme el scope con texto que venga del request vuelve a abrir esto sin tocar una línea de
--- SQL — es la parte que este archivo no puede defender solo.
+-- Entonces la cota, dicha con sus DOS condiciones: **3 por tupla, y la tupla es única por evento
+-- mientras quien llama use, para el scope, valores (a) CANÓNICOS y (b) ESTABLES POR EVENTO.**
+--
+-- (a) salió de la ronda 7: texto del request que la base considera equivalente pero el `text` no.
+-- (b) la agregó el juez en la ronda 8, y es la que faltaba: canónico **no alcanza**. Un valor
+-- perfectamente canónico pero REGENERADO en cada ocurrencia parte la tupla igual, sin violar
+-- nunca "canónico". Hoy `certificateCode` cumple solo porque `certificates` es inmutable (0013,
+-- `certificates_guard_immutable`); si esa inmutabilidad se relajara, este scope se rompe desde
+-- otro archivo y sin tocar éste.
+--
+-- Y una precisión sobre un scope COMPUESTO —hoy `${course.id}:${student.id}`—: **vale lo que
+-- valga su componente más débil.** La ronda 7 canonicalizó el curso y la 8 encontró que el uuid
+-- de la alumna seguía crudo, lo que reabría todo por la otra mitad. Canonicalizar "el scope" no
+-- es una acción: son tantas como componentes tenga.
+--
+-- Lo que este archivo NO puede defender solo, dicho para que quede a la vista: un
+-- `claimOrReclaimMailSlot` nuevo que arme el scope con texto del request, o con un
+-- identificador nuevo por invocación, reabre esto sin tocar una línea de SQL.
 --
 -- N = 3, chico a propósito. Un fallo AISLADO (la red hiccupeó una vez) tiene 2 reintentos más
 -- para resolverse — suficiente para no perder un mail legítimo por un blip. Un fallo
