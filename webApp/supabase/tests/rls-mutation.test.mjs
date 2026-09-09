@@ -473,8 +473,18 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
     });
 
     test('anon y authenticated solo tienen EXECUTE donde se lo otorgo a mano', async () => {
+      // T-027 suma `course_student_count`, y es la unica de esta lista que `anon` llama de
+      // forma DIRECTA (las demas las evalua una politica o un CHECK). Es SECURITY DEFINER y lee
+      // `enrollments`, que `anon` no puede leer y no debe poder — RLS le da 401. Se le otorga
+      // igual porque el dato que devuelve es CUANTAS, nunca QUIENES: un entero, sin fila, sin
+      // user_id, sin forma de iterar hacia una identidad. Es la prueba social de la ficha de
+      // venta y es el motivo por el que el dato esta ahi.
+      // Lo que la vuelve defendible como oraculo es el filtro `c.status = 'published'` de su
+      // cuerpo (0023): un curso en borrador devuelve 0 pase lo que pase, asi que tampoco
+      // delata la existencia ni el tamaño de lo que todavia no se publico.
       const ESPERADO_ANON = [
-        'can_read_course', 'current_app_role', 'is_admin', 'lesson_is_preview', 'owns_course',
+        'can_read_course', 'course_student_count', 'current_app_role', 'is_admin',
+        'lesson_is_preview', 'owns_course',
       ];
       // `is_service_context` sigue siendo la unica excepcion: la llaman `guard_courses_insert` y
       // `guard_lessons`, que son SECURITY INVOKER. `lesson_progress_completes` (T-011) estuvo aca

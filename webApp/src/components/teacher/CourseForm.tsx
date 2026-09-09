@@ -112,6 +112,53 @@ export default function CourseForm({ course }: Props) {
       </div>
 
       <div className="md:col-span-2">
+        <label className={labelClass}>Lo que va a aprender (un ítem por línea)</label>
+        <textarea
+          name="learningObjectives"
+          defaultValue={(course?.learningObjectives ?? []).join("\n")}
+          rows={4}
+          placeholder="Leer una tirada de tres cartas con criterio propio"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label className={labelClass}>Antes de empezar — requisitos (un ítem por línea)</label>
+        <textarea
+          name="prerequisites"
+          defaultValue={(course?.prerequisites ?? []).join("\n")}
+          rows={3}
+          placeholder="Ninguno: se empieza de cero"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label className={labelClass}>Sobre este curso (descripción larga)</label>
+        <textarea
+          name="description"
+          defaultValue={course?.description ?? ""}
+          rows={8}
+          className={inputClass}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Idioma (2 letras)</label>
+        <input name="language" defaultValue={course?.language ?? "es"} className={inputClass} />
+      </div>
+
+      <div>
+        <label className={labelClass}>Video de adelanto — id de YouTube (opcional)</label>
+        <input
+          name="promoVideoId"
+          defaultValue={course?.promoVideoId ?? ""}
+          placeholder="dQw4w9WgXcQ"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="md:col-span-2">
         <label className={labelClass}>Qué incluye (un ítem por línea)</label>
         <textarea
           name="includes"
