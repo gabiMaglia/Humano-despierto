@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPublishedPosts } from "@/lib/server/diario";
@@ -7,6 +8,12 @@ import { toRoman } from "@/lib/utils/roman";
 // T-022 · Reemplaza el mock `src/lib/mocks/blog.ts` (T-017 lo había dejado fuera de alcance a
 // propósito: no existía tabla). Criterio 2: solo publicados, más recientes primero — lo filtra
 // `getPublishedPosts` (RLS `diario_posts_read`, migración 0018).
+
+export const metadata: Metadata = {
+  title: "Diario",
+  description: "Escritos de las guías de la escuela sobre los oficios sutiles del alma.",
+};
+
 export default async function DiarioPage() {
   const posts = await getPublishedPosts();
 

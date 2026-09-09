@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import GuiaCard from "@/components/molecules/GuiaCard";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPublicTeachers } from "@/lib/server/guias";
+
+
+export const metadata: Metadata = {
+  title: "Guías",
+  description: "Quiénes enseñan en Humano Despierto y qué linaje traen.",
+};
 
 export default async function GuiasPage() {
   const guias = await getPublicTeachers();

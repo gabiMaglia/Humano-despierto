@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
 import PageHeader from "@/components/layout/PageHeader";
@@ -64,6 +65,12 @@ function FilterGroup({
     </div>
   );
 }
+
+
+export const metadata: Metadata = {
+  title: "Cursos",
+  description: "Tarot, astrología, herbalismo, reiki y magia. Cursos on-demand con guías de linaje.",
+};
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const sp = await searchParams;

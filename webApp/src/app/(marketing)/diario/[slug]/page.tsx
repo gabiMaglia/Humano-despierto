@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import { getPostBySlug } from "@/lib/server/diario";
@@ -12,6 +13,26 @@ interface Props {
 // mande los headers con 200 antes de que `notFound()` corra (la trampa documentada en
 // `(app)/circulo/[curso]/layout.tsx` y en la deuda del engram). Verificado con el status code,
 // no con el contenido — ver el handoff.
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
+  if (!post) return { title: "Escrito no encontrado" };
+  const description = post.excerpt ?? undefined;
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: `/diario/${slug}` },
+    openGraph: {
+      title: post.title,
+      description,
+      url: `/diario/${slug}`,
+      type: "article",
+      publishedTime: post.publishedAt,
+    },
+  };
+}
+
 export default async function DiarioPostPage({ params }: Props) {
   const { slug } = await params;
   const post = await getPostBySlug(slug);

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
@@ -14,6 +15,25 @@ const FRAME_CORNERS = [
   "bottom-3 left-3 border-b border-l",
   "bottom-3 right-3 border-b border-r",
 ] as const;
+
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> },
+): Promise<Metadata> {
+  const { slug } = await params;
+  const course = await getCourseBySlug(slug);
+  if (!course) return { title: "Curso no encontrado" };
+  // El h1 de la página es `title` + `titleEm` ("Tarot" + "iniciático"). El <title> tiene que
+  // decir lo mismo: "Tarot" a secas no distingue este curso de los otros dos de tarot.
+  const fullTitle = [course.title, course.titleEm].filter(Boolean).join(" ");
+  const description = course.subtitle ?? course.intro ?? undefined;
+  return {
+    title: fullTitle,
+    description,
+    alternates: { canonical: `/cursos/${slug}` },
+    openGraph: { title: fullTitle, description, url: `/cursos/${slug}`, type: "website" },
+  };
+}
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
@@ -5,6 +6,22 @@ import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
 import { getTeacherBySlug } from "@/lib/server/guias";
 import { toRoman } from "@/lib/utils/roman";
+
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> },
+): Promise<Metadata> {
+  const { slug } = await params;
+  const teacher = await getTeacherBySlug(slug);
+  if (!teacher) return { title: "Guía no encontrada" };
+  const description = teacher.headline ?? teacher.bio ?? undefined;
+  return {
+    title: teacher.fullName,
+    description,
+    alternates: { canonical: `/guias/${slug}` },
+    openGraph: { title: teacher.fullName, description, url: `/guias/${slug}`, type: "profile" },
+  };
+}
 
 export default async function GuiaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
