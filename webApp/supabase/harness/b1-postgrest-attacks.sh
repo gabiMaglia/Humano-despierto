@@ -134,6 +134,21 @@ esperar "(d3) link en size_label"           400 PATCH "lesson_resources?id=eq.$R
 esperar "(d4) link en el titulo de leccion" 400 PATCH "lessons?id=eq.$LEC"          "$DOCENTE_JWT" '{"title":"Clase completa youtu.be/dQw4w9WgXcQ"}'
 esperar "(d5) link en 'que incluye' del curso" 400 PATCH "courses?id=eq.$CURSO"     "$DOCENTE_JWT" '{"includes":["Manual: drive.google.com/file/d/LEAKED123"]}'
 esperar "(d6) link en la bio publica"       400 PATCH "profiles?id=eq.$DOCENTE"     "$DOCENTE_JWT" '{"bio":"Material en drive.google.com/drive/folders/LEAKED"}'
+
+echo ""
+echo "── S-05 · el localizador EXACTO en la ficha de venta del curso (T-027)"
+# Los (d*) de arriba prueban la mitad de FORMA de ADR-009. Esta es la otra mitad, y es la que
+# faltaba entera en `courses` hasta 0023: `SECRETVIDEO` son 11 caracteres sin `://`, sin `www.`
+# y sin una corrida de 25+ alfanumericos, asi que `text_has_locator` lo deja pasar POR
+# CONSTRUCCION. Lo unico que lo detiene es `courses_locator_guard`, que devuelve 42501 -> 403.
+# Antes de 0023 estos cinco daban 204 y el video_id salia a `anon` sin sesion.
+esperar "(s5) video_id exacto en intro"        403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"intro":"Mira esta clase: SECRETVIDEO"}'
+esperar "(s5b) video_id exacto en description" 403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"description":"Adelanto: SECRETVIDEO"}'
+esperar "(s5c) video_id exacto en subtitle"    403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"subtitle":"SECRETVIDEO"}'
+esperar "(s5d) video_id en un objetivo"        403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"learning_objectives":["Ver SECRETVIDEO"]}'
+esperar "(s5e) video_id en un requisito"       403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"prerequisites":["Haber visto SECRETVIDEO"]}'
+# Control positivo: sin esto, un guard que rechace TODO tambien daria verde arriba.
+esperar "(s5+) ficha legitima"                 204 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"description":"Cada leccion es un video corto.","learning_objectives":["Leer los 22 arcanos"],"prerequisites":["Ninguno"],"language":"es"}'
 # Control positivo, en la misma corrida: un patron goloso rompe el trabajo real de la docente y
 # ese es el otro modo de fallar este ticket. Tiene que dar 204.
 esperar "(d+) nombre legitimo 'Manual v2.1'" 204 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Manual v2.1","size_label":"2.4 MB"}'
