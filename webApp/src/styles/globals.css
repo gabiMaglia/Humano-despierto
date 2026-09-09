@@ -163,3 +163,19 @@
     box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
   }
 }
+
+/* X-01 · §4 transmite informacion con glifos Unicode (estado de leccion, fase lunar). Un glifo
+   informativo va `aria-hidden` con su texto al lado en `.sr-only`; uno decorativo, solo
+   `aria-hidden`. Sin esta clase la alternativa es texto visible que rompe el diseño, y la
+   tentacion entonces es no poner ninguna. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

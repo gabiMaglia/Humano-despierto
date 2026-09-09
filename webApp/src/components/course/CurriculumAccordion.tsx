@@ -19,6 +19,17 @@ const STATE_ICON: Record<LessonState, string> = {
   locked: "⌗",
 };
 
+// X-01 · §4 transmite el estado de la leccion CON el glifo, asi que el glifo carga informacion
+// y no puede quedar mudo: un lector de pantalla no dice nada util frente a "⌗". El glifo va
+// aria-hidden y al lado viaja este texto, visualmente oculto.
+const STATE_LABEL: Record<LessonState, string> = {
+  done: "Completada",
+  current: "En curso",
+  pending: "Pendiente",
+  preview: "Vista previa gratuita",
+  locked: "Requiere inscripción",
+};
+
 const STATE_ICON_CLASS: Record<LessonState, string> = {
   done: "text-lila-300",
   current: "text-gold-400",
@@ -97,6 +108,8 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                   type="button"
                   onClick={() => setOpenPosition(isOpen ? null : m.position)}
                   aria-expanded={isOpen}
+                  aria-controls={`modulo-panel-${m.position}`}
+                  id={`modulo-trigger-${m.position}`}
                   className="flex w-full items-start justify-between gap-3 text-left"
                 >
                   <div className="min-w-0 flex-1">
@@ -105,16 +118,22 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                       <p className="mb-2 font-body text-sm text-ink-soft leading-relaxed">{m.description}</p>
                     )}
                     <span className="font-display text-eyebrow tracking-cosmic text-gold-400">
-                      ☾ {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
+                      <span aria-hidden="true">☾ </span>
+                      {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
                     </span>
                   </div>
-                  <span className="mt-1 flex-none font-display text-sm text-ink-faint">
+                  <span aria-hidden="true" className="mt-1 flex-none font-display text-sm text-ink-faint">
                     {isOpen ? "▾" : "▸"}
                   </span>
                 </button>
 
                 {isOpen && m.lessons.length > 0 && (
-                  <div className="mt-3 space-y-1">
+                  <div
+                    id={`modulo-panel-${m.position}`}
+                    role="region"
+                    aria-labelledby={`modulo-trigger-${m.position}`}
+                    className="mt-3 space-y-1"
+                  >
                     {m.lessons.map((lesson) => {
                       const state = lessonStates.get(lesson.id) ?? "locked";
                       const clickable = state !== "locked";
@@ -127,9 +146,13 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                       );
                       const content = (
                         <>
-                          <span className={cn("font-display text-xs flex-none", STATE_ICON_CLASS[state])}>
+                          <span
+                            aria-hidden="true"
+                            className={cn("font-display text-xs flex-none", STATE_ICON_CLASS[state])}
+                          >
                             {STATE_ICON[state]}
                           </span>
+                          <span className="sr-only">{STATE_LABEL[state]}</span>
                           <span className={cn("flex-1 min-w-0 truncate font-body text-sm", STATE_TITLE_CLASS[state])}>
                             {lesson.title}
                           </span>
