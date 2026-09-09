@@ -267,15 +267,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Help widget */}
-          <div className="mt-4 cosmos-card p-5 flex gap-4">
-            <span className="text-2xl text-gold-400 flex-none">☉</span>
-            <div>
-              <p className="mb-1 font-display text-sm tracking-wide text-ink">¿Dudás antes de cruzar?</p>
-              <p className="mb-2 font-body text-xs text-ink-soft">Hablá con una guía. 15 minutos, sin compromiso.</p>
-              <a href="#" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Pedir conversación ↦</a>
-            </div>
-          </div>
         </aside>
       </div>
     </div>

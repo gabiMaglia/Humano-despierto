@@ -58,7 +58,6 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
 
           <div className="flex flex-wrap gap-3.5">
             <a href="#cursos" className="btn-ritual btn-ritual-primary rounded-pill">Ver sus cursos ↦</a>
-            <a href="#"       className="btn-ritual btn-ritual-ghost rounded-pill">Pedir consulta privada</a>
           </div>
         </div>
 

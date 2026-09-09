@@ -38,12 +38,6 @@ export default async function GuiasPage() {
           </p>
         )}
 
-        {/* Bottom note */}
-        <p className="mt-16 text-center font-display text-eyebrow tracking-[0.2em] text-ink-faint">
-          — ¿Querés ser guía? ·{" "}
-          <a href="#" className="text-lila-300 hover:text-lila-200 transition-colors">Escribinos</a>
-          {" "} —
-        </p>
       </div>
     </div>
   );
