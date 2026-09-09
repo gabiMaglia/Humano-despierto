@@ -58,6 +58,7 @@ export interface CourseDetail {
 interface TeacherRow {
   full_name: string;
   bio: string | null;
+  slug: string | null;
 }
 
 interface PublishedCourseLessonRow {

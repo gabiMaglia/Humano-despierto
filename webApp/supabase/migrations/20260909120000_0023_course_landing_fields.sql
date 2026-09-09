@@ -109,3 +109,30 @@ grant update (learning_objectives, prerequisites, description, language, promo_v
 -- este barrido cierra cada migracion que agrega funciones (0005, 0006, 0008, 0009, 0022).
 -- `guard_courses_locator` no necesita EXECUTE de nadie: la invoca el trigger, no un caller.
 revoke execute on all functions in schema public from public;
+
+-- ---------------------------------------------------------------- inscriptas, sin exponer quienes
+-- Criterio 6 pide que el numero de inscriptas de la ficha SALGA DE LA BASE y coincida con la
+-- realidad (misma leccion que T-019 c.2: un conteo inventado es peor que ninguno). Pero `anon`
+-- no puede leer `enrollments` -- RLS se lo niega, y esta bien que se lo niegue.
+--
+-- POR QUE UNA FUNCION Y NO RELAJAR RLS. Exponer CUANTAS alumnas hay es aceptable -- es prueba
+-- social, la razon por la que el dato esta en la ficha. Exponer QUIENES son, no. Una politica de
+-- RLS que dejara a `anon` seleccionar filas de `enrollments` daria las dos cosas; esta funcion
+-- da solo la primera y no hay forma de sacarle otra.
+--
+-- POR QUE NO UNA COLUMNA `student_count`. Seria mentira en cuanto alguien se da de baja. Misma
+-- doctrina que `completed` (ADR-007): se deriva, no se declara.
+--
+-- Solo cuenta cursos PUBLICADOS: el conteo de un borrador no es asunto de nadie de afuera.
+create or replace function public.course_student_count(p_course_id uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select count(*)::integer
+    from public.enrollments e
+    join public.courses c on c.id = e.course_id
+   where e.course_id = p_course_id
+     and e.status = 'active'
+     and c.status = 'published';
+$$;
+
+revoke execute on all functions in schema public from public;
+grant execute on function public.course_student_count(uuid) to anon, authenticated, service_role;
