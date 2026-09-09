@@ -12,7 +12,7 @@ paridad funcional — eso vive en `2026-09-09-paridad-udemy-design.md`.
 
 | Sev | # | Frente |
 |---|---|---|
-| **Bloqueante** | 4 | Entorno (2) · Seguridad (1) · Datos (1) |
+| **Bloqueante** | 5 | Entorno (2) · **Seguridad (2)** · Datos (1) |
 | **Alto** | 5 | Seguridad (2) · SEO (1) · Observabilidad (1) · A11y (1) |
 | **Medio** | 4 | Correctitud (2) · Entorno (1) · Seguridad (1) |
 | **Bajo** | 2 | Correctitud (1) · SEO (1) |
@@ -125,6 +125,48 @@ grants aguantan— pero le entrega a un atacante el mapa exacto de qué pedir.
 
 **Acción:** `db-schema` fuera de la config de PostgREST, o `ANON_KEY` sin acceso al endpoint raíz.
 Verificar después contra la instancia real, no contra PGlite (que no lo sirve, ver A-01).
+
+### S-05 · La coincidencia exacta de localizadores NO cubre `courses` — **BLOQUEANTE**
+
+*Descubierto el 2026-09-09 al preparar T-027. Reproducido contra el stack local, no inferido.*
+
+ADR-009 tiene dos mitades: `text_has_locator` (la **forma** de un localizador, en un `CHECK`) y
+`body_has_known_locator` (**coincidencia exacta** contra `lessons.video_id` y `lesson_resources`,
+en un guard trigger — no puede ir en un `CHECK` porque necesita leer otras tablas).
+
+La segunda mitad existe porque la primera no alcanza: **un `video_id` de YouTube son 11
+caracteres** y no tiene la forma de una URL, así que `text_has_locator` lo deja pasar. Eso es
+exactamente lo que QA le rechazó a T-022.
+
+**El guard de coincidencia exacta se aplica sólo a `campus_posts` (0016) y `diario_posts` (0018,
+0020). Nunca se aplicó a `courses`.** Y `courses.intro`, `title`, `subtitle` se sirven a `anon`
+sin sesión.
+
+Reproducido con el `video_id` real del seed (`eRsGyueVLvQ`), como docente autenticada:
+
+```sql
+insert into public.courses (slug, title, intro, discipline, level, teacher_id)
+values ('fuga-test', 'Curso de prueba', 'Mira este video: eRsGyueVLvQ', 'tarot', 'inicial', <teacher>);
+-- INSERT 0 1   ← ningún CHECK lo frena
+```
+
+Y publicado, leído por `anon` **sin sesión** contra PostgREST real:
+
+```
+GET /rest/v1/courses?slug=eq.fuga-test&select=slug,intro
+[{"slug":"fuga-test","intro":"Mira este video: eRsGyueVLvQ"}]
+```
+
+Esa es la fuga que ADR-003/ADR-009 existen para impedir: el localizador del contenido pago,
+servido a cualquiera. La fila de prueba fue borrada.
+
+**Por qué es bloqueante y no alto:** no requiere atacante externo. Le alcanza a una docente con
+acceso legítimo a su propio panel, y el camino es el formulario normal de alta de curso.
+
+**Acción:** guard trigger sobre `courses` que evalúe `body_has_known_locator` en los campos de
+texto servidos a `anon`, con el mismo patrón que `guard_diario_posts()`. **Va incluido en T-027**,
+que además agrega tres campos de texto nuevos a esa misma superficie — arreglarlo ahí es lo
+correcto: sumar campos a una superficie con esta fuga la agranda.
 
 ### S-04 · Sin cabeceras de seguridad — **MEDIO**
 
@@ -271,6 +313,7 @@ No sale a producción hasta que:
 2. **A-02** — `YOUTUBE_API_KEY` provista y verificada con una lección real de punta a punta.
 3. **S-01** — el PO decide entre intervalos o aceptación explícita, y se ejecuta la decisión.
 4. **D-01** — un restore probado.
+5. **S-05** — el guard de coincidencia exacta sobre `courses` (va en T-027).
 
 **Nota sobre el barrido ADR-004.** Sin `COOKIE`, `check-adr004.sh` deja tres rutas sin escanear
 (`/circulo`, `/panel`, `/inscribirme/*`, todas 307) y **las cuenta como violaciones** — se niega,
