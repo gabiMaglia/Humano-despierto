@@ -185,18 +185,28 @@ sin romper los existentes.
    ★" que parece un curso malo. Un curso nuevo sin reseñas y un curso malo no se ven igual.
 4. Reseña destacada: la más útil, criterio determinista y documentado (la más reciente con 4-5
    estrellas y cuerpo no vacío). Sin votos por ahora: YAGNI.
-5. Moderación: la guía dueña y el admin pueden ocultar con motivo (**R-5**). **La guía no puede
-   editar ni borrar duro** una reseña sobre sí misma — ese es el punto entero de que existan.
-6. Al completar el curso, el mail que ya manda T-020 suma un link a dejar reseña. **Un solo mail
+5. **Moderación: sólo el admin oculta** (**R-5**). La guía **no puede ocultar ni borrar** una
+   reseña sobre su propio curso — puede **responderla en público**, una vez, y la respuesta se
+   muestra debajo. Es lo que hace Udemy y es mejor que el default que esta spec traía: le da voz
+   a la guía sin darle poder sobre lo que se dice de ella. **Cierra Q-11.**
+6. Si la alumna **edita** su reseña después de una respuesta, la respuesta **se borra**. Udemy lo
+   hace así por una razón buena: una respuesta que quedó colgando de un texto que ya cambió
+   descontextualiza a las dos partes.
+7. Al completar el curso, el mail que ya manda T-020 suma un link a dejar reseña. **Un solo mail
    más, no una campaña.**
-7. §4 en las estrellas: `★`/`☆` Unicode con `aria-label` del valor numérico (**R-7**).
+8. §4 en las estrellas: `★`/`☆` Unicode con `aria-label` del valor numérico (**R-7**).
 
-### La tensión que hay que nombrar
-La guía modera reseñas sobre su propio curso. Es un conflicto de interés estructural — Udemy lo
-resuelve no dejando que el instructor borre nada. Acá la mitigación es que el borrado es **soft,
-con autor y motivo registrados** (**R-5**), así que una guía que borra las malas deja rastro
-auditable. Si el PO prefiere, la alternativa es que sólo modere el admin. **Queda como pregunta
-abierta Q-11**, con el default en "guía puede, y queda registrado".
+### Q-11 · RESUELTA por investigación (2026-09-09)
+La spec traía "la guía modera su propio curso, con autor y motivo registrados". **Se descarta.**
+Udemy no deja que el instructor borre ni oculte nada: sólo puede **responder en público**, y esa
+respuesta desaparece si la alumna edita su reseña.
+
+Es mejor y por un motivo concreto: el rastro auditable que proponía mi versión sólo sirve si
+alguien lo audita, y nadie audita a la dueña del curso en una escuela chica. Quitarle la
+capacidad, en vez de registrarla, no depende de que haya un auditor. La guía no pierde voz — gana
+la única que corresponde, que es contestar.
+
+**Decisión: sólo el admin oculta. La guía responde.**
 
 ---
 
