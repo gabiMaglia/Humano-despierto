@@ -23,6 +23,7 @@ const CHECK_VIOLATION = '23514';
 const PRIV_DENIED = '42501';
 
 const asOwnerTeacher = (db, fn) => asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, fn);
+const asStudentWriter = (db, fn) => asUser(db, { sub: ID.student, userRole: 'student' }, fn);
 const asService = async (db, fn) => {
   await db.exec(`set role service_role;`);
   try {
@@ -91,6 +92,14 @@ const COLUMNAS = [
   // que `includes` -- el CHECK va POR ELEMENTO, asi que el ataque tiene que ir dentro del array
   // y no en lugar de el, o se estaria probando otra cosa.
   ['courses.description',          (v) => [`update public.courses set description = $1 where id = $2`, [v, ID.courseA]]],
+  // T-028 · misma clase: los lee `anon` sin sesion en la ficha del curso. `body` lo escribe la
+  // alumna inscripta, `response` la guia dueña -- las dos son texto libre del catalogo publico.
+  // El barrido nacio asumiendo que TODO el catalogo lo escribe la docente. T-028 rompe esa
+  // asuncion: `body` lo escribe la ALUMNA inscripta, y el guard de 0024 impide que la guia lo
+  // toque. Por eso estas dos entradas declaran su actor -- correr `body` como docente daria un
+  // 42501 del guard, no el 23514 del CHECK, y el barrido estaria probando otra cosa.
+  ['course_reviews.body',          (v) => [`update public.course_reviews set body = $1 where course_id = $2`, [v, ID.courseA]], 'student'],
+  ['course_reviews.response',      (v) => [`update public.course_reviews set response = $1, responded_at = now(), responded_by = $2 where course_id = $3`, [v, ID.teacherA, ID.courseA]], 'teacher'],
   ['courses.learning_objectives',  (v) => [`update public.courses set learning_objectives = array['Leer el tarot', $1] where id = $2`, [v, ID.courseA]]],
   ['courses.prerequisites',        (v) => [`update public.courses set prerequisites = array['Ninguno', $1] where id = $2`, [v, ID.courseA]]],
   ['profiles.full_name',           (v) => [`update public.profiles set full_name = $1 where id = $2`, [v, ID.teacherA]]],
@@ -281,10 +290,11 @@ describe('T-016 · ningun texto libre del catalogo acepta un localizador', () =>
 
   // ---------------------------------------------------------------- 4 · el barrido (criterio 2)
   describe('barrido de la clase · toda columna de la lista rechaza el localizador', () => {
-    for (const [columna, sentencia] of COLUMNAS) {
+    for (const [columna, sentencia, actor] of COLUMNAS) {
       test(columna, async () => {
         const [sql, params] = sentencia('Manual — drive.google.com/file/d/LEAKED123');
-        const r = await asOwnerTeacher(db, () => attempt(db, sql, params));
+        const como = actor === 'student' ? asStudentWriter : asOwnerTeacher;
+        const r = await como(db, () => attempt(db, sql, params));
         assert.equal(r.ok, false, `${columna} acepta un localizador`);
         assert.equal(r.code, CHECK_VIOLATION, `${columna} fallo por otra razon: ${r.message}`);
       });

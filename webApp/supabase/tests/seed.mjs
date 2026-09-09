@@ -66,6 +66,12 @@ export async function seed(db) {
     insert into public.enrollments (user_id, course_id, granted_by) values
       ('${ID.student}', '${ID.courseA}', '${ID.admin}');
 
+    -- T-028 · una resena de la alumna inscripta. Sin ella el barrido de localizadores sobre
+    -- course_reviews correria contra CERO filas y pasaria trivialmente -- el mismo modo de
+    -- fallo vacuo que el proyecto ya arrastro dos veces.
+    insert into public.course_reviews (course_id, user_id, rating, body) values
+      ('${ID.courseA}', '${ID.student}', 5, 'Volveria a hacerlo con los ojos cerrados.');
+
     insert into public.diario_posts (id, teacher_id, slug, title, excerpt, body, status, published_at) values
       ('${ID.postA}', '${ID.teacherA}', 'sobre-los-eclipses', 'Sobre los eclipses que no se pueden esquivar',
        'Notas de campo despues del eclipse en Tauro.',
