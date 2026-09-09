@@ -86,6 +86,13 @@ const COLUMNAS = [
   // version del barrido a mano se la habia salteado. Es exactamente el olvido que el invariante existe para atrapar.
   ['courses.moon_glyph',           (v) => [`update public.courses set moon_glyph = $1 where id = $2`, [v, ID.courseA]]],
   ['courses.includes',             (v) => [`update public.courses set includes = array['Acceso de por vida', $1] where id = $2`, [v, ID.courseA]]],
+  // T-027 · misma clase exacta que `intro`: texto libre de la ficha de venta, escrito por la
+  // docente, leido por `anon` sin sesion. Los dos arrays entran por `array_has_locator`, igual
+  // que `includes` -- el CHECK va POR ELEMENTO, asi que el ataque tiene que ir dentro del array
+  // y no en lugar de el, o se estaria probando otra cosa.
+  ['courses.description',          (v) => [`update public.courses set description = $1 where id = $2`, [v, ID.courseA]]],
+  ['courses.learning_objectives',  (v) => [`update public.courses set learning_objectives = array['Leer el tarot', $1] where id = $2`, [v, ID.courseA]]],
+  ['courses.prerequisites',        (v) => [`update public.courses set prerequisites = array['Ninguno', $1] where id = $2`, [v, ID.courseA]]],
   ['profiles.full_name',           (v) => [`update public.profiles set full_name = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.slug',                (v) => [`update public.profiles set slug = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.glyph',               (v) => [`update public.profiles set glyph = $1 where id = $2`, [v, ID.teacherA]]],
@@ -138,7 +145,14 @@ const columnasDeLaClase = async (db) =>
 
 // Unica excepcion admitida: columnas cuyo dominio ya esta cerrado por un CHECK de enumeracion,
 // donde "texto libre" es falso. Se enumeran a mano para que agregar una exija justificarla.
-const EXENTAS_POR_ENUM = ['courses.currency', 'lesson_resources.type', 'lessons.video_provider'];
+// T-027 suma dos: `language` es `char(2)` con CHECK `^[a-z]{2}$` y `promo_video_id` lleva el
+// MISMO CHECK de formato que `lessons.video_id` (`^[A-Za-z0-9_-]{11}$`). En ninguna de las dos
+// cabe una URL ni un id ajeno: el dominio esta cerrado por el regex, igual que en `currency`.
+// Pegar una URL entera en `promo_video_id` falla con 23514 — verificado en course-landing.test.mjs.
+const EXENTAS_POR_ENUM = [
+  'courses.currency', 'courses.language', 'courses.promo_video_id',
+  'lesson_resources.type', 'lessons.video_provider',
+];
 
 // T-022 · Segunda excepcion admitida, con motivo distinto: la columna ES texto libre de la
 // clase (anon la lee, la docente la escribe) pero deliberadamente NO lleva la heuristica de

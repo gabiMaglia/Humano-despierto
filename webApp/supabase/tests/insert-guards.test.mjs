@@ -157,8 +157,12 @@ const INSERT_ESPERADO = {
   // enrollments       — SIN grant de INSERT y ademas enrollments_guard cubre insert/update/delete.
 
   // Guard nuevo (c.2): status/featured/published_at fuera del grant Y bloqueadas por trigger.
+  // T-027 suma los cinco de la ficha de venta. Se declaran ACA a mano a proposito: este test
+  // es la fricción que hace imposible exponer una columna sin decidirlo. Su defensa no es el
+  // grant -- son material de venta y anon los lee -- sino ADR-009 en sus dos mitades (0023).
   courses: ['slug', 'title', 'title_em', 'subtitle', 'intro', 'discipline', 'level', 'price_cents',
-            'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id'],
+            'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id',
+            'learning_objectives', 'prerequisites', 'description', 'language', 'promo_video_id'],
 
   // Guard nuevo (c.3): is_published, video_id y —desde T-012— duration_seconds fuera del grant
   // Y bloqueadas por trigger. La duracion la trae YouTube, no el docente (decision del PO).

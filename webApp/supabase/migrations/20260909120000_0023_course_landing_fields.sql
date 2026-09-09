@@ -102,3 +102,10 @@ grant insert (learning_objectives, prerequisites, description, language, promo_v
 
 grant update (learning_objectives, prerequisites, description, language, promo_video_id)
   on public.courses to authenticated;
+
+-- ---------------------------------------------------------------- EXECUTE
+-- Postgres otorga EXECUTE a PUBLIC por defecto en toda funcion nueva, asi que crear un guard
+-- abre una funcion al mundo salvo que se revoque. `rls-mutation.test.mjs` lo verifica y por eso
+-- este barrido cierra cada migracion que agrega funciones (0005, 0006, 0008, 0009, 0022).
+-- `guard_courses_locator` no necesita EXECUTE de nadie: la invoca el trigger, no un caller.
+revoke execute on all functions in schema public from public;
