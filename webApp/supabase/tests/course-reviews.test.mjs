@@ -246,6 +246,49 @@ describe('T-028 · resenas y rating', () => {
       assert.notEqual(r.ok && r.rows.length > 0, true, 'edito una resena ajena');
     });
 
+    // Matiz del diseño que conviene dejar probado: `hidden_at`/`hidden_by`/`hidden_reason` no
+    // estan en NINGUN grant de cliente, asi que ni el admin puede escribirlas con su JWT. Ocultar
+    // pasa por service_role, y el chequeo de rol lo hace el Server Action. Es una capa mas que
+    // "el admin puede": la columna no existe para ningun cliente, sea quien sea.
+    test('ni el admin oculta con su propio JWT — hidden_* es de service_role', async () => {
+      const r = await asAdmin(db, () =>
+        attempt(
+          db,
+          `update public.course_reviews set hidden_at = now(), hidden_by = $1, hidden_reason = 'spam'
+            where user_id = $2 and course_id = $3`,
+          [ID.admin, ID.student, ID.courseA],
+        ),
+      );
+      assert.equal(r.ok, false, 'hidden_* resulto escribible desde un cliente');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('service_role SI puede ocultar — es el camino de la moderacion', async () => {
+      await db.exec(`reset role;`);
+      const r = await attempt(
+        db,
+        `update public.course_reviews set hidden_at = now(), hidden_by = $1, hidden_reason = 'spam'
+          where user_id = $2 and course_id = $3 returning id`,
+        [ID.admin, ID.student, ID.courseA],
+      );
+      assert.equal(r.ok, true, `la moderacion legitima quedo bloqueada: ${r.message}`);
+      // Y una vez oculta, no la ve nadie — ni su autora.
+      const vista = await asStudent(db, () =>
+        attempt(db, `select id from public.course_reviews where user_id = $1 and course_id = $2`, [
+          ID.student,
+          ID.courseA,
+        ]),
+      );
+      assert.equal(vista.rows.length, 0, 'una resena oculta sigue siendo visible');
+      // Se restaura para no contaminar los casos que siguen.
+      await db.exec(`reset role;`);
+      await db.query(
+        `update public.course_reviews set hidden_at = null, hidden_by = null, hidden_reason = null
+          where user_id = $1 and course_id = $2`,
+        [ID.student, ID.courseA],
+      );
+    });
+
     test('si la autora edita, la respuesta de la guia se borra', async () => {
       const antes = await owner(db, `select response from public.course_reviews where user_id = $1 and course_id = $2`, [ID.student, ID.courseA]);
       assert.notEqual(antes[0].response, null, 'el caso necesita una respuesta previa');

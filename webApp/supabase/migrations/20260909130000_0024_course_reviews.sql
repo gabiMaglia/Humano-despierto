@@ -147,9 +147,16 @@ begin
       new.responded_by := null;
     end if;
 
-    -- 3 · La guia dueña NO oculta resenas de su propio curso (Q-11). El grant de columna ya se
-    --     lo impide, pero esto lo cierra tambien para service_role mal usado desde un action.
+    -- 3 · La guia dueña NO oculta resenas de su propio curso (Q-11).
+    --
+    --     EL BYPASS DE service_role NO ES OPCIONAL ACA, y el test lo demostro: sin el, la
+    --     moderacion legitima queda INALCANZABLE. Es el mismo error que la migracion 0017 tuvo
+    --     que reparar en `certificates` -- un guard que rechaza todo update, incluido el unico
+    --     que tiene que pasar. `hidden_*` no esta en ningun grant de cliente, asi que el unico
+    --     camino posible es un Server Action con service_role que YA verifico el rol admin; este
+    --     guard existe para la capa de abajo, no para reemplazar esa verificacion.
     if new.hidden_at is distinct from old.hidden_at
+       and not public.is_service_context()
        and not public.is_admin() then
       raise exception 'ocultar una resena es del admin, no de la guia del curso'
         using errcode = '42501';

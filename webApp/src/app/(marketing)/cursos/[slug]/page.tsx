@@ -5,8 +5,10 @@ import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
 import CurriculumAccordion from "@/components/course/CurriculumAccordion";
+import ReviewsSection from "@/components/reviews/ReviewsSection";
 import { getCourseBySlug } from "@/lib/server/courses";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
+import { getCourseReviews } from "@/lib/server/reviews";
 import { formatCertificateDate, formatPriceCents, formatTotalDuration } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
 
@@ -49,7 +51,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   const course = await getCourseBySlug(slug);
   if (!course) notFound();
 
-  const access = await getStudentCourseAccess(course.id);
+  const [access, reviews] = await Promise.all([
+    getStudentCourseAccess(course.id),
+    getCourseReviews(course.id),
+  ]);
 
   return (
     <div className="min-h-screen bg-cosmos-0">
@@ -248,6 +253,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           </div>
         </section>
       )}
+
+      {/* Resenas — T-028. Lo que dicen quienes lo hicieron va DESPUES del curriculum y ANTES del
+          CTA: es la ultima señal antes de decidir. */}
+      <ReviewsSection data={reviews} courseId={course.id} slug={slug} />
 
       {/* Includes */}
       {course.includes.length > 0 && (
