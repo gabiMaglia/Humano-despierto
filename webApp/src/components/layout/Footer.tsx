@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-// C-02 · Solo destinos que existen. Antes eran diez etiquetas con `href="#"` — la navegacion
+// C-02 · Solo destinos que existen. Antes eran diez etiquetas con ancla vacia — la navegacion
 // entera del pie era decorativa. "Biblioteca", "Becas", "Contacto", "Newsletter", "Instagram" y
 // "Substack" no tienen ruta ni cuenta detras: vuelven cuando exista el destino. Un link ausente
 // es honesto; uno que no lleva a ningun lado le enseña a la usuaria que la interfaz miente.
