@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
@@ -6,8 +7,16 @@ import StatBlock from "@/components/atoms/StatBlock";
 import CurriculumAccordion from "@/components/course/CurriculumAccordion";
 import { getCourseBySlug } from "@/lib/server/courses";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
-import { formatPriceCents, formatTotalDuration } from "@/lib/utils/format";
+import { formatCertificateDate, formatPriceCents, formatTotalDuration } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
+
+// `courses.language` es ISO 639-1 (dos letras, CHECK en 0023). El catalogo es en español hoy;
+// el mapa existe para que agregar un idioma sea una linea y no un `if`.
+const LANGUAGE_LABEL: Record<string, string> = {
+  es: "Español",
+  pt: "Português",
+  en: "English",
+};
 
 const FRAME_CORNERS = [
   "top-3 left-3 border-t border-l",
@@ -97,8 +106,29 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <StatBlock num={toRoman(course.modules.length)} label="Módulos" size="lg" />
             <span className="text-lila-300/30 text-xl">·</span>
             <StatBlock num={String(course.lessonCount)} label="Lecciones" size="lg" />
+            {course.totalDurationSeconds > 0 && (
+              <>
+                <span className="text-lila-300/30 text-xl">·</span>
+                <StatBlock num={formatTotalDuration(course.totalDurationSeconds)} label="De video" size="lg" />
+              </>
+            )}
+            {course.studentCount > 0 && (
+              <>
+                <span className="text-lila-300/30 text-xl">·</span>
+                <StatBlock num={String(course.studentCount)} label={course.studentCount === 1 ? "Inscripta" : "Inscriptas"} size="lg" />
+              </>
+            )}
           </div>
         )}
+
+        {/* ADR-004: `updated_at` es una fecha PASADA. Redactado sin ambiguedad para que no se
+            confunda con una fecha de inicio, que este producto no tiene. */}
+        <p className="mt-8 font-display text-eyebrow tracking-cosmic text-ink-faint">
+          <span aria-hidden="true">☾ </span>
+          Última actualización: {formatCertificateDate(course.updatedAt)}
+          <span className="text-lila-300/30"> · </span>
+          Idioma: {LANGUAGE_LABEL[course.language] ?? course.language}
+        </p>
       </header>
 
       {/* Maestra strip */}
@@ -112,7 +142,15 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           </div>
           <div>
             <p className="mb-1 font-display text-eyebrow tracking-[0.2em] text-ink-faint uppercase">Quien transmite</p>
-            <h3 className="mb-1 font-display text-xl tracking-wider text-lila-300">{course.teacherName}</h3>
+            <h3 className="mb-1 font-display text-xl tracking-wider text-lila-300">
+              {course.teacherSlug ? (
+                <Link href={`/guias/${course.teacherSlug}`} className="transition-colors hover:text-gold-400">
+                  {course.teacherName}
+                </Link>
+              ) : (
+                course.teacherName
+              )}
+            </h3>
             {course.teacherBio && (
               <p className="font-quote italic text-base text-ink-soft">&ldquo;{course.teacherBio}&rdquo;</p>
             )}
@@ -137,6 +175,76 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
               hasAccess={access.hasAccess}
               completedLessonIds={[...access.completedLessonIds]}
             />
+          </div>
+        </section>
+      )}
+
+
+      {/* Video promocional — material de VENTA: se ve sin inscripcion (criterio 2). No monta el
+          LessonPlayer a proposito: ese arrastra progreso, notas y capitulos que aca no aplican. */}
+      {course.promoVideoId && (
+        <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="Un adelanto" className="mb-10" />
+            <div className="relative aspect-video overflow-hidden rounded-ritual border border-lila-300/18">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${course.promoVideoId}?rel=0&modestbranding=1`}
+                title={`Adelanto de ${course.title}`}
+                allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Lo que vas a aprender — no confundir con `includes` ("Qué recibes"), que es el material
+          entregado. Son campos distintos: uno es el resultado, el otro el paquete. */}
+      {course.learningObjectives.length > 0 && (
+        <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="Lo que vas a aprender" className="mb-10" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {course.learningObjectives.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <span aria-hidden="true" className="mt-0.5 flex-none text-lila-300 text-sm">◐</span>
+                  <span className="font-body text-sm text-ink-soft">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Requisitos */}
+      {course.prerequisites.length > 0 && (
+        <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="Antes de empezar" className="mb-10" />
+            <ul className="space-y-3">
+              {course.prerequisites.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <span aria-hidden="true" className="mt-0.5 flex-none text-ink-faint text-sm">○</span>
+                  <span className="font-body text-sm text-ink-soft">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* Descripcion larga — `intro` queda como el parrafo de portada, arriba. Mismo split en
+          parrafos que usan diario/[slug] y guias/[slug]: no hay un tercer metodo. */}
+      {course.description && (
+        <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="Sobre este curso" className="mb-10" />
+            <div className="space-y-5">
+              {course.description.split(/\n{2,}/).filter(Boolean).map((par, i) => (
+                <p key={i} className="font-body text-base text-ink-soft leading-relaxed">{par}</p>
+              ))}
+            </div>
           </div>
         </section>
       )}
