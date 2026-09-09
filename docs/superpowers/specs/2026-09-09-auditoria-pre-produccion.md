@@ -163,11 +163,16 @@ Googlebot y genera soft-404 en el índice. En una ruta bajo `[auth]` no indexabl
 **Confirmar que `/panel/*` está fuera del índice** (ver E-01, que hoy no existe) y entonces sí,
 cerrarlo como aceptado con fundamento.
 
-### C-02 · `href="#"` en el checkout — **MEDIO**
+### C-02 · Links muertos — **MEDIO** · *subestimado en el primer barrido*
 
-El botón "Pedir conversación" de `/inscribirme/[curso]` no lleva a ningún lado. Está en la pantalla
-donde alguien decide inscribirse: es el peor lugar posible para un botón muerto. O se le da destino
-(mail a la guía, hilo de Campus) o se saca.
+**CORREGIDO AL EJECUTAR (2026-09-09).** No era uno, eran **cuatro** `href="#"`, y el peor no era el
+del checkout sino el **footer**: sus diez etiquetas de navegación —presentes en todas las páginas—
+eran decorativas. Cuatro de esos destinos existían (`/cursos`, `/guias`, `/diario`, `/circulo`) y
+seis no.
+
+Arreglado: destino real a los cuatro que existen, fuera los demás, y `check-seo.sh` verifica que no
+reaparezcan. Queda **anotado y sin tocar** el campo "Código de invitación" con su botón "Aplicar"
+sin handler en el checkout: es un stub de T-026 (cobros) y sacarlo excede una auditoría.
 
 ### C-03 · 21 `console.*` en `src/` — **BAJO**
 
@@ -186,9 +191,14 @@ CurriculumAccordion.tsx : 2 ocurrencias de aria-/role=/onKeyDown/tabIndex
 LessonPlayer.tsx        : 1
 ```
 
-Dos y uno. Un acordeón necesita `aria-expanded`, `aria-controls` y manejo de teclado; un player con
-tabs necesita `role="tablist"`, `aria-selected` y flechas. **Es prácticamente seguro que ambos son
-inoperables por teclado y opacos para un lector de pantalla.**
+**CORREGIDO AL EJECUTAR (2026-09-09).** El conteo bruto de atributos llevó a una conclusión
+equivocada sobre el acordeón: **ya era un `<button>` con `aria-expanded`** y sí era operable por
+teclado. Contar atributos mide densidad, no corrección — la inferencia estaba mal, no la medición.
+
+Lo que sí estaba roto es distinto y es propio de §4: **los glifos de estado eran mudos**
+(`✓ ▶ ○ ✦ ⌗` sin texto alternativo), y el `<iframe>` de YouTube —el contenido principal de la
+pantalla— **no tenía `title`**, porque lo crea la IFrame API y no el JSX. Las tabs del player sí
+carecían por completo del patrón ARIA. Todo eso está arreglado y verificado sobre HTML servido.
 
 Agravante propio de este proyecto: §4 prohíbe raster, así que **la información se transmite con
 glifos Unicode** (`☉ ☽ ✦ ◐ ◑`). Un `✦` suelto sin `aria-label` es ruido para un lector de pantalla,
@@ -261,6 +271,16 @@ No sale a producción hasta que:
 2. **A-02** — `YOUTUBE_API_KEY` provista y verificada con una lección real de punta a punta.
 3. **S-01** — el PO decide entre intervalos o aceptación explícita, y se ejecuta la decisión.
 4. **D-01** — un restore probado.
+
+**Nota sobre el barrido ADR-004.** Sin `COOKIE`, `check-adr004.sh` deja tres rutas sin escanear
+(`/circulo`, `/panel`, `/inscribirme/*`, todas 307) y **las cuenta como violaciones** — se niega,
+correctamente, a declarar limpio lo que no pudo mirar. Verde de verdad exige correrlo con sesión:
+
+```bash
+COOKIE="sb-<ref>-auth-token=base64-<sesión>" bash webApp/scripts/check-adr004.sh <url>
+```
+
+Verificado así el 2026-09-09 con el fixture `alumna@test.local`: **12/12 rutas ✓, ADR-004 OK**.
 
 Alto y medio no bloquean, pero **E-01 y O-01 conviene resolverlos antes del release y no después**:
 el SEO tarda semanas en surtir efecto —arrancar sin él regala el primer mes— y la observabilidad
