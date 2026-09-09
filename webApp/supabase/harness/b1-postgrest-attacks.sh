@@ -148,6 +148,17 @@ esperar "(s5c) video_id exacto en subtitle"    403 PATCH "courses?id=eq.$CURSO" 
 esperar "(s5d) video_id en un objetivo"        403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"learning_objectives":["Ver SECRETVIDEO"]}'
 esperar "(s5e) video_id en un requisito"       403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"prerequisites":["Haber visto SECRETVIDEO"]}'
 # Control positivo: sin esto, un guard que rechace TODO tambien daria verde arriba.
+# ── T-028 · resenas: escribir exige inscripcion activa, y la guia responde pero no manda
+esperar "(r1) resenar sin inscripcion"         403 POST  "course_reviews" "$ALUMNA_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$ALUMNA\",\"rating\":5}"
+esperar "(r2) resenar a nombre de un tercero"  403 POST  "course_reviews" "$ALUMNA_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$DOCENTE\",\"rating\":5}"
+# (r3)/(r4) esperan 400 y no 403 A PROPOSITO, y es la respuesta MAS fuerte de las dos:
+# `hidden_at`/`hidden_reason` no estan en NINGUN grant de cliente, asi que Postgres ni llega a
+# evaluar RLS -- devuelve "permission denied for table" (42501) y PostgREST lo mapea a 400. Un
+# 403 significaria "no podes en ESTA fila"; el 400 significa "esa columna no existe para vos".
+# Ocultar una resena es de service_role y de nadie mas.
+esperar "(r3) la guia no oculta resenas"       400 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" \'{"hidden_at":"2026-01-01T00:00:00Z"}\'
+esperar "(r4) hidden_reason no existe para el cliente" 400 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" \'{"hidden_reason":"no me gusto"}\'
+
 esperar "(s5+) ficha legitima"                 204 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"description":"Cada leccion es un video corto.","learning_objectives":["Leer los 22 arcanos"],"prerequisites":["Ninguno"],"language":"es"}'
 # Control positivo, en la misma corrida: un patron goloso rompe el trabajo real de la docente y
 # ese es el otro modo de fallar este ticket. Tiene que dar 204.
