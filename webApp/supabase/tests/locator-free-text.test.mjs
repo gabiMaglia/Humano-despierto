@@ -41,7 +41,11 @@ const LOCALIZADORES = [
   ['esquema pelado, otro host',  'Material: ftp://archivos.humano/manual.pdf'],
   ['www sin esquema',            'Manual completo en www.humano-archivos.net'],
   ['acortador',                  'Descarga: bit.ly/3xKmQ2p'],
-  ['youtube corto',              'Clase completa youtu.be/dQw4w9WgXcQ'],
+  // T-035 · el id NO puede ser `SECRET.videoId`. Desde 0025 el guard de coincidencia exacta
+  // corre ANTES que el CHECK (los triggers BEFORE preceden a las constraints) y devolveria 42501,
+  // con lo cual este caso dejaria de probar la heuristica de FORMA, que es lo unico que este
+  // bloque existe para probar. `aB3dE5gH7jK` tiene la misma forma y no es de nadie.
+  ['youtube corto',              'Clase completa youtu.be/aB3dE5gH7jK'],
   ['telegram',                   'Pedilo por t.me/humanocanal'],
   ['id de Drive suelto (44)',    'Manual 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'],
   ['id de Drive suelto (28)',    'Manual 0B7l3RHEZ8bC9dGVKLW5aVXpDSDQ'],
