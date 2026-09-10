@@ -19,6 +19,28 @@ import type { TeacherActionState } from "@/lib/teacher/action-state";
 
 const TEMP_POSITION = 999999;
 
+/**
+ * Traduce a castellano los dos errores que levanta la defensa de ADR-009, que si no llegan crudos
+ * del motor a la pantalla de la docente.
+ *
+ * `42501` lo levanta `guard_locator_exacto` (0025) — la mitad de COINCIDENCIA EXACTA. Zod no puede
+ * replicarla: necesita CONSULTAR `lessons` para saber si un id de 11 caracteres es un video real
+ * del catálogo, y ningún schema del cliente puede hacer eso. `23514` es el CHECK de forma, que Zod
+ * sí espeja — llega acá sólo por el camino que no pasa por el formulario.
+ */
+function traducirErrorDeLocalizador(
+  error: { code?: string; message: string },
+  fallback: string,
+): string {
+  if (error.code === "42501") {
+    return "El texto contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en un campo que se lee sin inscripción.";
+  }
+  if (error.code === "23514") {
+    return "El texto no puede contener links.";
+  }
+  return fallback;
+}
+
 function extractDriveFileId(link: string): string | null {
   const byPath = link.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
   if (byPath) return byPath[1];
@@ -62,7 +84,8 @@ export async function createModuleAction(
       title: parsed.data.title,
       description: parsed.data.description || null,
     });
-    if (insertError) return { error: `No se pudo crear el módulo: ${insertError.message}`, success: null };
+    if (insertError)
+      return { error: traducirErrorDeLocalizador(insertError, `No se pudo crear el módulo: ${insertError.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo crear el módulo.", success: null };
   }
@@ -94,7 +117,8 @@ export async function updateModuleAction(
       .update({ title: parsed.data.title, description: parsed.data.description || null })
       .eq("id", moduleId)
       .eq("course_id", courseId);
-    if (error) return { error: `No se pudo guardar el módulo: ${error.message}`, success: null };
+    if (error)
+      return { error: traducirErrorDeLocalizador(error, `No se pudo guardar el módulo: ${error.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo guardar el módulo.", success: null };
   }
@@ -229,7 +253,8 @@ export async function createLessonAction(
       video_provider: "youtube",
       is_preview: parsed.data.isPreview,
     });
-    if (insertError) return { error: `No se pudo crear la lección: ${insertError.message}`, success: null };
+    if (insertError)
+      return { error: traducirErrorDeLocalizador(insertError, `No se pudo crear la lección: ${insertError.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo crear la lección.", success: null };
   }
@@ -266,7 +291,8 @@ export async function updateLessonAction(
       })
       .eq("id", lessonId)
       .eq("course_id", courseId);
-    if (error) return { error: `No se pudo guardar la lección: ${error.message}`, success: null };
+    if (error)
+      return { error: traducirErrorDeLocalizador(error, `No se pudo guardar la lección: ${error.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo guardar la lección.", success: null };
   }
@@ -495,7 +521,8 @@ export async function createChapterAction(
       start_seconds: startSeconds,
       label: parsed.data.label,
     });
-    if (insertError) return { error: `No se pudo crear el capítulo: ${insertError.message}`, success: null };
+    if (insertError)
+      return { error: traducirErrorDeLocalizador(insertError, `No se pudo crear el capítulo: ${insertError.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo crear el capítulo.", success: null };
   }
@@ -530,7 +557,8 @@ export async function updateChapterAction(
       .update({ start_seconds: startSeconds, label: parsed.data.label })
       .eq("id", chapterId)
       .eq("lesson_id", lessonId);
-    if (error) return { error: `No se pudo actualizar el capítulo: ${error.message}`, success: null };
+    if (error)
+      return { error: traducirErrorDeLocalizador(error, `No se pudo actualizar el capítulo: ${error.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo actualizar el capítulo.", success: null };
   }
@@ -619,7 +647,8 @@ export async function createResourceAction(
       url: v.link,
       size_label: v.sizeLabel || null,
     });
-    if (insertError) return { error: `No se pudo crear el recurso: ${insertError.message}`, success: null };
+    if (insertError)
+      return { error: traducirErrorDeLocalizador(insertError, `No se pudo crear el recurso: ${insertError.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo crear el recurso.", success: null };
   }
@@ -660,7 +689,8 @@ export async function updateResourceAction(
       .update({ type: v.type, name: v.name, size_label: v.sizeLabel || null })
       .eq("id", resourceId)
       .eq("lesson_id", lessonId);
-    if (error) return { error: `No se pudo actualizar el recurso: ${error.message}`, success: null };
+    if (error)
+      return { error: traducirErrorDeLocalizador(error, `No se pudo actualizar el recurso: ${error.message}`), success: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo actualizar el recurso.", success: null };
   }

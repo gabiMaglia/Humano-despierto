@@ -82,7 +82,7 @@ export async function createCourseAction(
       if (error.code === "23505") {
         return { error: "Ya existe un curso con ese slug. Elegí otro.", success: null };
       }
-      // El 42501 lo levanta `courses_locator_guard` (0023), no Zod: la coincidencia EXACTA de
+      // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
       // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
       // Sin esta traduccion la docente ve un error crudo del motor.
       if (error.code === "42501") {
@@ -140,7 +140,7 @@ export async function updateCourseAction(
 
     if (error) {
       if (error.code === "23505") return { error: "Ya existe un curso con ese slug.", success: null };
-      // El 42501 lo levanta `courses_locator_guard` (0023), no Zod: la coincidencia EXACTA de
+      // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
       // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
       // Sin esta traduccion la docente ve un error crudo del motor.
       if (error.code === "42501") {
