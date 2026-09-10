@@ -17,6 +17,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { bootDatabase, asUser, asAnon, attempt } from '../harness/db.mjs';
+import { columnasDeLaClase } from './locator-columns.mjs';
 import { seed, ID } from './seed.mjs';
 
 const CHECK_VIOLATION = '23514';
@@ -125,32 +126,6 @@ const COLUMNAS = [
  * toda columna de TEXTO LIBRE que el cliente puede ESCRIBIR y que `anon` puede LEER
  * (o sea: legible sin inscripcion) tiene que estar cubierta por un CHECK `*_no_locator`.
  */
-const columnasDeLaClase = async (db) =>
-  (
-    await db.query(`
-      with cols as (
-        select c.relname as tabla, a.attname as col, c.oid as reloid, a.attnum
-        from pg_class c
-        join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
-        join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
-        where c.relkind = 'r'
-          and format_type(a.atttypid, a.atttypmod) ~ 'text|char'
-      )
-      select tabla || '.' || col as columna,
-             exists (
-               select 1 from pg_constraint k
-               where k.conrelid = cols.reloid
-                 and k.contype = 'c'
-                 and k.conname like '%\\_no\\_locator'
-                 and cols.attnum = any (k.conkey)
-             ) as cubierta
-      from cols
-      where has_column_privilege('anon', reloid, attnum, 'SELECT')
-        and (has_column_privilege('authenticated', reloid, attnum, 'UPDATE')
-          or has_column_privilege('authenticated', reloid, attnum, 'INSERT'))
-      order by 1
-    `)
-  ).rows;
 
 // Unica excepcion admitida: columnas cuyo dominio ya esta cerrado por un CHECK de enumeracion,
 // donde "texto libre" es falso. Se enumeran a mano para que agregar una exija justificarla.
