@@ -155,4 +155,63 @@ describe('ADR-010 · ninguna columna de la clase acepta un localizador REAL', ()
       `columnas SIN cobertura de coincidencia exacta:\n  ${aceptaron.sort().join('\n  ')}`,
     );
   });
+  // Sin esto, el verde de arriba no distingue "cubierto" de "el ataque estaba mal escrito".
+  // Revierte UNA capa y exige que el ataque vuelva a pasar. En transaccion: no toca la base.
+  test('mutacion · sin el guard de lessons, el localizador entra', async () => {
+    await db.exec(`reset role; begin;`);
+    try {
+      await db.exec(`drop trigger lessons_locator_guard on public.lessons;`);
+      const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+        attempt(db, `update public.lessons set title = $1 where id = $2`, [
+          `Mira: ${SECRET.videoId}`,
+          ID.lessonA,
+        ]),
+      );
+      assert.equal(
+        r.ok,
+        true,
+        'sin el trigger el ataque DEBERIA pasar; si no pasa, este test no esta probando el trigger',
+      );
+    } finally {
+      // El rollback es obligatorio: sin el, el `drop trigger` sobrevive y todo lo que corra
+      // despues da verde sobre una base desprotegida.
+      await db.exec(`reset role; rollback;`);
+    }
+  });
+
+  // El guard levanta si le declaran una columna que no existe, en vez de saltearla en silencio.
+  // Un typo en TG_ARGV apagaria la proteccion sin que nadie se entere — es el modo de falla que
+  // esta migracion existe para eliminar, y volveria por la puerta de atras.
+  //
+  // SIN transaccion, y no es un descuido: cuando el ataque falla DENTRO de un `begin` explicito,
+  // Postgres aborta la transaccion y entonces el `reset role` con el que `asUser` limpia tambien
+  // revienta (25P02), arrastrando al caso siguiente. Se crea y se borra el trigger a mano.
+  test('un typo en la lista de columnas del trigger LEVANTA, no se saltea', async () => {
+    await db.exec(`reset role;`);
+    await db.exec(`
+      create trigger lessons_typo_guard before update on public.lessons
+      for each row execute function public.guard_locator_exacto('titulo_mal_escrito');
+    `);
+    try {
+      const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+        attempt(db, `update public.lessons set title = 'prosa normal' where id = $1`, [ID.lessonA]),
+      );
+      assert.equal(r.ok, false, 'una columna inexistente en TG_ARGV paso desapercibida');
+      assert.equal(r.code, '42704');
+    } finally {
+      await db.exec(`reset role;`);
+      await db.exec(`drop trigger if exists lessons_typo_guard on public.lessons;`);
+    }
+  });
+
+  // Control positivo: un guard goloso que rechace todo tambien daria verde en el barrido.
+  test('prosa legitima con la palabra "video" no se bloquea', async () => {
+    const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+      attempt(db, `update public.lessons set description = $1 where id = $2`, [
+        'Cada leccion es un video corto y hay material para bajar.',
+        ID.lessonA,
+      ]),
+    );
+    assert.equal(r.ok, true, `falso positivo: ${r.message}`);
+  });
 });
