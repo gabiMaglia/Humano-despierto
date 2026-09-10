@@ -459,4 +459,31 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       );
     });
   });
+  // ---------------------------------------------------------------- meta-control
+  // Este caso prueba LA META-ASERCION, no un guard. Sin el, el archivo protege el presente y nada
+  // mas: el dia que alguien agregue un trigger sin caso, el aviso tiene que saltar.
+  //
+  // SIN transaccion, y no es un descuido: es la leccion de T-035. Cuando algo falla dentro de un
+  // BEGIN explicito, Postgres aborta la transaccion y el `reset role` de limpieza revienta con
+  // 25P02, arrastrando al caso siguiente. El drop explicito es ademas mas legible.
+  test('meta · un trigger nuevo sin caso hace fallar la meta-asercion', async () => {
+    await db.exec(`reset role;`);
+    await db.exec(`
+      create trigger t036_trigger_intruso before update on public.lessons
+      for each row execute function public.guard_locator_exacto('title');
+    `);
+    try {
+      const enLaDb = await triggersDeLaDb(db);
+      const declarados = new Set([...Object.keys(CASOS), ...EXENTOS_NO_BLOQUEAN]);
+      const huerfanos = enLaDb.filter((t) => !declarados.has(t));
+      assert.deepEqual(
+        huerfanos,
+        ['t036_trigger_intruso'],
+        'la meta-asercion no detecto un trigger nuevo sin caso — no protege nada',
+      );
+    } finally {
+      await db.exec(`reset role;`);
+      await db.exec(`drop trigger if exists t036_trigger_intruso on public.lessons;`);
+    }
+  });
 });
