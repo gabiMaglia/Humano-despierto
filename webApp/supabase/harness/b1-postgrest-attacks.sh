@@ -160,6 +160,23 @@ esperar "(r3) la guia no oculta resenas"       400 PATCH "course_reviews?course_
 esperar "(r4) hidden_reason no existe para el cliente" 400 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" \'{"hidden_reason":"no me gusto"}\'
 
 esperar "(s5+) ficha legitima"                 204 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"description":"Cada leccion es un video corto.","learning_objectives":["Leer los 22 arcanos"],"prerequisites":["Ninguno"],"language":"es"}'
+
+echo ""
+echo "── T-035 · el localizador EXACTO en el resto del catalogo (ADR-010)"
+# Los (s5*) cubren `courses`. Estos cubren las tablas que quedaron afuera hasta 0025, y por las
+# que `SECRETVIDEO` salia a `anon` SIN SESION. `lessons.title` es el peor de todos: se MUESTRA en
+# el acordeon de curriculum, asi que no hacia falta ni consultar la API para leerlo.
+esperar "(t35a) video_id en el titulo de leccion"  403 PATCH "lessons?id=eq.$LEC"          "$DOCENTE_JWT" '{"title":"Clase SECRETVIDEO"}'
+esperar "(t35b) video_id en la descripcion"        403 PATCH "lessons?id=eq.$LEC"          "$DOCENTE_JWT" '{"description":"Ver SECRETVIDEO"}'
+esperar "(t35c) video_id en el titulo de modulo"   403 PATCH "course_modules?id=eq.$MOD"   "$DOCENTE_JWT" '{"title":"Modulo SECRETVIDEO"}'
+esperar "(t35d) video_id en el nombre del recurso" 403 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Manual SECRETVIDEO"}'
+esperar "(t35e) video_id en la bio publica"        403 PATCH "profiles?id=eq.$DOCENTE"     "$DOCENTE_JWT" '{"bio":"Mi clase SECRETVIDEO"}'
+# Las cinco columnas de `courses` que 0023 habia dejado afuera y 0025 cerro.
+esperar "(t35f) video_id en la disciplina"         403 PATCH "courses?id=eq.$CURSO"        "$DOCENTE_JWT" '{"discipline":"SECRETVIDEO"}'
+esperar "(t35g) video_id en 'que incluye'"         403 PATCH "courses?id=eq.$CURSO"        "$DOCENTE_JWT" '{"includes":["Manual SECRETVIDEO"]}'
+# Control positivo: sin esto, un guard que rechace TODO tambien daria verde arriba.
+esperar "(t35+) titulo legitimo de leccion"        204 PATCH "lessons?id=eq.$LEC"          "$DOCENTE_JWT" '{"title":"Clase 3 — los arcanos menores"}'
+esperar "(t35+) bio legitima"                      204 PATCH "profiles?id=eq.$DOCENTE"     "$DOCENTE_JWT" '{"bio":"Ensenio tarot desde 2019."}'
 # Control positivo, en la misma corrida: un patron goloso rompe el trabajo real de la docente y
 # ese es el otro modo de fallar este ticket. Tiene que dar 204.
 esperar "(d+) nombre legitimo 'Manual v2.1'" 204 PATCH "lesson_resources?id=eq.$REC" "$DOCENTE_JWT" '{"name":"Manual v2.1","size_label":"2.4 MB"}'
