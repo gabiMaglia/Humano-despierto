@@ -286,6 +286,8 @@ pregunta puede citar el `video_id` de otra lección a la que la autora no tiene 
 ### Criterios
 1. Preguntar y responder **exige inscripción activa** en el curso; lo impide RLS (**R-6**).
 2. La guía dueña modera su curso; el admin, todo. Soft delete con motivo.
+   **Decidido por ADR-012, no acá:** una pregunta sobre la lección es contenido sobre el MATERIAL,
+   no sobre la guía, así que modera quien lo dicta. No se re-litiga por ticket.
 3. `is_instructor_answer` lo pone el servidor mirando `profiles.role` y la titularidad del curso
    (**R-2**). Nadie lo declara.
 4. Marcar resuelta: la autora de la pregunta o la guía. Queda `resolved_by` registrado.
@@ -460,7 +462,8 @@ columna, es señal de que algo se derivó mal antes.
 
 ## Preguntas abiertas que abre esta spec
 
-- **Q-11** · ¿La guía puede moderar reseñas de su propio curso? Default propuesto: **sí, con autor
-  y motivo registrados** (T-028 c.5). Alternativa: sólo el admin.
+- ~~**Q-11**~~ · **CERRADA 2026-09-10 por ADR-012**: modera quien no es el sujeto. La guía
+  responde y reporta; oculta el admin. El default que traía esta spec —"sí, con autor y motivo
+  registrados"— quedó descartado: un rastro sólo sirve si alguien lo audita.
 - **Q-12** · ¿El mail de anuncio (T-031 c.4) va por `mail_log` con el mismo tope de intentos, o
   necesita su propia política de tasa por ser de difusión y no transaccional?
