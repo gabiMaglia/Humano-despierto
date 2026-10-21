@@ -104,7 +104,8 @@ const COLUMNAS = [
   // toque. Por eso estas dos entradas declaran su actor -- correr `body` como docente daria un
   // 42501 del guard, no el 23514 del CHECK, y el barrido estaria probando otra cosa.
   ['course_reviews.body',          (v) => [`update public.course_reviews set body = $1 where course_id = $2`, [v, ID.courseA]], 'student'],
-  ['course_reviews.response',      (v) => [`update public.course_reviews set response = $1, responded_at = now(), responded_by = $2 where course_id = $3`, [v, ID.teacherA, ID.courseA]], 'teacher'],
+  // Solo `response`: desde 0026 `responded_*` no tienen grant de cliente y los firma el guard.
+  ['course_reviews.response',      (v) => [`update public.course_reviews set response = $1 where course_id = $2`, [v, ID.courseA]], 'teacher'],
   ['courses.learning_objectives',  (v) => [`update public.courses set learning_objectives = array['Leer el tarot', $1] where id = $2`, [v, ID.courseA]]],
   ['courses.prerequisites',        (v) => [`update public.courses set prerequisites = array['Ninguno', $1] where id = $2`, [v, ID.courseA]]],
   ['profiles.full_name',           (v) => [`update public.profiles set full_name = $1 where id = $2`, [v, ID.teacherA]]],

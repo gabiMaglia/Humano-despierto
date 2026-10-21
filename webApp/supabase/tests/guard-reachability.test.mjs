@@ -308,6 +308,26 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
         [ID.courseA],
       );
     });
+
+    // 0026 metio la firma de la respuesta en este mismo guard. Su camino legitimo: la guia dueña
+    // manda SOLO el texto (sin grant sobre `responded_*`) y el guard firma por ella.
+    test('course_reviews_guard · la guia dueña responde y el guard firma (0026)', async () => {
+      const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+        attempt(db, `update public.course_reviews set response = $1 where course_id = $2 returning id`, [
+          'Gracias por escribir.',
+          ID.courseA,
+        ]),
+      );
+      assert.equal(r.ok, true, `la guia no pudo responder: ${r.message}`);
+      assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila — el caso no probo nada');
+      await db.exec(`reset role;`);
+      const [firma] = (await db.query(`select responded_by from public.course_reviews where id = $1`, [r.rows[0].id])).rows;
+      assert.equal(firma.responded_by, ID.teacherA);
+      await db.query(
+        `update public.course_reviews set response = null, responded_at = null, responded_by = null where id = $1`,
+        [r.rows[0].id],
+      );
+    });
   });
 
   // ---------------------------------------------------------------- localizadores (T-035)
