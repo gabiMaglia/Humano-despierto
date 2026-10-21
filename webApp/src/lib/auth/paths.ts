@@ -17,3 +17,11 @@ export function homeForRole(role: string | null | undefined): string {
   if (role === "teacher") return "/panel/docente";
   return DEFAULT_NEXT;
 }
+
+export const INVITATION_PREFIX = "/invitacion/";
+
+// T-049: /invitacion/<token> es un Route Handler que escribe cookies y redirige; el router del
+// cliente lo pediría como payload RSC. Se navega como documento.
+export function needsDocumentNavigation(path: string): boolean {
+  return path.startsWith(INVITATION_PREFIX);
+}
