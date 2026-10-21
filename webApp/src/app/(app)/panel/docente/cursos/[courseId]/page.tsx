@@ -44,6 +44,12 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
           </div>
           <div className="flex flex-col items-end gap-3">
             <PublishCourseControl courseId={course.id} status={course.status} />
+            <Link
+              href={`/panel/docente/anuncios?curso=${course.id}`}
+              className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors"
+            >
+              Anuncios del curso ↦
+            </Link>
           </div>
         </header>
 

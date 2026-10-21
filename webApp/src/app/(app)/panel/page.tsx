@@ -7,6 +7,8 @@ import StudentRequests from "@/components/molecules/StudentRequests";
 import { ensureCertificate } from "@/lib/server/certificates";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { toRoman } from "@/lib/utils/roman";
+import AnnouncementList from "@/components/announcements/AnnouncementList";
+import { getRecentAnnouncementsForStudent } from "@/lib/server/announcements";
 
 // T-007 · panel del alumno. Reemplaza el mock `STUDENT.enrolled` por inscripciones activas +
 // progreso real (ADR-007: `completed` es derivada, nunca se declara acá). Los widgets
@@ -54,6 +56,7 @@ export default async function DashboardPage() {
   );
 
   const continuing = courses.find((c) => c.progressPercent < 100) ?? courses[0];
+  const news = await getRecentAnnouncementsForStudent(courses.map((c) => c.courseId));
 
   return (
     <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
@@ -102,6 +105,14 @@ export default async function DashboardPage() {
         </div>
 
         <StudentRequests requests={requests} />
+
+        {/* Novedades (T-031). T-033 lo integra en "Mi aprendizaje"; sin anuncios no se dibuja. */}
+        {news.length > 0 && (
+          <section aria-label="Novedades de tus cursos" className="mx-auto max-w-4xl px-6 pt-10 md:px-12">
+            <h2 className="mb-5 font-display text-lg tracking-wide text-ink">Novedades de tus cursos</h2>
+            <AnnouncementList items={news} showCourse />
+          </section>
+        )}
 
         {/* Enrolled courses */}
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">

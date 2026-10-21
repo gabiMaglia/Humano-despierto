@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
+import AnnouncementList from "@/components/announcements/AnnouncementList";
+import { getCourseAnnouncements } from "@/lib/server/announcements";
 import SignedImage from "@/components/atoms/SignedImage";
 import StatBlock from "@/components/atoms/StatBlock";
 import CurriculumAccordion from "@/components/course/CurriculumAccordion";
@@ -61,6 +63,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
     getCourseReviews(course.id),
     getStudentEnrollmentState(course.id),
   ]);
+  // Solo con acceso: la ficha es pública pero los anuncios son de quien cursa (spec). Sin acceso no
+  // se consulta, así anon nunca le pega a la tabla.
+  const announcements = access.hasAccess ? await getCourseAnnouncements(course.id) : [];
 
   return (
     <div className="min-h-screen bg-cosmos-0">
@@ -203,6 +208,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         </section>
       )}
 
+
+      {/* Anuncios (T-031): bajo el currículum, solo para quien cursa y solo si hay alguno (c.8). */}
+      {announcements.length > 0 && (
+        <section aria-label="Anuncios" className="border-t border-lila-300/18 px-6 py-16 md:px-12">
+          <div className="mx-auto max-w-3xl">
+            <SectionDivider label="Anuncios" className="mb-10" />
+            <AnnouncementList items={announcements} />
+          </div>
+        </section>
+      )}
 
       {/* Material de venta: se ve sin inscripcion; mismo embed que el player, sin progreso (c.2). */}
       {course.promoVideoId && (
