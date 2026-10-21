@@ -103,7 +103,10 @@ export default async function DashboardPage() {
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="font-display text-lg tracking-wide text-ink">Tu camino actual</h2>
-            <Link href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</Link>
+            <div className="flex items-center gap-5">
+              <Link href="/panel/notas" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Mis notas</Link>
+              <Link href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</Link>
+            </div>
           </div>
           <div className="space-y-4">
             {courses.map((c, i) => (
