@@ -172,3 +172,142 @@ $$;
 
 revoke execute on function public.accept_teacher_invitation(text, uuid) from public, anon, authenticated;
 grant  execute on function public.accept_teacher_invitation(text, uuid) to service_role;
+
+-- ---------------------------------------------------------------- 4 · listados del admin
+-- La busqueda va en la base porque el mail vive en auth.users y hasta T-049 listAllUsers lo
+-- juntaba en memoria trayendo TODAS las cuentas. Keyset y no offset: una fila nueva no corre la
+-- pagina siguiente. El orden incluye id para desempatar created_at repetido (dos altas en la
+-- misma transaccion comparten now()).
+
+create or replace function public.admin_like_pattern(p_q text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when nullif(btrim(coalesce(p_q, '')), '') is null then null
+    else '%' || replace(replace(replace(btrim(p_q), '\', '\\'), '%', '\%'), '_', '\_') || '%'
+  end;
+$$;
+
+create or replace function public.admin_list_users(
+  p_q text default null, p_after_at timestamptz default null, p_after_id uuid default null, p_limit integer default 26
+)
+returns table (id uuid, full_name text, email text, role text, created_at timestamptz)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.id, p.full_name, u.email::text, p.role, p.created_at
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    cross join (select public.admin_like_pattern(p_q) as v) pat
+   where (pat.v is null or p.full_name ilike pat.v or u.email ilike pat.v)
+     and (p_after_at is null or p_after_id is null or (p.created_at, p.id) < (p_after_at, p_after_id))
+   order by p.created_at desc, p.id desc
+   limit least(greatest(coalesce(p_limit, 26), 1), 101);
+$$;
+
+create or replace function public.admin_list_courses(
+  p_q text default null, p_after_at timestamptz default null, p_after_id uuid default null, p_limit integer default 26
+)
+returns table (id uuid, slug text, title text, status text, teacher_name text, created_at timestamptz)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select c.id, c.slug, c.title, c.status, t.full_name, c.created_at
+    from public.courses c
+    join public.profiles t on t.id = c.teacher_id
+    cross join (select public.admin_like_pattern(p_q) as v) pat
+   where (pat.v is null or c.title ilike pat.v or c.slug ilike pat.v or t.full_name ilike pat.v)
+     and (p_after_at is null or p_after_id is null or (c.created_at, c.id) < (p_after_at, p_after_id))
+   order by c.created_at desc, c.id desc
+   limit least(greatest(coalesce(p_limit, 26), 1), 101);
+$$;
+
+-- Sin 'requested': la cola de T-043 las muestra arriba con sus botones. enrollments no tiene
+-- created_at; enrolled_at nace con la fila (0001) y sirve de clave igual.
+create or replace function public.admin_list_enrollments(
+  p_q text default null, p_after_at timestamptz default null, p_after_id uuid default null, p_limit integer default 26
+)
+returns table (
+  id uuid, user_id uuid, user_name text, user_email text, course_id uuid, course_title text,
+  status text, enrolled_at timestamptz, decided_reason text, granted_by_name text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select e.id, e.user_id, s.full_name, u.email::text, e.course_id, c.title,
+         e.status, e.enrolled_at, e.decided_reason, g.full_name
+    from public.enrollments e
+    join public.profiles s on s.id = e.user_id
+    join auth.users u on u.id = e.user_id
+    join public.courses c on c.id = e.course_id
+    left join public.profiles g on g.id = e.granted_by
+    cross join (select public.admin_like_pattern(p_q) as v) pat
+   where e.status <> 'requested'
+     and (pat.v is null or s.full_name ilike pat.v or u.email ilike pat.v or c.title ilike pat.v)
+     and (p_after_at is null or p_after_id is null or (e.enrolled_at, e.id) < (p_after_at, p_after_id))
+   order by e.enrolled_at desc, e.id desc
+   limit least(greatest(coalesce(p_limit, 26), 1), 101);
+$$;
+
+create or replace function public.admin_list_invitations(
+  p_q text default null, p_after_at timestamptz default null, p_after_id uuid default null, p_limit integer default 26
+)
+returns table (
+  id uuid, email text, created_at timestamptz, expires_at timestamptz,
+  accepted_at timestamptz, revoked_at timestamptz, invited_by_name text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select i.id, i.email, i.created_at, i.expires_at, i.accepted_at, i.revoked_at, p.full_name
+    from public.teacher_invitations i
+    left join public.profiles p on p.id = i.invited_by
+    cross join (select public.admin_like_pattern(p_q) as v) pat
+   where (pat.v is null or i.email ilike pat.v)
+     and (p_after_at is null or p_after_id is null or (i.created_at, i.id) < (p_after_at, p_after_id))
+   order by i.created_at desc, i.id desc
+   limit least(greatest(coalesce(p_limit, 26), 1), 101);
+$$;
+
+-- Para inscribir por mail (el formulario ya no recibe la lista entera) y para no invitar a
+-- quien ya es docente o admin.
+create or replace function public.admin_user_by_email(p_email text)
+returns table (id uuid, role text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.id, p.role
+    from auth.users u
+    join public.profiles p on p.id = u.id
+   where lower(u.email) = lower(btrim(p_email))
+   limit 1;
+$$;
+
+-- ---------------------------------------------------------------- 5 · privilegios de funciones
+-- 0002: Supabase otorga EXECUTE a anon y authenticated en toda funcion nueva de public. Se
+-- revoca de los tres y se otorga solo a service_role.
+revoke execute on function public.admin_like_pattern(text)                                    from public, anon, authenticated;
+revoke execute on function public.admin_list_users(text, timestamptz, uuid, integer)          from public, anon, authenticated;
+revoke execute on function public.admin_list_courses(text, timestamptz, uuid, integer)        from public, anon, authenticated;
+revoke execute on function public.admin_list_enrollments(text, timestamptz, uuid, integer)    from public, anon, authenticated;
+revoke execute on function public.admin_list_invitations(text, timestamptz, uuid, integer)    from public, anon, authenticated;
+revoke execute on function public.admin_user_by_email(text)                                   from public, anon, authenticated;
+grant  execute on function public.admin_like_pattern(text)                                    to service_role;
+grant  execute on function public.admin_list_users(text, timestamptz, uuid, integer)          to service_role;
+grant  execute on function public.admin_list_courses(text, timestamptz, uuid, integer)        to service_role;
+grant  execute on function public.admin_list_enrollments(text, timestamptz, uuid, integer)    to service_role;
+grant  execute on function public.admin_list_invitations(text, timestamptz, uuid, integer)    to service_role;
+grant  execute on function public.admin_user_by_email(text)                                   to service_role;
