@@ -197,6 +197,53 @@ esperar "(r10) la guia firma como otra persona" 403 PATCH "$RESENA_DE" "$DOCENTE
 esperar "(r11) la autora borra la respuesta"   403 PATCH "$RESENA_DE" "$RESENADORA_JWT" '{"response":null}'
 
 echo ""
+echo "── T-037 · reportes y moderacion (ADR-012 c.8) y D-20"
+alta "b1-admin@test.local" '' admin
+alta "b1-docente-b@test.local" '' teacher
+ADMIN_JWT=$(tok "b1-admin@test.local"); DOCENTE_B_JWT=$(tok "b1-docente-b@test.local")
+ADMIN=$(q "select id from auth.users where email='b1-admin@test.local';")
+DOCENTE_B=$(q "select id from auth.users where email='b1-docente-b@test.local';")
+RESENA=$(q "select id from public.course_reviews where user_id='$RESENADORA' and course_id='$CURSO';")
+x "update public.course_reviews set hidden_at=null, hidden_by=null, hidden_reason=null where id='$RESENA';"
+x "delete from public.course_review_reports where review_id='$RESENA';"
+REP="{\"review_id\":\"$RESENA\""
+
+esperar "(m1) la alumna autora reporta"           403 POST "course_review_reports" "$RESENADORA_JWT" "$REP,\"reporter_id\":\"$RESENADORA\",\"reason\":\"No me gusta\"}"
+esperar "(m2) guia de otro curso reporta"         403 POST "course_review_reports" "$DOCENTE_B_JWT"  "$REP,\"reporter_id\":\"$DOCENTE_B\",\"reason\":\"Competencia\"}"
+esperar "(m3) reportar a nombre de la duena"      403 POST "course_review_reports" "$DOCENTE_B_JWT"  "$REP,\"reporter_id\":\"$DOCENTE\",\"reason\":\"Suplanto\"}"
+esperar "(m4) video_id exacto en el motivo"       403 POST "course_review_reports" "$ADMIN_JWT"      "$REP,\"reporter_id\":\"$ADMIN\",\"reason\":\"Ver SECRETVIDEO\"}"
+esperar "(m5) nacer resuelto"                     403 POST "course_review_reports" "$ADMIN_JWT"      "$REP,\"reporter_id\":\"$ADMIN\",\"reason\":\"x\",\"resolution\":\"oculta\",\"resolved_at\":\"2026-01-01T00:00:00Z\"}"
+# Control positivo: sin el, una policy que rechace todo daria verde arriba.
+esperar "(m6) la guia duena reporta"              201 POST "course_review_reports" "$DOCENTE_JWT"    "$REP,\"reporter_id\":\"$DOCENTE\",\"reason\":\"Expone a una tercera persona.\"}"
+esperar "(m7) reportar dos veces"                 409 POST "course_review_reports" "$DOCENTE_JWT"    "$REP,\"reporter_id\":\"$DOCENTE\",\"reason\":\"Otra vez\"}"
+esperar "(m8) resolverse el reporte (PATCH)"      403 PATCH "course_review_reports?review_id=eq.$RESENA" "$DOCENTE_JWT" '{"resolution":"desestimada"}'
+esperar "(m9) leer quien resolvio"                403 GET  "course_review_reports?select=resolved_by" "$DOCENTE_JWT"
+# La alumna recibe 200 con cero filas: RLS filtra, no rechaza. Se afirma el cuerpo.
+LEE=$(curl -s "$API/rest/v1/course_review_reports?select=id" -H "apikey: $ANON" -H "Authorization: Bearer $RESENADORA_JWT")
+if [ "$LEE" = "[]" ]; then printf '  ok    %-52s %s\n' "(m10) la autora no ve que la reportaron" "[]"
+else printf '  FALLA %-52s %s\n' "(m10) la autora VE reportes" "$LEE"; fallos=$((fallos+1)); fi
+HIDE="{\"p_review_id\":\"$RESENA\",\"p_admin_id\":\"$ADMIN\",\"p_reason\":\"Datos de terceros\"}"
+esperar "(m11) la guia oculta por rpc"            403 POST "rpc/moderate_hide_review" "$DOCENTE_JWT" "$HIDE"
+esperar "(m12) el admin con su JWT oculta por rpc" 403 POST "rpc/moderate_hide_review" "$ADMIN_JWT"  "$HIDE"
+# Camino legitimo: el Server Action, que usa service_role despues de requireAdmin.
+esperar "(m13) service_role oculta"               200 POST "rpc/moderate_hide_review" "$SRV" "$HIDE"
+VIS=$(curl -s "$API/rest/v1/course_reviews?id=eq.$RESENA&select=id" -H "apikey: $ANON" -H "Authorization: Bearer $ANON")
+RES=$(q "select resolution from public.course_review_reports where review_id='$RESENA' and reporter_id='$DOCENTE';")
+if [ "$VIS" = "[]" ] && [ "$RES" = "oculta" ]; then printf '  ok    %-52s %s\n' "(m13b) fuera del publico y reporte resuelto" "resolution=$RES"
+else printf '  FALLA %-52s vis=%s res=%s\n' "(m13b) oculta a medias" "$VIS" "$RES"; fallos=$((fallos+1)); fi
+esperar "(m14) service_role desoculta"            200 POST "rpc/moderate_unhide_review" "$SRV" "{\"p_review_id\":\"$RESENA\",\"p_admin_id\":\"$ADMIN\"}"
+# D-20: la guia inscripta en su propio curso.
+x "insert into public.enrollments (user_id,course_id,status) values ('$DOCENTE','$CURSO','active')
+   on conflict (user_id,course_id) do update set status='active';"
+esperar "(m15) D-20 la guia resena su curso"      403 POST "course_reviews" "$DOCENTE_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$DOCENTE\",\"rating\":5}"
+x "delete from public.enrollments where user_id='$DOCENTE' and course_id='$CURSO';"
+# ADR-012 c.7 por HTTP: la autora borra su resena reportada y el reporte se va con ella.
+esperar "(m16) la autora borra su resena reportada" 204 DELETE "course_reviews?id=eq.$RESENA" "$RESENADORA_JWT"
+QUEDAN=$(q "select count(*) from public.course_review_reports where review_id='$RESENA';")
+if [ "$QUEDAN" = "0" ]; then printf '  ok    %-52s %s\n' "(m16b) el reporte murio con la resena" "0"
+else printf '  FALLA %-52s %s\n' "(m16b) reporte huerfano" "$QUEDAN"; fallos=$((fallos+1)); fi
+
+echo ""
 echo "── T-035 · el localizador EXACTO en el resto del catalogo (ADR-010)"
 # Los (s5*) cubren `courses`. Estos cubren las tablas que quedaron afuera hasta 0025, y por las
 # que `SECRETVIDEO` salia a `anon` SIN SESION. `lessons.title` es el peor de todos: se MUESTRA en
