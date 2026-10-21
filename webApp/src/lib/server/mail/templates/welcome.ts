@@ -6,9 +6,9 @@ export interface WelcomeProps {
   catalogUrl: string;
 }
 
-/** Mail 3/4 (T-020): bienvenida al registrarse. Dispara desde `entrar/page.tsx` justo después
- * de un `signUp` exitoso — ver `entrar/actions.ts`. Todavía no tiene inscripción a nada: el CTA
- * va al catálogo, no a un curso puntual. */
+/** Mail 3/4 (T-020): bienvenida al confirmar el mail. Dispara desde `app/auth/callback/route.ts`
+ * cuando nace la sesión (T-040, D8), no al registrarse. Todavía no tiene inscripción a nada: el
+ * CTA va al catálogo, no a un curso puntual. */
 export function renderWelcomeMail(props: WelcomeProps) {
   const subject = "Bienvenida a Humano Despierto";
 
