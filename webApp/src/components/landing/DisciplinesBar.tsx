@@ -1,6 +1,7 @@
-import { DISCIPLINES } from "@/lib/mocks/landing";
+import Link from "next/link";
+import type { DisciplineCount } from "@/lib/landing";
 
-type Accent = (typeof DISCIPLINES)[number]["accent"];
+type Accent = "lila" | "gold";
 
 function DisciplineIcon({ label, accent }: { label: string; accent: Accent }) {
   const stroke = accent === "gold" ? "#f5d76e" : "#c4b5fd";
@@ -30,6 +31,9 @@ function DisciplineIcon({ label, accent }: { label: string; accent: Accent }) {
       <path d="M10 26 Q14 22 18 26 M22 26 Q26 22 30 26" />
     </svg>
   );
+  if (label !== "Herbalismo" && label !== "Herbal") return (
+    <span className="flex h-10 w-10 flex-none items-center justify-center font-display text-2xl" style={{ color: stroke }} aria-hidden>✧</span>
+  );
   return (
     <svg className={cls} viewBox="0 0 40 40" strokeWidth={1} style={{ stroke }}>
       <path d="M20 34 L20 12" />
@@ -40,25 +44,29 @@ function DisciplineIcon({ label, accent }: { label: string; accent: Accent }) {
   );
 }
 
-export default function DisciplinesBar() {
+export default function DisciplinesBar({ disciplines }: { disciplines: DisciplineCount[] }) {
+  if (disciplines.length === 0) return null;
   return (
     <div
       className="grid grid-cols-2 border-b border-t border-lila-300/18 bg-lila-300/18 md:grid-cols-4"
       style={{ gap: "1px" }}
     >
-      {DISCIPLINES.map((d) => (
-        <div
-          key={d.label}
-          className="flex cursor-pointer items-center gap-3.5 bg-cosmos-surface px-6 py-7 transition-colors hover:bg-cosmos-elev md:px-8 md:py-8"
+      {disciplines.map((d, i) => (
+        <Link
+          key={d.key}
+          href={`/cursos?disciplina=${encodeURIComponent(d.key)}`}
+          className="flex items-center gap-3.5 bg-cosmos-surface px-6 py-7 transition-colors hover:bg-cosmos-elev md:px-8 md:py-8"
         >
-          <DisciplineIcon label={d.label} accent={d.accent} />
+          <DisciplineIcon label={d.label} accent={i === 1 ? "gold" : "lila"} />
           <div>
             <div className="mb-1 font-display text-[11px] uppercase tracking-[0.2em] text-ink">
               {d.label}
             </div>
-            <div className="font-body text-xs leading-snug text-ink-faint">{d.desc}</div>
+            <div className="font-body text-xs leading-snug text-ink-faint">
+              {d.count} {d.count === 1 ? "curso" : "cursos"}
+            </div>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );

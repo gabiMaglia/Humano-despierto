@@ -1,7 +1,17 @@
 import ZodiacWheel from "@/components/cosmos/ZodiacWheel";
-import { HERO } from "@/lib/mocks/landing";
+import type { HeroStat } from "@/lib/landing";
 
-export default function HeroSection() {
+const HERO = {
+  badge: "Inscripción abierta · Todo el año",
+  h1: { pre: "Una escuela para", em: "oficios sutiles", post: "del alma humana" },
+  sub: "Astrología, tarot, herbalismo y reiki enseñados por guías con linaje. Formación profesional para terapeutas que buscan profundidad, no atajos.",
+  ctas: [
+    { label: "Cruzar el umbral ↦", href: "/cursos" },
+    { label: "Ver el catálogo", href: "/cursos" },
+  ],
+} as const;
+
+export default function HeroSection({ stats }: { stats: HeroStat[] }) {
   return (
     <section
       className="relative overflow-hidden px-6 pb-24 pt-24 md:px-12 md:pb-32 md:pt-32 min-h-screen"
@@ -46,14 +56,16 @@ export default function HeroSection() {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-9 border-t border-lila-300/18 pt-6">
-          {HERO.stats.map((s) => (
-            <div key={s.label}>
-              <span className="block font-display text-3xl text-ink">{s.num}</span>
-              <span className="mt-1 block font-display text-eyebrow tracking-cosmic text-ink-faint">{s.label}</span>
-            </div>
-          ))}
-        </div>
+        {stats.length > 0 && (
+          <div className="flex gap-9 border-t border-lila-300/18 pt-6">
+            {stats.map((s) => (
+              <div key={s.label}>
+                <span className="block font-display text-3xl text-ink">{s.num}</span>
+                <span className="mt-1 block font-display text-eyebrow tracking-cosmic text-ink-faint">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Zodiac wheel ─────────────────────────────────────────────────── */}

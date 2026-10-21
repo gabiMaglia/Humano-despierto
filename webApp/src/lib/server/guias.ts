@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import { signAvatarUrl } from "@/lib/server/avatar";
 
 // T-017 · lectura publica de la ficha de docente (`/guias`, `/guias/[slug]`, la seccion
-// "Maestra" de la landing). Reemplaza `src/lib/mocks/guia.ts`.
+// "Maestra" de la landing). Reemplaza el mock `guia.ts`.
 //
 // POR QUE NO HAY UN CONTEO DE "ESTUDIANTES" PUBLICO. `enrollments` no tiene NINGUN grant de
 // SELECT para `anon` (0003_privileges.sql:105-109, solo `authenticated`, y aun asi acotado por
