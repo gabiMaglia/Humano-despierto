@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import Avatar from "@/components/atoms/Avatar";
+import Stars from "@/components/reviews/Stars";
+import { formatRating } from "@/lib/reviews/rating";
 
 export interface CourseCardData {
   num: string;
@@ -15,6 +17,9 @@ export interface CourseCardData {
   moon?: string;
   featured?: boolean;
   slug: string;
+  /** Promedio 1..5 y total de reseñas visibles; sin ellos la tarjeta no dibuja señal alguna. */
+  rating?: number;
+  reviewCount?: number;
 }
 
 interface Props extends CourseCardData {
@@ -23,8 +28,9 @@ interface Props extends CourseCardData {
 
 export default function CourseCard({
   num, tag, title, titleEm, desc, teacher, price,
-  weeks, level, moon, featured, slug, className,
+  weeks, level, moon, featured, slug, rating, reviewCount, className,
 }: Props) {
+  const ratingText = rating !== undefined && reviewCount ? formatRating(rating, reviewCount) : null;
   return (
     // El <article> entero es un link al detalle. La card tenia `cursor-pointer` desde la
     // maqueta pero nunca tuvo `Link`: la unica forma de llegar a un curso era tipear la
@@ -97,6 +103,16 @@ export default function CourseCard({
         <p className="mb-4 h-[3lh] overflow-y-auto pr-1 font-body text-sm leading-relaxed text-ink-soft [scrollbar-color:var(--color-lila-300)_transparent] [scrollbar-width:thin]">
           {desc}
         </p>
+
+        {/* Alto fijo aunque no haya reseñas: el hueco no dibuja nada y la grilla no se desempareja. */}
+        <div className="mb-3 flex h-5 items-center gap-2">
+          {ratingText && rating !== undefined && (
+            <>
+              <Stars value={rating} />
+              <span className="font-display text-eyebrow tracking-wide text-ink-faint">{ratingText}</span>
+            </>
+          )}
+        </div>
 
         {/* mt-auto: el pie queda pegado abajo aunque el resto no llene el alto. */}
         <div className="mt-auto flex items-center justify-between border-t border-lila-300/18 pt-3.5">

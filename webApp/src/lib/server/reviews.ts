@@ -1,6 +1,7 @@
 import "server-only";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 import { createClient } from "@/lib/supabase/server";
+import { roundAverage } from "@/lib/reviews/rating";
 import { elegirDestacada } from "@/lib/reviews/featured.mjs";
 
 export interface CourseReview {
@@ -87,7 +88,7 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
   }
   const total = rows.length;
   const summary: CourseRatingSummary = {
-    average: total > 0 ? Math.round((suma / total) * 10) / 10 : 0,
+    average: roundAverage(suma, total),
     total,
     distribution,
   };

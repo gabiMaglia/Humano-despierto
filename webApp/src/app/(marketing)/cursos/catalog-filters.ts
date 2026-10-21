@@ -13,7 +13,11 @@ import {
 
 export const PAGE_SIZE = 9;
 
+export type CatalogOrder = "relevancia" | "mejor-valorado" | "mas-nuevo";
+const ORDERS: CatalogOrder[] = ["relevancia", "mejor-valorado", "mas-nuevo"];
+
 export interface CatalogFilterState {
+  order: CatalogOrder;
   disciplines: string[];
   levels: string[];
   durations: DurationBucketKey[];
@@ -49,7 +53,9 @@ export function parseCatalogFilterState(sp: SearchParamsInput): CatalogFilterSta
     DURATION_BUCKETS.some((b) => b.key === d)
   );
   const pageRaw = Number(firstValue(sp.page));
+  const orderRaw = firstValue(sp.orden) as CatalogOrder;
   return {
+    order: ORDERS.includes(orderRaw) ? orderRaw : "relevancia",
     disciplines: parseKeyList(sp.disciplina),
     levels: parseKeyList(sp.nivel),
     durations: durationKeys,
@@ -169,6 +175,34 @@ export function toggleListParam(current: URLSearchParams, param: string, value: 
   else next.delete(param);
   next.delete("page");
   return next;
+}
+
+export function withParam(current: URLSearchParams, param: string, value: string): URLSearchParams {
+  const next = new URLSearchParams(current);
+  if (value === "relevancia") next.delete(param);
+  else next.set(param, value);
+  next.delete("page");
+  return next;
+}
+
+/** Promedio desc, a igual promedio más reseñas primero; sin reseñas al final en su orden original
+ *  (sort estable). Sin bayesiano a propósito: con pocas reseñas un orden irreproducible resta confianza. */
+export function sortCourses<T extends { rating?: number; reviewCount?: number; publishedAt?: string | null }>(
+  courses: T[],
+  order: CatalogOrder
+): T[] {
+  if (order === "mas-nuevo") {
+    return [...courses].sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
+  }
+  if (order === "mejor-valorado") {
+    return [...courses].sort((a, b) => {
+      const ra = a.reviewCount ? (a.rating ?? 0) : null;
+      const rb = b.reviewCount ? (b.rating ?? 0) : null;
+      if (ra === null || rb === null) return ra === rb ? 0 : ra === null ? 1 : -1;
+      return rb - ra || (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+    });
+  }
+  return courses;
 }
 
 export function withoutParam(current: URLSearchParams, param: string): URLSearchParams {
