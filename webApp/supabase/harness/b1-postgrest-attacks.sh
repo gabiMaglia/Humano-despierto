@@ -33,7 +33,10 @@ alta() {
   curl -s -X POST "$API/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" \
     -d "{\"email\":\"$1\",\"password\":\"$PASS\"${2:+,\"data\":$2}}" >/dev/null
   # Se reafirman contraseña Y rol: el signup no los pisa si el usuario ya existía.
-  x "update auth.users set encrypted_password = crypt('$PASS', gen_salt('bf'))
+  # T-040 (D8): con `enable_confirmations = true` el signup deja la cuenta sin confirmar y el
+  # login del harness rebota; se confirma acá en vez de abrir el link de Mailpit.
+  x "update auth.users set encrypted_password = crypt('$PASS', gen_salt('bf')),
+       email_confirmed_at = coalesce(email_confirmed_at, now())
      where email = '$1';"
   x "update public.profiles set role = '${3:-student}'
      where id = (select id from auth.users where email = '$1');"
@@ -350,6 +353,28 @@ x "delete from public.campus_posts where author_id in ('$ALUMNA','$DOCENTE');"
 x "delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
 
 echo ""
+echo "── T-040 D-1 · la allow-list de redirects de GoTrue no deja salir a otro host"
+# GoTrue normaliza userinfo: con un comodín de puerto, `localhost:1@0x01020304` pasaba la
+# allow-list y el link de mail (con su `code`) terminaba en 1.2.3.4. Se mira el Location real.
+verify_location() {
+  curl -s -o /dev/null -w '%{redirect_url}' --get "$API/auth/v1/verify" \
+    --data-urlencode "type=$1" --data-urlencode "token=b1-token-invalido" --data-urlencode "redirect_to=$2"
+}
+for tipo in signup recovery; do
+  for destino in "http://localhost:1@0x01020304/auth/callback" "http://localhost:3000@0x01020304/auth/callback"; do
+    LOC=$(verify_location "$tipo" "$destino")
+    case "$LOC" in
+      http://localhost:3000/*) printf '  ok    %-52s %s\n' "$tipo ${destino%%/auth*} cae en site_url" "${LOC%%#*}" ;;
+      *) printf '  FALLA %-52s %s\n' "$tipo ${destino%%/auth*} sale a" "${LOC%%#*}"; fallos=$((fallos+1)) ;;
+    esac
+  done
+done
+LOC=$(verify_location recovery "http://localhost:3000/auth/callback?next=%2Fentrar%2Fnueva-clave")
+case "$LOC" in
+  "http://localhost:3000/auth/callback?next=%2Fentrar%2Fnueva-clave"*) printf '  ok    %-52s\n' "callback exacto con next se respeta" ;;
+  *) printf '  FALLA %-52s %s\n' "callback exacto con next no se respeta" "${LOC%%#*}"; fallos=$((fallos+1)) ;;
+esac
+
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"
