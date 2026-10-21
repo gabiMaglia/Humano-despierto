@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closingHref, nextLesson, parseStartSeconds, type NavModule } from "./navigation";
+import { anonymousClosingHref, closingHref, nextLesson, parseStartSeconds, type NavModule } from "./navigation";
 
 type State = NavModule["lessons"][number]["state"];
 const L = (id: string, position: number, state: State = "pending") => ({
@@ -67,5 +67,11 @@ describe("parseStartSeconds", () => {
 
   it("sin duracion conocida (0) no recorta", () => {
     expect(parseStartSeconds("5000", 0)).toBe(5000);
+  });
+});
+
+describe("anonymousClosingHref", () => {
+  it("la anonima que termina una preview vuelve a la ficha del curso, no a /panel", () => {
+    expect(anonymousClosingHref("tarot-iniciatico")).toBe("/cursos/tarot-iniciatico");
   });
 });

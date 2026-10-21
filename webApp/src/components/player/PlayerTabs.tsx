@@ -45,7 +45,7 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
             role="tab"
             id={`tab-${t.id}`}
             aria-selected={active.id === t.id}
-            aria-controls={`panel-${t.id}`}
+            aria-controls={active.id === t.id ? `panel-${t.id}` : undefined}
             tabIndex={active.id === t.id ? 0 : -1}
             onClick={() => setActiveId(t.id)}
             className={cn(
