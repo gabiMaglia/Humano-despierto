@@ -41,3 +41,21 @@ test("alumna con el curso completo: 100 % y link al certificado", async ({ page,
   await expect(delfina).toContainText("100 %");
   await expect(delfina.getByRole("link", { name: "Certificado" })).toHaveAttribute("href", /\/certificado\/[0-9a-f]{32}/);
 });
+
+test("solicitudes pendientes: conteo sin link al admin y sin bloque de preguntas", async ({ page, request }) => {
+  await assertStackUp(request);
+  const cid = courseId("tarot-iniciatico");
+  const uid = psql("select id from auth.users where email = 'delfina.curso-completo@seed.humano.local'");
+  psql(`insert into public.enrollments (user_id, course_id, status) values ('${uid}', '${cid}', 'requested')`);
+  try {
+    await loginAs(page, SOL, "/panel/docente");
+    await page.goto(`/panel/docente/cursos/${cid}/alumnas`);
+    await expect(page.getByText("1 pendiente")).toBeVisible();
+    // El layout de admin manda a la docente a /panel: un link ahi seria un callejon.
+    await expect(page.locator('a[href*="/panel/admin"]')).toHaveCount(0);
+    // lesson_questions (T-030) no existe todavia: el bloque se omite, no muestra 0.
+    await expect(page.locator("body")).not.toContainText(/pregunta/i);
+  } finally {
+    psql(`delete from public.enrollments where user_id = '${uid}' and course_id = '${cid}'`);
+  }
+});

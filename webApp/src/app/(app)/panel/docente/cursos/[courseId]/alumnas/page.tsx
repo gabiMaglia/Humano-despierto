@@ -56,13 +56,9 @@ export default async function CourseRosterPage({ params }: Props) {
             <Stat label="Activas">{summary.active}</Stat>
             <Stat label="Completadas">{summary.completed}</Stat>
             <Stat label="Solicitudes">
-              {summary.requested > 0 ? (
-                <Link href="/panel/admin#solicitudes-pendientes" className="text-lila-300 hover:underline">
-                  {summary.requested} pendiente{summary.requested === 1 ? "" : "s"}
-                </Link>
-              ) : (
-                "Ninguna pendiente"
-              )}
+              {summary.requested > 0
+                ? `${summary.requested} pendiente${summary.requested === 1 ? "" : "s"}`
+                : "Ninguna pendiente"}
               {summary.rejected > 0 && (
                 <span className="block text-xs text-ink-faint">
                   {summary.rejected} no aprobada{summary.rejected === 1 ? "" : "s"}
