@@ -5,7 +5,7 @@ import { getPublishedPosts } from "@/lib/server/diario";
 import { formatCertificateDate } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
 
-// T-022 · Reemplaza el mock `src/lib/mocks/blog.ts` (T-017 lo había dejado fuera de alcance a
+// T-022 · Reemplaza el mock el mock `blog.ts` (T-017 lo había dejado fuera de alcance a
 // propósito: no existía tabla). Criterio 2: solo publicados, más recientes primero — lo filtra
 // `getPublishedPosts` (RLS `diario_posts_read`, migración 0018).
 
