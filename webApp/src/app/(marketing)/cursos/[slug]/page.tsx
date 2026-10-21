@@ -5,6 +5,7 @@ import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
 import CurriculumAccordion from "@/components/course/CurriculumAccordion";
+import PromoVideo from "@/components/course/PromoVideo";
 import ReviewsSection from "@/components/reviews/ReviewsSection";
 import { getCourseBySlug } from "@/lib/server/courses";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
@@ -185,21 +186,12 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
       )}
 
 
-      {/* Video promocional — material de VENTA: se ve sin inscripcion (criterio 2). No monta el
-          LessonPlayer a proposito: ese arrastra progreso, notas y capitulos que aca no aplican. */}
+      {/* Material de venta: se ve sin inscripcion; mismo embed que el player, sin progreso (c.2). */}
       {course.promoVideoId && (
         <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
           <div className="mx-auto max-w-3xl">
             <SectionDivider label="Un adelanto" className="mb-10" />
-            <div className="relative aspect-video overflow-hidden rounded-ritual border border-lila-300/18">
-              <iframe
-                src={`https://www.youtube-nocookie.com/embed/${course.promoVideoId}?rel=0&modestbranding=1`}
-                title={`Adelanto de ${course.title}`}
-                allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 h-full w-full"
-              />
-            </div>
+            <PromoVideo videoId={course.promoVideoId} title={`Adelanto de ${course.title}`} />
           </div>
         </section>
       )}

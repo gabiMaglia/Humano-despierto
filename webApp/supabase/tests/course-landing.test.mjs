@@ -15,7 +15,7 @@
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { bootDatabase, asUser, attempt } from '../harness/db.mjs';
+import { bootDatabase, asUser, asAnon, attempt } from '../harness/db.mjs';
 import { seed, ID, SECRET } from './seed.mjs';
 
 const PRIV_DENIED = '42501';
@@ -134,18 +134,111 @@ describe('T-027 · campos de ficha de curso + S-05', () => {
 
   // ------------------------------------------------------- grants (R-1)
   describe('R-1 · los campos nuevos estan expuestos a proposito, no por accidente', () => {
+    // Corre como `anon` de verdad (asAnon), no como authenticated con un claim de anon: el grant
+    // que se prueba es el de 0023 a `anon`, y authenticated tiene el suyo propio.
     test('anon puede leer los cinco campos nuevos — son material de venta', async () => {
-      const r = await asUser(db, { sub: null, userRole: 'anon' }, () =>
+      await db.exec(`update public.courses set promo_video_id = 'aBcD1234_-y' where id = '${ID.courseA}'`);
+      const r = await asAnon(db, () =>
         attempt(
           db,
           `select learning_objectives, prerequisites, description, language, promo_video_id
              from public.courses where id = $1`,
           [ID.courseA],
         ),
-      ).catch(() => null);
-      // Si el harness no expone un helper de anon con esta forma, el caso se ajusta al que use
-      // el resto de la suite — lo que se afirma es que NO da 42501.
-      if (r) assert.notEqual(r.code, PRIV_DENIED, 'faltan grants de select para los campos nuevos');
+      );
+      assert.equal(r.ok, true, `anon no puede leer los campos nuevos (${r.code}: ${r.message})`);
+      assert.equal(r.rows.length, 1, 'anon no ve la fila del curso publicado');
+      assert.equal(r.rows[0].promo_video_id, 'aBcD1234_-y');
     });
+  });
+
+  // ------------------------------------------------------- agregados (criterio 6)
+  // La ficha publica muestra este numero a `anon`: tiene que coincidir con la realidad. Una baja
+  // no es una inscripta, y el conteo de un borrador no se publica (la ficha de un draft no existe).
+  describe('course_student_count · solo inscripciones activas de cursos publicados', () => {
+    const contar = (courseId) =>
+      asAnon(db, () => attempt(db, `select public.course_student_count($1) as n`, [courseId]));
+
+    before(async () => {
+      // El seed deja a la alumna activa en courseA. Se suman una baja en courseA y una activa
+      // en el borrador: las dos tienen que quedar fuera del conteo.
+      await db.exec(`
+        insert into public.enrollments (user_id, course_id, status, granted_by) values
+          ('${ID.otro}',    '${ID.courseA}',     'revoked', '${ID.admin}'),
+          ('${ID.student}', '${ID.courseDraft}', 'active',  '${ID.admin}');
+      `);
+    });
+
+    test('una activa cuenta y una revocada no', async () => {
+      const r = await contar(ID.courseA);
+      assert.equal(r.ok, true, `anon no puede ejecutar la funcion (${r.code}: ${r.message})`);
+      assert.equal(r.rows[0].n, 1);
+    });
+
+    test('un curso sin inscriptas devuelve 0, no null', async () => {
+      const r = await contar(ID.courseB);
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows[0].n, 0);
+    });
+
+    test('un borrador devuelve 0 aunque tenga inscriptas activas', async () => {
+      const r = await contar(ID.courseDraft);
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows[0].n, 0, 'el conteo de un borrador se filtra a anon');
+    });
+  });
+});
+
+// ------------------------------------------------------- D-2 · intro -> description
+// Riesgo de la spec T-027: `intro` venia haciendo de descripcion. Al partirse en dos campos, los
+// cursos que ya existian no pueden quedar con la descripcion larga vacia. Se siembra ANTES de
+// 0023 porque es la unica forma de probar lo que una migracion hace con filas existentes.
+describe('0023 · copia intro a description en los cursos que ya existian', () => {
+  const ANTES_DE_0023 = '20260811210000_0022_mail_log_attempts.sql';
+  const DOCENTE = '20000000-0000-4000-8000-0000000000d2';
+  let db;
+
+  before(async () => {
+    let applyRemaining;
+    ({ db, applyRemaining } = await bootDatabase({ until: ANTES_DE_0023 }));
+    await db.exec(`
+      insert into auth.users (id, email) values ('${DOCENTE}', 'previa@humano.test');
+      update public.profiles set role = 'teacher', full_name = 'Previa' where id = '${DOCENTE}';
+      insert into public.courses (slug, title, discipline, level, teacher_id, status, intro) values
+        ('previo-con-intro', 'Previo', 'tarot', 'inicial', '${DOCENTE}', 'published', 'Texto de portada'),
+        ('previo-sin-intro', 'Previo 2', 'tarot', 'inicial', '${DOCENTE}', 'draft', null);
+    `);
+    // `updated_at` lo pisa el trigger en el insert; se fija despues, sin triggers, a un valor conocido.
+    await db.exec(`
+      alter table public.courses disable trigger user;
+      update public.courses set updated_at = '2026-01-01T00:00:00Z' where teacher_id = '${DOCENTE}';
+      alter table public.courses enable trigger user;
+    `);
+    await applyRemaining();
+  });
+
+  after(async () => db?.close());
+
+  test('un curso con intro queda con la misma description', async () => {
+    const { rows } = await db.query(`select intro, description from public.courses where slug = 'previo-con-intro'`);
+    assert.equal(rows[0].description, 'Texto de portada', 'el curso existente perdio su descripcion');
+    assert.equal(rows[0].intro, 'Texto de portada', 'intro tiene que quedar como estaba');
+  });
+
+  test('un curso sin intro sigue sin description', async () => {
+    const { rows } = await db.query(`select description from public.courses where slug = 'previo-sin-intro'`);
+    assert.equal(rows[0].description, null);
+  });
+
+  // La copia la hace la migracion, no la docente: "Ultima actualizacion" (criterio 4) no se mueve.
+  test('la copia no toca updated_at', async () => {
+    const { rows } = await db.query(
+      `select updated_at = '2026-01-01T00:00:00Z'::timestamptz as igual from public.courses where slug = 'previo-con-intro'`,
+    );
+    assert.equal(rows[0].igual, true, 'la migracion movio la fecha de ultima actualizacion');
+  });
+
+  test('el harness rechaza un until que no existe', async () => {
+    await assert.rejects(bootDatabase({ until: '0022_no_existe.sql' }), /no coincide con ninguna migracion/);
   });
 });
