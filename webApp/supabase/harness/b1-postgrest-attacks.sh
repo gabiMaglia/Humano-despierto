@@ -221,6 +221,49 @@ if [ "$NOM" = "Bibliografía cap. IV" ]; then printf '  ok    %-52s name=%s\n' "
 else printf '  FALLA %-52s name=%s\n' "el localizador quedo guardado en el catalogo" "$NOM"; fallos=$((fallos+1)); fi
 
 echo ""
+echo "── T-042 · datos privados del perfil y avatar"
+AVATAR_F=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee
+x "update public.profiles set phone='+54 11 4000-0000', birth_date='1985-03-21' where id='$DOCENTE';"
+# 403 y no 200 vacio: sin grant de SELECT la columna no existe para el cliente (42501).
+esperar "(p1) leer el telefono de la docente"   403 GET   "profiles?id=eq.$DOCENTE&select=phone" "$ALUMNA_JWT"
+esperar "(p2) leer fechas de nacimiento, anon"  403 GET   "profiles?select=birth_date" "$ANON"
+# 204 es lo esperado: RLS filtra la fila en silencio. Lo que se afirma es la DB, abajo.
+esperar "(p3) cambiar el telefono de otra"      204 PATCH "profiles?id=eq.$DOCENTE" "$ALUMNA_JWT" '{"phone":"+54 9 0000-0000"}'
+TEL=$(q "select phone from public.profiles where id='$DOCENTE';")
+if [ "$TEL" = "+54 11 4000-0000" ]; then printf '  ok    %-52s phone=%s\n' "el telefono de la docente no cambio" "$TEL"
+else printf '  FALLA %-52s phone=%s\n' "otra usuaria cambio el telefono" "$TEL"; fallos=$((fallos+1)); fi
+esperar "(p4) avatar en carpeta ajena"          403 PATCH "profiles?id=eq.$ALUMNA" "$ALUMNA_JWT" "{\"avatar_path\":\"avatars/$DOCENTE/$AVATAR_F.jpg\"}"
+esperar "(p5) my_private_profile como anon"     403 POST  "rpc/my_private_profile" "$ANON" '{}'
+esperar "(p+) my_private_profile, la duena"     200 POST  "rpc/my_private_profile" "$DOCENTE_JWT" '{}'
+esperar "(p+) avatar en carpeta propia"         204 PATCH "profiles?id=eq.$ALUMNA" "$ALUMNA_JWT" "{\"avatar_path\":\"avatars/$ALUMNA/$AVATAR_F.jpg\"}"
+x "update public.profiles set avatar_path=null where id='$ALUMNA';
+   update public.profiles set phone=null, birth_date=null where id='$DOCENTE';"
+
+# Storage no corre en PGlite: estas son las UNICAS pruebas de las policies de `storage.objects`.
+# Storage responde 400 con statusCode 403 en el cuerpo ante una violacion de RLS; se afirma la
+# clase (4xx/2xx), no el codigo exacto, porque el exacto cambia entre versiones de storage-api.
+subir() {  # $1 rotulo · $2 clase esperada (2xx|4xx) · $3 path dentro del bucket · $4 jwt
+  local code
+  code=$(printf '\x89PNG\r\n\x1a\n' | curl -s -o /dev/null -w '%{http_code}' -X POST \
+         "$API/storage/v1/object/uploads/$3" -H "apikey: $ANON" -H "Authorization: Bearer $4" \
+         -H "Content-Type: image/png" --data-binary @-)
+  if [ "${code:0:1}xx" = "$2" ]; then printf '  ok    %-52s HTTP %s\n' "$1" "$code"
+  else printf '  FALLA %-52s HTTP %s (esperaba %s)\n' "$1" "$code" "$2"; fallos=$((fallos+1)); fi
+}
+borrar_avatar() {  # $1 path · $2 jwt -> imprime el HTTP code
+  curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/storage/v1/object/uploads/$1" \
+       -H "apikey: $ANON" -H "Authorization: Bearer $2"
+}
+# Una corrida cortada a la mitad deja el objeto y la siguiente daria 409 en vez de 2xx.
+borrar_avatar "avatars/$ALUMNA/$AVATAR_F.png" "$ALUMNA_JWT" >/dev/null
+subir "(p6) subir a la carpeta de otra"   4xx "avatars/$DOCENTE/$AVATAR_F.png" "$ALUMNA_JWT"
+subir "(p6b) subir fuera de avatars/"     4xx "covers/$AVATAR_F.png"           "$ALUMNA_JWT"
+subir "(p6+) subir a la carpeta propia"   2xx "avatars/$ALUMNA/$AVATAR_F.png"  "$ALUMNA_JWT"
+COD=$(borrar_avatar "avatars/$ALUMNA/$AVATAR_F.png" "$ALUMNA_JWT")
+if [ "$COD" = "200" ]; then printf '  ok    %-52s HTTP %s\n' "(p6+) la duena borra su avatar" "$COD"
+else printf '  FALLA %-52s HTTP %s (esperaba 200)\n' "(p6+) la duena borra su avatar" "$COD"; fallos=$((fallos+1)); fi
+
+echo ""
 echo "── el camino legitimo de service_role POR HTTP (punto ciego que tenia esta suite)"
 # Esta seccion existe porque la suite solo afirmaba que los ataques fallan. Un esquema
 # que le niega todo a todos pasa los 13 ataques igual de bien que uno correcto. Y de
