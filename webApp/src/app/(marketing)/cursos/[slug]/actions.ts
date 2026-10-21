@@ -6,7 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { noLocator } from "@/lib/validation/teacher";
 // La lógica de escritura vive en un .mjs para que la suite de la base la ejecute tal cual
 // (ver `lib/reviews/write.mjs`).
-import { guardarResena, responderResena, traducirErrorResena } from "@/lib/reviews/write.mjs";
+import {
+  guardarResena,
+  reportarResena,
+  responderResena,
+  traducirErrorReporte,
+  traducirErrorResena,
+} from "@/lib/reviews/write.mjs";
 import {
   ENROLLMENT_COPY,
   translateEnrollmentError,
@@ -86,6 +92,43 @@ export async function respondReviewAction(
 
   revalidatePath(`/cursos/${slug}`);
   return { error: null, success: "Respuesta publicada." };
+}
+
+const reviewIdSchema = z.uuid();
+const reportReasonSchema = z
+  .string()
+  .trim()
+  .min(1, "Contá brevemente por qué la reportás.")
+  .max(1000, "El motivo no puede superar los 1000 caracteres.");
+
+/** T-037 · la guía dueña (o el admin) reporta una reseña. El que reporta sale de la sesión. */
+export async function reportReviewAction(
+  reviewId: string,
+  slug: string,
+  _prev: ReviewActionState,
+  formData: FormData,
+): Promise<ReviewActionState> {
+  if (!reviewIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
+  const parsed = reportReasonSchema.safeParse(String(formData.get("reason") ?? ""));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Revisá el motivo.", success: null };
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return { error: "Necesitás iniciar sesión.", success: null };
+
+  // Quién puede reportar lo decide RLS (`can_report_review`): la guía dueña o el admin.
+  const { error } = await reportarResena(supabase, { reviewId, reporterId: uid, reason: parsed.data });
+  if (error) {
+    return { error: traducirErrorReporte(error, "No se pudo enviar el reporte. Probá de nuevo."), success: null };
+  }
+
+  revalidatePath(`/cursos/${slug}`);
+  revalidatePath("/panel/admin/resenas");
+  revalidatePath("/panel/docente");
+  return { error: null, success: "Reporte enviado. Lo revisa el equipo de administración." };
 }
 
 /**

@@ -516,12 +516,17 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       // padron no es publico, mismo papel que `campus_post_authors`), `lesson_question_vote_counts`
       // (los votos son privados; devuelve CUANTOS, solo de preguntas legibles) y
       // `course_open_questions` (exige duena o admin adentro, si no 42501).
+      // T-037 suma `can_report_review`: SECURITY DEFINER porque la evalua la policy de INSERT de
+      // `course_review_reports` y tiene que ver la resena y el curso aunque la RLS de quien
+      // reporta no se los muestre. Devuelve si/no sobre un id que el llamador ya tiene. A `anon`
+      // no se le otorga: no tiene grant sobre la tabla.
       const ESPERADO_AUTH = [
         ...ESPERADO_ANON, 'array_has_locator', 'body_has_known_locator', 'campus_post_authors',
-        'can_author', 'can_read_campus_thread', 'can_read_lesson_qa', 'can_vote_lesson_question',
-        'can_write_campus_post', 'can_write_lesson_qa', 'course_open_questions', 'has_course_access',
-        'is_campus_moderator', 'is_lesson_qa_moderator', 'is_service_context', 'lesson_qa_authors',
-        'lesson_question_vote_counts', 'my_private_profile', 'text_has_locator',
+        'can_author', 'can_read_campus_thread', 'can_read_lesson_qa', 'can_report_review',
+        'can_vote_lesson_question', 'can_write_campus_post', 'can_write_lesson_qa',
+        'course_open_questions', 'has_course_access', 'is_campus_moderator', 'is_lesson_qa_moderator',
+        'is_service_context', 'lesson_qa_authors', 'lesson_question_vote_counts', 'my_private_profile',
+        'text_has_locator',
       ].sort();
       const fns = await functionPrivileges(db);
       assert.deepEqual(fns.filter((f) => f.anon).map((f) => f.proname).sort(), ESPERADO_ANON);

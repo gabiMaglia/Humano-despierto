@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 664 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 708 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 30 migrations (last `0033`), 18 tables, RLS + per-column grants + guard triggers, 664 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 32 migrations (last `0033`; `0032` applies before `0031` by timestamp, independent), 19 tables, RLS + per-column grants + guard triggers, 708 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -86,6 +86,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /panel/docente/**                   Teacher panel: courses, modules, lessons, [teacher]
                                     chapters, resources, diario posts
 /panel/admin                        Roles, manual enrollments, publish        [admin]
+/panel/admin/resenas                Review moderation: report queue, hide     [admin]
 ```
 `/guias/[slug]` **is** the "Maestra" screen from the original 9-screen plan, renamed.
 Auth is enforced twice: `src/proxy.ts` (session + JWT role for routing) and the server layouts
@@ -171,6 +172,13 @@ covered by mutation tests that fail loudly if you regress them.
    (`columnasConSesion`, `tests/locator-session-class.test.mjs`), not in the anon one. The
    owner teacher (`teacher_id` **and** `profiles.role = 'teacher'`) and the admin open the player
    to answer and moderate, but never write progress or notes (ADR-003 as extended by T-030).
+
+**Review moderation** (T-037, ADR-012): only the course's teacher or an admin can report a review
+(`course_review_reports`, RLS via `can_report_review`, which reads `profiles.role`). Hiding,
+unhiding and dismissing go ONLY through the `moderate_*` SQL functions (execute for
+`service_role` only), called from `panel/admin/actions.ts` after `requireAdmin()`
+(`src/lib/server/admin.ts`). They are the only writers of `hidden_*` and `resolved_*`. A teacher
+cannot review her own course (D-20, enforced by the `course_reviews` guard with no bypass).
 
 ## Design language (hard constraints)
 - Dark theme `Cosmos`: bg `#0a0418` · ink `#ede4ff` · lila `#c4b5fd` · gold `#f5d76e`.

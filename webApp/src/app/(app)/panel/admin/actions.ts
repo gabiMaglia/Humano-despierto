@@ -5,7 +5,7 @@ import { z } from "zod";
 import { notifyEnrollmentActivated, notifyEnrollmentRejected } from "@/lib/server/mail/notify";
 import { hasLocator } from "@/lib/validation/locator.mjs";
 import { ENROLLMENT_COPY, NO_ROWS, REASON_MAX, translateEnrollmentError } from "@/lib/enrollment/messages";
-import { getCurrentUser } from "@/lib/server/auth";
+import { requireAdmin } from "@/lib/server/admin";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import type { AppRole } from "@/lib/stores/useAuthStore";
@@ -13,20 +13,6 @@ import type { AppRole } from "@/lib/stores/useAuthStore";
 const ROLES: AppRole[] = ["student", "teacher", "admin"];
 const COURSE_STATUSES = ["draft", "published", "archived"] as const;
 const ENROLLMENT_STATUSES = ["active", "revoked"] as const;
-
-/**
- * Puerta única de todo Server Action de este archivo. La sesión se lee del
- * lado del servidor y `getCurrentUser` resuelve el rol contra `profiles`
- * (autoridad — ADR-006), nunca del claim del JWT: un admin recién degradado
- * cuyo token todavía dice "admin" no pasa acá.
- */
-async function requireAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
-    throw new Error("No autorizado: se requiere rol admin.");
-  }
-  return user;
-}
 
 export async function updateUserRoleAction(
   _prevState: AdminActionState,
@@ -260,4 +246,98 @@ export async function rejectEnrollmentRequestAction(
   revalidatePath("/panel/admin");
   revalidatePath("/cursos/[slug]", "page");
   return { error: null, success: ENROLLMENT_COPY.rejected };
+}
+
+// ---------------------------------------------------------------- T-037 · moderación de reseñas
+
+function moderationError(code: string | undefined, fallback: string): string {
+  if (code === "P0002") return "Esa reseña ya no existe.";
+  if (code === "42501") return "No autorizado.";
+  if (code === "22023") return "El motivo va de 1 a 1000 caracteres.";
+  return fallback;
+}
+
+function revalidateModeration() {
+  revalidatePath("/cursos/[slug]", "page");
+  revalidatePath("/cursos");
+  revalidatePath("/panel/admin/resenas");
+  revalidatePath("/panel/docente");
+}
+
+const moderationIdSchema = z.uuid();
+const MODERATION_REASON_MAX = 1000;
+
+// Toda la moderación pasa por `moderate_*` (0032): ocultar y resolver los reportes es una
+// transacción, y es el único código que escribe `hidden_*`/`resolved_*` (ADR-012 c.6). El id del
+// admin sale de la sesión; con service_role `auth.uid()` es nulo y la base no sabe quién llamó.
+export async function hideReviewAction(
+  reviewId: string,
+  _prevState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!moderationIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (reason.length === 0 || reason.length > MODERATION_REASON_MAX) {
+    return { error: "El motivo va de 1 a 1000 caracteres.", success: null };
+  }
+
+  const { data, error } = await getAdminSupabaseClient().rpc("moderate_hide_review", {
+    p_review_id: reviewId,
+    p_admin_id: admin.id,
+    p_reason: reason,
+  });
+  if (error) {
+    console.error(`[moderacion] ocultar ${reviewId}: ${error.code}`);
+    return { error: moderationError(error.code, "No se pudo ocultar la reseña."), success: null };
+  }
+
+  revalidateModeration();
+  const n = Number(data ?? 0);
+  const detalle = n === 0 ? "" : n === 1 ? " Se resolvió 1 reporte." : ` Se resolvieron ${n} reportes.`;
+  return { error: null, success: `Reseña oculta.${detalle}` };
+}
+
+export async function unhideReviewAction(
+  reviewId: string,
+  _prevState: AdminActionState,
+  _formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!moderationIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
+
+  const { data, error } = await getAdminSupabaseClient().rpc("moderate_unhide_review", {
+    p_review_id: reviewId,
+    p_admin_id: admin.id,
+  });
+  if (error) {
+    console.error(`[moderacion] desocultar ${reviewId}: ${error.code}`);
+    return { error: moderationError(error.code, "No se pudo volver a mostrar la reseña."), success: null };
+  }
+  if (data !== true) return { error: "La reseña no estaba oculta.", success: null };
+
+  revalidateModeration();
+  return { error: null, success: "La reseña vuelve a estar visible." };
+}
+
+export async function dismissReportAction(
+  reportId: string,
+  _prevState: AdminActionState,
+  _formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!moderationIdSchema.safeParse(reportId).success) return { error: "Reporte inválido.", success: null };
+
+  const { data, error } = await getAdminSupabaseClient().rpc("moderate_dismiss_report", {
+    p_report_id: reportId,
+    p_admin_id: admin.id,
+  });
+  if (error) {
+    console.error(`[moderacion] desestimar ${reportId}: ${error.code}`);
+    return { error: moderationError(error.code, "No se pudo desestimar el reporte."), success: null };
+  }
+  if (data !== true) return { error: "Ese reporte ya estaba resuelto.", success: null };
+
+  revalidateModeration();
+  return { error: null, success: "Reporte desestimado. La reseña sigue visible." };
 }

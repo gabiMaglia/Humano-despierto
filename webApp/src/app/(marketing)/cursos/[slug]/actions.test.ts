@@ -5,7 +5,7 @@ const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { requestEnrollmentAction, saveReviewAction } from "./actions";
+import { reportReviewAction, requestEnrollmentAction, saveReviewAction } from "./actions";
 import { revalidatePath } from "next/cache";
 import { queryChain, argsOf, type ChainCall } from "@/test/query-chain";
 
@@ -115,5 +115,53 @@ describe("requestEnrollmentAction", () => {
     expect(argsOf(insert!.calls, "insert")).toEqual([{ user_id: USER, course_id: COURSE }]);
     expect(revalidatePath).toHaveBeenCalledWith("/cursos/herbario-lunar");
     expect(revalidatePath).toHaveBeenCalledWith("/panel");
+  });
+});
+
+describe("reportReviewAction", () => {
+  const REVIEW = "47b62602-7ab4-4bc1-83f9-c1998d46bc87";
+  beforeEach(() => createClient.mockReset());
+
+  it("motivo vacío o de más de 1000 no crea el cliente", async () => {
+    for (const reason of ["   ", "x".repeat(1001)]) {
+      const out = await reportReviewAction(REVIEW, "tarot-iniciatico", IDLE, form({ reason }));
+      expect(out.error).toBeTruthy();
+    }
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("un id que no es uuid no llega a la base", async () => {
+    const out = await reportReviewAction("1 or 1=1", "tarot-iniciatico", IDLE, form({ reason: "Insultos" }));
+    expect(out.error).toBeTruthy();
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("sin sesión pide login y no inserta", async () => {
+    const from = vi.fn();
+    createClient.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: null } }) }, from });
+    const out = await reportReviewAction(REVIEW, "tarot-iniciatico", IDLE, form({ reason: "Insultos" }));
+    expect(out.error).toMatch(/iniciar sesión/);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("reporta con el id de la sesión, nunca uno del formulario", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn(() => ({ insert }));
+    createClient.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: { id: "u-sesion" } } }) }, from });
+    const out = await reportReviewAction(REVIEW, "tarot-iniciatico", IDLE, form({ reason: "  Insultos  ", reporterId: "otra" }));
+    expect(from).toHaveBeenCalledWith("course_review_reports");
+    expect(insert).toHaveBeenCalledWith({ review_id: REVIEW, reporter_id: "u-sesion", reason: "Insultos" });
+    expect(out).toEqual({ error: null, success: "Reporte enviado. Lo revisa el equipo de administración." });
+  });
+
+  it("un duplicado se traduce", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: { code: "23505", message: "dup" } });
+    createClient.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: "u" } } }) },
+      from: () => ({ insert }),
+    });
+    const out = await reportReviewAction(REVIEW, "tarot-iniciatico", IDLE, form({ reason: "Insultos" }));
+    expect(out.error).toMatch(/Ya reportaste/);
+    expect(out.success).toBeNull();
   });
 });

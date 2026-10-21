@@ -7,6 +7,13 @@ export interface SeedUser {
 }
 
 export const ALUMNA: SeedUser = { email: "alumna@test.local", password: "test-1234", enrolledSlug: "tarot-iniciatico" };
+// T-037 · la guia duena de tarot-iniciatico y el admin del seed (T-043 ya lo usaba en su spec).
+export const SOL: SeedUser = {
+  email: "sol.mayor@seed.humano.local",
+  password: "seed-teacher-1234",
+  enrolledSlug: "tarot-iniciatico",
+};
+export const ADMIN: Pick<SeedUser, "email" | "password"> = { email: "admin@test.local", password: "test-1234" };
 export const DELFINA: SeedUser = {
   email: "delfina.curso-completo@seed.humano.local",
   password: "seed-student-1234",
@@ -101,11 +108,7 @@ export async function expectDenied(res: import("@playwright/test").APIResponse):
 }
 
 // ---------------------------------------------------------------- T-030 · Q&A por leccion
-// Duena de tarot-iniciatico en el seed (seed.sql, bloque de docentes).
-export const SOL: Pick<SeedUser, "email" | "password"> = {
-  email: "sol.mayor@seed.humano.local",
-  password: "seed-teacher-1234",
-};
+// La duena de tarot-iniciatico (`SOL`) se declara arriba, compartida con T-037.
 
 // T-043/T-030 · desde T-040 el login redirige por rol (admin → /panel/admin, docente → /panel/docente),
 // asi que `login` solo sirve para alumnas. Este recibe el destino esperado como ruta (anclada al

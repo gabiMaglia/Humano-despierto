@@ -2,8 +2,10 @@ import SectionDivider from "@/components/atoms/SectionDivider";
 import Stars from "@/components/reviews/Stars";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import ResponseForm from "@/components/reviews/ResponseForm";
+import ReportForm from "@/components/reviews/ReportForm";
 import { REVIEWS_ANCHOR } from "@/lib/reviews/links.mjs";
 import { formatCertificateDate } from "@/lib/utils/format";
+import { REPORT_STATUS_LABEL, type ReportStatus } from "@/lib/reviews/report-status";
 import type { CourseReview, CourseReviewsData } from "@/lib/server/reviews";
 
 /** Un curso NUEVO sin reseñas y un curso MALO no se pueden ver igual (criterio 3). Por eso el
@@ -27,7 +29,7 @@ export default function ReviewsSection({
   courseId: string;
   slug: string;
 }) {
-  const { summary, reviews, own, canReview, featured, viewerIsOwner } = data;
+  const { summary, reviews, own, canReview, featured, viewerIsOwner, viewerCanReport, viewerReports } = data;
   // La destacada va arriba y no se repite en la lista.
   const resto = featured ? reviews.filter((r) => r.id !== featured.id) : reviews;
 
@@ -79,7 +81,13 @@ export default function ReviewsSection({
             <p className="mb-3 font-display text-eyebrow tracking-cosmic text-gold-400">
               <span aria-hidden="true">✦ </span>Destacado
             </p>
-            <ReviewItem review={featured} slug={slug} viewerIsOwner={viewerIsOwner} />
+            <ReviewItem
+              review={featured}
+              slug={slug}
+              viewerIsOwner={viewerIsOwner}
+              canReport={viewerCanReport}
+              reportStatus={viewerReports[featured.id]}
+            />
           </article>
         )}
 
@@ -87,7 +95,13 @@ export default function ReviewsSection({
           <ul className="mt-12 space-y-8">
             {resto.map((r) => (
               <li key={r.id} className="border-t border-lila-300/12 pt-6 first:border-0 first:pt-0">
-                <ReviewItem review={r} slug={slug} viewerIsOwner={viewerIsOwner} />
+                <ReviewItem
+                  review={r}
+                  slug={slug}
+                  viewerIsOwner={viewerIsOwner}
+                  canReport={viewerCanReport}
+                  reportStatus={viewerReports[r.id]}
+                />
               </li>
             ))}
           </ul>
@@ -101,10 +115,14 @@ function ReviewItem({
   review: r,
   slug,
   viewerIsOwner,
+  canReport,
+  reportStatus,
 }: {
   review: CourseReview;
   slug: string;
   viewerIsOwner: boolean;
+  canReport: boolean;
+  reportStatus: ReportStatus | undefined;
 }) {
   return (
     <>
@@ -125,6 +143,13 @@ function ReviewItem({
         </div>
       ) : (
         viewerIsOwner && <ResponseForm reviewId={r.id} slug={slug} />
+      )}
+      {reportStatus ? (
+        <p className="mt-3 font-display text-eyebrow tracking-cosmic text-ink-faint">
+          {REPORT_STATUS_LABEL[reportStatus]}
+        </p>
+      ) : (
+        canReport && <ReportForm reviewId={r.id} slug={slug} />
       )}
     </>
   );
