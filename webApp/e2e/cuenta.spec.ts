@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { ALUMNA, assertStackUp } from "./fixtures";
 import { authLinkFor, messagesTo, welcomeCount } from "./mailpit";
@@ -7,6 +9,19 @@ const PASSWORD = "clave-e2e-1";
 // Fixtures del seed (T-038) con rol distinto de student; misma clave que ALUMNA.
 const ADMIN = { email: "admin@test.local", password: "test-1234" };
 const DOCENTE = { email: "docente@test.local", password: "test-1234" };
+
+const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+
+// Playwright no carga .env.local; se lee sin tocar process.env para no cambiar otros specs.
+function serviceRoleKey(): string {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY;
+  try {
+    const env = readFileSync(join(process.cwd(), ".env.local"), "utf8");
+    return env.match(/^SUPABASE_SERVICE_ROLE_KEY=(.+)$/m)?.[1].trim() ?? "";
+  } catch {
+    return "";
+  }
+}
 
 function freshEmail(tag: string): string {
   return `e2e-${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`;
@@ -57,7 +72,9 @@ test("c.1 c.2 registro sin sesión, link de confirmación, /panel y una sola bie
   expect(await hasSession(page)).toBe(false);
 
   const link = await authLinkFor(page.request, email, "signup");
-  expect(new URL(link).searchParams.get("redirect_to")).toMatch(/\/auth\/callback\?next=/);
+  // Sin ?next= en /entrar el link no lleva next: el callback elige por rol (T-041 ronda 2).
+  const origin = new URL(page.url()).origin;
+  expect(new URL(link).searchParams.get("redirect_to")).toBe(`${origin}/auth/callback`);
 
   await page.goto(link);
   await expect(page).toHaveURL(/\/panel$/);
@@ -174,6 +191,47 @@ test("c.9 sin ?next= cada rol cae en su panel; con next válido gana next", asyn
     await expect(page).toHaveURL(expected);
   }
 });
+
+// T-041 ronda 2: el c.9 vale para todo login que pasa por /auth/callback, no solo por contraseña.
+// Toda alta nace student (0027), así que el rol se cambia con service_role entre el registro y el
+// link: si el callback no leyera `profiles.role`, la docente caería en /panel. El espejo sin
+// cambio de rol fija que una alumna sigue cayendo en /panel.
+for (const { role, panel } of [
+  { role: "teacher", panel: /\/panel\/docente$/ },
+  { role: null, panel: /\/panel$/ },
+] as const) {
+  test(`c.9 confirmación de mail sin next con rol ${role ?? "de alta"}: el callback elige por profiles.role`, async ({ page }) => {
+    const service = serviceRoleKey();
+    test.skip(!service, "falta SUPABASE_SERVICE_ROLE_KEY (env o webApp/.env.local)");
+    const H = { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" };
+
+    const email = freshEmail(`confirma-${role ?? "alta"}`);
+    await register(page, email);
+    await expect(page.getByRole("status")).toBeVisible();
+    const origin = new URL(page.url()).origin;
+    const link = await authLinkFor(page.request, email, "signup");
+    expect(new URL(link).searchParams.get("redirect_to")).toBe(`${origin}/auth/callback`);
+
+    if (role) {
+      const users = await (await page.request.get(`${SUPABASE}/auth/v1/admin/users`, {
+        headers: H,
+        params: { filter: email },
+      })).json();
+      const id = (users.users as { id: string; email: string }[]).find((u) => u.email === email)?.id;
+      expect(id, "el alta no aparece en auth.users").toBeTruthy();
+      const res = await page.request.patch(`${SUPABASE}/rest/v1/profiles?id=eq.${id}`, {
+        headers: { ...H, Prefer: "return=representation" },
+        data: { role },
+      });
+      expect(res.ok(), await res.text()).toBe(true);
+      expect(await res.json(), "el PATCH no tocó ninguna fila").toHaveLength(1);
+    }
+
+    await page.goto(link);
+    await expect(page).toHaveURL(panel);
+    expect(await hasSession(page)).toBe(true);
+  });
+}
 
 test("nueva clave sin sesión manda a recuperar", async ({ page }) => {
   await page.context().clearCookies();

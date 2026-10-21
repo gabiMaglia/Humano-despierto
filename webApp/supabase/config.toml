@@ -350,6 +350,20 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# T-041 · D5. Credenciales del cliente OAuth "Aplicación web" del proyecto de Google Cloud del PO,
+# con redirect URI autorizado http://127.0.0.1:54321/auth/v1/callback (el de GoTrue, no el de Next).
+# Sin las variables el stack arranca igual: el CLI deja el literal env(...) y el botón termina en
+# un error de Google (invalid_client). Ver .env.example para el archivo del que las lee el CLI.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+# Solo afecta a signInWithIdToken (nonce del SDK nativo de Google); el flujo por redirect no lo usa.
+skip_nonce_check = false
+email_optional = false
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]
