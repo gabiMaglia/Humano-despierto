@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { fullNameSchema } from "@/lib/validation/profile";
 import { AUTH_COPY, authErrorMessage } from "@/lib/auth/messages";
-import { DEFAULT_NEXT, RECOVER_PATH, callbackUrl } from "@/lib/auth/paths";
+import { DEFAULT_NEXT, RECOVER_PATH, callbackUrl, needsDocumentNavigation } from "@/lib/auth/paths";
 import AuthBrand from "@/components/molecules/AuthBrand";
 import AuthField from "@/components/molecules/AuthField";
 import SubmitButton from "@/components/atoms/SubmitButton";
@@ -84,6 +84,10 @@ export default function EntrarForm({ next, linkError }: Props) {
       }
       // Si la acción falla la sesión ya existe: /panel es el destino seguro para cualquier rol.
       const destination = await postLoginDestinationAction(next).catch(() => DEFAULT_NEXT);
+      if (needsDocumentNavigation(destination)) {
+        window.location.assign(destination);
+        return;
+      }
       router.push(destination);
       router.refresh();
       return;
