@@ -154,7 +154,9 @@ const tablasConInsertEntero = async (db, rol) =>
 const INSERT_ESPERADO = {
   // profiles          — SIN grant de INSERT. La fila la crea handle_new_user(). No aplica.
   // lesson_resources  — SIN grant de INSERT (alta por Server Action). No aplica.
-  // enrollments       — SIN grant de INSERT y ademas enrollments_guard cubre insert/update/delete.
+  // enrollments       — T-043: la alumna PIDE un curso. Solo `user_id` y `course_id`; el estado,
+  //                     quien otorgo y las fechas de decision son del servidor y ademas
+  //                     `enrollments_guard_insert` fuerza `requested` y pisa el resto.
 
   // Guard nuevo (c.2): status/featured/published_at fuera del grant Y bloqueadas por trigger.
   // T-027 suma los cinco de la ficha de venta. Se declaran ACA a mano a proposito: este test
@@ -163,6 +165,8 @@ const INSERT_ESPERADO = {
   // T-028 · la alumna declara curso, autoria, nota y texto. NO declara `response` (es de la
   // guia) ni `hidden_*` (del admin, y fuera de todo grant de cliente).
   course_reviews: ['course_id', 'user_id', 'rating', 'body'],
+
+  enrollments: ['user_id', 'course_id'],
 
   courses: ['slug', 'title', 'title_em', 'subtitle', 'intro', 'discipline', 'level', 'price_cents',
             'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id',
@@ -503,6 +507,12 @@ describe('T-011 · guards de INSERT', () => {
           'lessons.duration_seconds',
           'diario_posts.status',
           'diario_posts.published_at',
+          'enrollments.status',
+          'enrollments.granted_by',
+          'enrollments.enrolled_at',
+          'enrollments.requested_at',
+          'enrollments.decided_at',
+          'enrollments.decided_reason',
         ]) {
           assert.ok(!lista.includes(col), `${col} volvio al grant de INSERT de ${rol}`);
         }
@@ -512,7 +522,7 @@ describe('T-011 · guards de INSERT', () => {
     test('las tablas sin alta desde el cliente siguen sin grant de INSERT', async () => {
       for (const rol of ROLES_CLIENTE) {
         const lista = await columnasConInsert(db, rol);
-        for (const t of ['profiles', 'enrollments', 'lesson_resources']) {
+        for (const t of ['profiles', 'lesson_resources']) {
           assert.ok(!lista.some((c) => c.startsWith(`${t}.`)), `${t} gano un INSERT para ${rol}`);
         }
       }
