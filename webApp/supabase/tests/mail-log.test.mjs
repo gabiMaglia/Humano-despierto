@@ -370,3 +370,54 @@ describe('claim_or_reclaim_mail_slot — ventana + tope de intentos (T-020, rond
     });
   });
 });
+
+// T-031 · un mail por (inscripta, anuncio). El scope es el id del anuncio: dos anuncios del mismo
+// curso son dos mails legitimos, y volver a disparar el mismo anuncio no reclama nada.
+describe('T-031 · course_announcement', () => {
+  let db;
+  const ANUNCIO = 'a3100000-0000-4000-8000-000000000001';
+  const OTRO_ANUNCIO = 'a3100000-0000-4000-8000-000000000002';
+  const INSCRIPTAS = [ID.student, ID.otro, ID.teacherB];
+  const CHECK_VIOLATION = '23514';
+
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+  });
+  after(async () => db.close());
+
+  test('el tipo nuevo se acepta (sin el CHECK ampliado el reclamo daba 23514 y no salia ningun mail)', async () => {
+    const r = await asService(db, () => claimOrReclaim(db, ID.admin, 'course_announcement', ANUNCIO));
+    assert.equal(r.ok, true, r.message);
+    assert.equal(r.rows.length, 1);
+  });
+
+  test('un tipo fuera de la lista sigue rechazado: el CHECK se amplio, no se abrio', async () => {
+    const r = await asService(db, () => rawInsert(db, ID.student, 'course_announcement_x', ANUNCIO));
+    assert.equal(r.ok, false);
+    assert.equal(r.code, CHECK_VIOLATION);
+  });
+
+  test('N inscriptas: N reclamos; el mismo evento otra vez: cero reclamos y cero filas nuevas', async () => {
+    for (const userId of INSCRIPTAS) {
+      const r = await asService(db, () => claimOrReclaim(db, userId, 'course_announcement', ANUNCIO));
+      assert.equal(r.rows.length, 1, `no se reclamo el turno de ${userId}`);
+    }
+    for (const userId of INSCRIPTAS) {
+      const r = await asService(db, () => claimOrReclaim(db, userId, 'course_announcement', ANUNCIO));
+      assert.equal(r.rows.length, 0, `el segundo disparo reclamo otra vez a ${userId}`);
+    }
+    const { rows } = await db.query(
+      `select count(*)::int n, min(attempts) a, bool_and(sent_at is null) sin_confirmar
+         from public.mail_log where mail_type = 'course_announcement' and scope_key = $1
+          and recipient_user_id = any($2::uuid[])`,
+      [ANUNCIO, INSCRIPTAS],
+    );
+    assert.deepEqual(rows[0], { n: INSCRIPTAS.length, a: 1, sin_confirmar: true });
+  });
+
+  test('misma inscripta, OTRO anuncio: turno nuevo (el scope es el anuncio, no el curso)', async () => {
+    const r = await asService(db, () => claimOrReclaim(db, ID.student, 'course_announcement', OTRO_ANUNCIO));
+    assert.equal(r.rows.length, 1);
+  });
+});
