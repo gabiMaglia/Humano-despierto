@@ -54,3 +54,48 @@ export async function lessonHrefs(page: Page, slug: string): Promise<string[]> {
   }
   return [...hrefs];
 }
+
+// ---------------------------------------------------------------- T-044 · recursos descargables
+export const REVOCADA = { email: "revocada@test.local", password: "test-1234" };
+
+export const RECURSO = {
+  preview: "e0440000-0000-4000-8000-000000000001",
+  link: "e0440000-0000-4000-8000-000000000002",
+  herbario: "e0440000-0000-4000-8000-000000000003",
+} as const;
+
+// La anon key es publica por diseño (NEXT_PUBLIC_); se lee de .env.local para no duplicarla.
+function supabasePublicEnv(): { url: string; anonKey: string } {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    try {
+      process.loadEnvFile(".env.local");
+    } catch {
+      // Sin archivo: el error de abajo dice que falta y desde donde correr.
+    }
+  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) throw new Error("Falta NEXT_PUBLIC_SUPABASE_ANON_KEY (webApp/.env.local). Correr desde webApp/.");
+  return { url, anonKey };
+}
+
+// `lesson_resources.lesson_id` esta en el grant de anon (0003): se resuelve sin sesion ni service key.
+export async function lessonIdOfResource(request: APIRequestContext, resourceId: string): Promise<string> {
+  const { url, anonKey } = supabasePublicEnv();
+  const res = await request.get(`${url}/rest/v1/lesson_resources?id=eq.${resourceId}&select=lesson_id`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+  });
+  const rows = (await res.json()) as { lesson_id: string }[];
+  if (!res.ok() || rows.length !== 1) {
+    throw new Error(`El recurso ${resourceId} no esta en la base (status ${res.status()}). Correr: npx supabase db reset`);
+  }
+  return rows[0].lesson_id;
+}
+
+// Toda denegacion del handler es identica: 403, cuerpo vacio, sin cache y sin Location.
+export async function expectDenied(res: import("@playwright/test").APIResponse): Promise<void> {
+  expect(res.status()).toBe(403);
+  expect(await res.text()).toBe("");
+  expect(res.headers()["cache-control"]).toBe("private, no-store");
+  expect(res.headers()["location"]).toBeUndefined();
+}

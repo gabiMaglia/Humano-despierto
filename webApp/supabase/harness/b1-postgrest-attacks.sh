@@ -122,6 +122,8 @@ esperar "select * sobre lessons"           403 GET "lessons?select=*"        "$A
 esperar "drive_file_id+url, autenticada"   403 GET "lesson_resources?select=drive_file_id,url" "$ALUMNA_JWT"
 esperar "drive_file_id+url, anon"          403 GET "lesson_resources?select=drive_file_id,url" "$ANON"
 esperar "oraculo por filtro (where url)"   403 GET "lesson_resources?url=like.*drive*&select=name" "$ALUMNA_JWT"
+esperar "oraculo por filtro (where drive_file_id)" 403 GET "lesson_resources?drive_file_id=not.is.null&select=name" "$ALUMNA_JWT"
+esperar "oraculo por filtro, anon"                 403 GET "lesson_resources?drive_file_id=not.is.null&select=name" "$ANON"
 
 echo ""
 echo "── T-016 · el localizador republicado en el texto libre del catalogo"

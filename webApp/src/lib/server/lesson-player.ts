@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
+import type { StudentCourseAccess } from "@/lib/server/enrollment";
 import { getCourseBySlug } from "@/lib/server/courses";
 
 export interface PlayerChapter {
@@ -18,6 +19,8 @@ export interface PlayerResource {
   type: string;
   name: string;
   sizeLabel: string | null;
+  /** Ruta del handler que verifica acceso y redirige; nunca el localizador (ADR-003). */
+  href: string;
 }
 
 export interface PlayerNote {
@@ -69,7 +72,7 @@ export interface LessonPlayerData {
   isAuthenticated: boolean;
 }
 
-interface LessonRow {
+export interface LessonRow {
   id: string;
   course_id: string;
   module_id: string;
@@ -87,24 +90,29 @@ function firstOf<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
+export interface LessonAccess {
+  lessonId: string;
+  courseId: string;
+  isPreview: boolean;
+  /** `is_preview` o inscripción activa. */
+  hasAccess: boolean;
+  userId: string | null;
+  enrollment: StudentCourseAccess;
+  lesson: LessonRow;
+  moduleInfo: { title: string; position: number };
+  course: { slug: string; title: string };
+}
+
 /**
- * Datos completos para renderizar `/leccion/[id]`, con el control de acceso de ADR-003 ya
- * resuelto: si el llamador no tiene inscripción activa en el curso ni la lección es
- * `is_preview`, devuelve `null` — el caller responde con `notFound()`, sin distinguir
- * "no existe" de "no tenés acceso" (misma respuesta para las dos, no hay nada que confirmar).
- *
- * `video_id` es la ÚNICA columna que se lee con el cliente de service_role (ADR-003 regla A:
- * columna localizadora, exclusiva de service_role en lectura y escritura) y sólo se pide DESPUÉS
- * de que el acceso ya se verificó con el cliente de sesión — nunca antes, nunca para decidir el
- * acceso.
- *
- * Envuelta en `cache()` porque el layout del segmento la llama para decidir el 404 y la pagina
- * la vuelve a llamar para renderizar: con la deduplicacion de React es una sola resolucion por
- * request, incluida la lectura con service_role.
+ * Única función que decide el acceso a una lección (ADR-003): inscripción activa o `is_preview`.
+ * La usan el player (video) y el handler de recursos, para que video y material no puedan
+ * divergir. Sólo cliente de sesión; el llamador recién después puede usar service_role.
+ * `null` y `hasAccess: false` se distinguen acá pero nunca hacia afuera: los dos callers los
+ * responden igual (404 el player, 403 el handler).
  */
-export const getLessonPlayerData = cache(async function getLessonPlayerData(
+export const getLessonAccess = cache(async function getLessonAccess(
   lessonId: string,
-): Promise<LessonPlayerData | null> {
+): Promise<LessonAccess | null> {
   const supabase = await createClient();
 
   const {
@@ -144,9 +152,44 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
   }
   if (!course) return null;
 
-  const access = await getStudentCourseAccess(row.course_id);
-  const hasAccess = row.is_preview || access.hasAccess;
-  if (!hasAccess) return null;
+  const enrollment = await getStudentCourseAccess(row.course_id);
+
+  return {
+    lessonId: row.id,
+    courseId: row.course_id,
+    isPreview: row.is_preview,
+    hasAccess: row.is_preview || enrollment.hasAccess,
+    userId: user?.id ?? null,
+    enrollment,
+    lesson: row,
+    moduleInfo,
+    course: course as { slug: string; title: string },
+  };
+});
+
+/**
+ * Datos completos para renderizar `/leccion/[id]`, con el control de acceso de ADR-003 ya
+ * resuelto por `getLessonAccess`: si el llamador no tiene inscripción activa en el curso ni la
+ * lección es `is_preview`, devuelve `null` — el caller responde con `notFound()`, sin distinguir
+ * "no existe" de "no tenés acceso" (misma respuesta para las dos, no hay nada que confirmar).
+ *
+ * `video_id` es la ÚNICA columna que se lee con el cliente de service_role (ADR-003 regla A:
+ * columna localizadora, exclusiva de service_role en lectura y escritura) y sólo se pide DESPUÉS
+ * de que el acceso ya se verificó con el cliente de sesión — nunca antes, nunca para decidir el
+ * acceso.
+ *
+ * Envuelta en `cache()` porque el layout del segmento la llama para decidir el 404 y la pagina
+ * la vuelve a llamar para renderizar: con la deduplicacion de React es una sola resolucion por
+ * request, incluida la lectura con service_role.
+ */
+export const getLessonPlayerData = cache(async function getLessonPlayerData(
+  lessonId: string,
+): Promise<LessonPlayerData | null> {
+  const lessonAccess = await getLessonAccess(lessonId);
+  if (!lessonAccess || !lessonAccess.hasAccess) return null;
+  const { lesson: row, moduleInfo, course, enrollment: access, userId } = lessonAccess;
+
+  const supabase = await createClient();
 
   // Único punto de todo el flujo que usa service_role — recién acá, con el acceso ya resuelto
   // por el cliente de sesión de arriba.
@@ -175,20 +218,20 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
       .select("id, position, type, name, size_label")
       .eq("lesson_id", lessonId)
       .order("position"),
-    user
+    userId
       ? supabase
           .from("lesson_notes")
           .select("id, at_seconds, body, created_at")
           .eq("lesson_id", lessonId)
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .order("at_seconds")
       : Promise.resolve({ data: [], error: null }),
-    user
+    userId
       ? supabase
           .from("lesson_progress")
           .select("seconds_watched, completed")
           .eq("lesson_id", lessonId)
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     getCourseBySlug(course.slug),
@@ -256,6 +299,7 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
       type: r.type,
       name: r.name,
       sizeLabel: r.size_label,
+      href: `/leccion/${row.id}/recurso/${r.id}`,
     })),
     notes: (notesRes.data ?? []).map((n) => ({
       id: n.id,
@@ -266,6 +310,6 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
     initialSecondsWatched: progressRes.data?.seconds_watched ?? 0,
     completed: progressRes.data?.completed ?? false,
     modules,
-    isAuthenticated: Boolean(user),
+    isAuthenticated: userId !== null,
   };
 });
