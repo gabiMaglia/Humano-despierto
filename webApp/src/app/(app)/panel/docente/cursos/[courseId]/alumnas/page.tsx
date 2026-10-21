@@ -52,7 +52,7 @@ export default async function CourseRosterPage({ params }: Props) {
         </header>
 
         <div className="mx-auto max-w-4xl space-y-8 px-6 py-10 md:px-12">
-          <section aria-label="Resumen" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <section aria-label="Resumen" className="grid grid-cols-2 gap-3 md:grid-cols-5">
             <Stat label="Activas">{summary.active}</Stat>
             <Stat label="Completadas">{summary.completed}</Stat>
             <Stat label="Solicitudes">
@@ -66,6 +66,9 @@ export default async function CourseRosterPage({ params }: Props) {
               )}
             </Stat>
             <Stat label="Reseñas">{rating ?? "Sin reseñas"}</Stat>
+            <Stat label="Preguntas">
+              {summary.openQuestions > 0 ? `${summary.openQuestions} sin responder` : "Ninguna sin responder"}
+            </Stat>
           </section>
 
           <section>
