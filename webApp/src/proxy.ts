@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { buildCsp, generateNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
 
 // T-006 (rechazo 1): `/leccion` sale de acá. El proxy no puede saber sin ir a la base si una
@@ -22,10 +23,32 @@ function matchesPrefix(pathname: string, prefix: string) {
 }
 
 export async function proxy(request: NextRequest) {
+  const nonce = generateNonce();
+  const csp = buildCsp({
+    nonce,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    siteUrl: process.env.SITE_URL,
+    isDev: process.env.NODE_ENV === "development",
+    enforce: process.env.CSP_ENFORCE === "true",
+  });
+  // Next toma el nonce de la cabecera CSP del REQUEST (CSP o CSP-Report-Only) y lo pone en sus
+  // <script>. Se escribe sobre request.headers para que tambien lo vea el NextResponse.next({ request })
+  // que arma updateSession al refrescar cookies.
+  request.headers.set(csp.name, csp.value);
+  request.headers.set("x-nonce", nonce);
+
+  const response = await route(request);
+  // Un redirect no tiene documento: no necesita politica.
+  if (!response.headers.has("location")) response.headers.set(csp.name, csp.value);
+  return response;
+}
+
+async function route(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))) {
-    return NextResponse.next();
+    // Sin `request` el override de cabeceras (nonce) no llega al render.
+    return NextResponse.next({ request });
   }
 
   const { proxyResponse, claims } = await updateSession(request);
@@ -52,5 +75,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/panel/:path*"],
+  // Todo menos estaticos: la CSP va en cada documento, y updateSession sigue corriendo solo
+  // para PROTECTED_PREFIXES (ampliar el matcher no agrega una consulta a la base por request).
+  // Sin `missing: next-router-prefetch`: excluir prefetches saltearia tambien el guard de auth.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

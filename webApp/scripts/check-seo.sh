@@ -82,5 +82,22 @@ if grep -rq 'href="#"' "$(dirname "$0")/../src" --include='*.tsx'; then
   echo "  FALLA  hay href=\"#\" en src/"; fail=1
 else echo "  ok     sin href=\"#\""; fi
 
+echo "== CSP con nonce por request (S-04) =="
+csp_nonce() { curl -sD - -o /dev/null "$BASE$1" | tr -d '\r' | grep -i '^content-security-policy' | grep -o "'nonce-[A-Za-z0-9+/=]*'" | head -1; }
+for p in / /cursos /guias /diario /entrar; do
+  n1=$(csp_nonce "$p"); n2=$(csp_nonce "$p")
+  if [ -z "$n1" ]; then echo "  FALLA  $p sin CSP con nonce"; fail=1
+  elif [ "$n1" = "$n2" ]; then echo "  FALLA  $p repite nonce entre requests"; fail=1
+  else
+    total=$(curl -s "$BASE$p" | grep -o '<script[^>]*>' | grep -c .)
+    sin=$(curl -s "$BASE$p" | grep -o '<script[^>]*>' | grep -vc 'nonce="')
+    # El nonce del HTML es el de OTRO request: se afirma solo que ningun script sale sin nonce.
+    # Cero scripts es una pagina que no se pudo mirar, no una limpia.
+    if [ "$total" -eq 0 ]; then echo "  FALLA  $p sin ningun <script> (no se pudo verificar)"; fail=1
+    elif [ "$sin" -gt 0 ]; then echo "  FALLA  $p tiene $sin <script> sin nonce"; fail=1
+    else echo "  ok     $p nonce distinto por request, $total <script> con nonce"; fi
+  fi
+done
+
 [ "$fail" -eq 0 ] && echo "SEO OK" || echo "SEO CON FALLAS"
 exit "$fail"

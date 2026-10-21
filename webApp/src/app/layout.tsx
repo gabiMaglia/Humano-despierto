@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Cinzel, Quicksand, Cormorant_Garamond, Cardo } from "next/font/google";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { getSiteUrl } from "@/lib/server/site-url";
@@ -42,9 +43,12 @@ export const metadata: Metadata = {
   description: "Una escuela para oficios sutiles del alma. Astrología, tarot, herbalismo y reiki por guías con linaje.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Con CSP por nonce ninguna pagina puede prerenderizarse: el HTML estatico no tiene el nonce
+  // del request y en enforce sus scripts no corren. Aca, una vez, en vez de pagina por pagina.
+  await connection();
   return (
     <html
       lang="es"
