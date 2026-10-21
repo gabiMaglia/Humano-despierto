@@ -15,7 +15,7 @@
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { bootDatabase, asUser, attempt } from '../harness/db.mjs';
+import { bootDatabase, asUser, asAnon, attempt } from '../harness/db.mjs';
 import { seed, ID, SECRET } from './seed.mjs';
 
 const PRIV_DENIED = '42501';
@@ -134,18 +134,21 @@ describe('T-027 · campos de ficha de curso + S-05', () => {
 
   // ------------------------------------------------------- grants (R-1)
   describe('R-1 · los campos nuevos estan expuestos a proposito, no por accidente', () => {
+    // Corre como `anon` de verdad (asAnon), no como authenticated con un claim de anon: el grant
+    // que se prueba es el de 0023 a `anon`, y authenticated tiene el suyo propio.
     test('anon puede leer los cinco campos nuevos — son material de venta', async () => {
-      const r = await asUser(db, { sub: null, userRole: 'anon' }, () =>
+      await db.exec(`update public.courses set promo_video_id = 'aBcD1234_-y' where id = '${ID.courseA}'`);
+      const r = await asAnon(db, () =>
         attempt(
           db,
           `select learning_objectives, prerequisites, description, language, promo_video_id
              from public.courses where id = $1`,
           [ID.courseA],
         ),
-      ).catch(() => null);
-      // Si el harness no expone un helper de anon con esta forma, el caso se ajusta al que use
-      // el resto de la suite — lo que se afirma es que NO da 42501.
-      if (r) assert.notEqual(r.code, PRIV_DENIED, 'faltan grants de select para los campos nuevos');
+      );
+      assert.equal(r.ok, true, `anon no puede leer los campos nuevos (${r.code}: ${r.message})`);
+      assert.equal(r.rows.length, 1, 'anon no ve la fila del curso publicado');
+      assert.equal(r.rows[0].promo_video_id, 'aBcD1234_-y');
     });
   });
 });
