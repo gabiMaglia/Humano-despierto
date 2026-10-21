@@ -2,7 +2,22 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ensureCertificate } from "@/lib/server/certificates";
+import { closingHref } from "@/lib/player/navigation";
 import { notifyCourseCompleted } from "@/lib/server/mail/notify";
+
+/**
+ * Destino del cierre de la última lección. Se resuelve al terminar el video y no al renderizar:
+ * el certificado recién existe cuando el flush del último tramo cruzó el 90 %. Idempotente y
+ * sin efectos nuevos (el que lo emite es `ensureCertificate`, ya verificado server-side).
+ */
+export async function resolveClosingHref(courseId: string): Promise<string> {
+  try {
+    return closingHref(await ensureCertificate(courseId));
+  } catch (err) {
+    console.error("[player] no se pudo resolver el certificado:", err);
+    return closingHref(null);
+  }
+}
 
 export interface ProgressResult {
   secondsWatched: number;

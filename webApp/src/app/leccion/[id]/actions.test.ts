@@ -5,7 +5,26 @@ vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/server/certificates", () => ({ ensureCertificate: vi.fn() }));
 vi.mock("@/lib/server/mail/notify", () => ({ notifyCourseCompleted: vi.fn() }));
 
-import { deleteLessonNote, updateLessonNote } from "./actions";
+import { ensureCertificate } from "@/lib/server/certificates";
+import { deleteLessonNote, resolveClosingHref, updateLessonNote } from "./actions";
+
+describe("resolveClosingHref", () => {
+  it("con certificado emitido linkea a /certificado/<code>", async () => {
+    vi.mocked(ensureCertificate).mockResolvedValue("COD-1");
+    await expect(resolveClosingHref("c-1")).resolves.toBe("/certificado/COD-1");
+    expect(ensureCertificate).toHaveBeenCalledWith("c-1");
+  });
+
+  it("curso incompleto (null) vuelve al panel", async () => {
+    vi.mocked(ensureCertificate).mockResolvedValue(null);
+    await expect(resolveClosingHref("c-1")).resolves.toBe("/panel");
+  });
+
+  it("si ensureCertificate falla, no rompe el cierre: panel", async () => {
+    vi.mocked(ensureCertificate).mockRejectedValue(new Error("db"));
+    await expect(resolveClosingHref("c-1")).resolves.toBe("/panel");
+  });
+});
 
 const USER = { id: "u-1" };
 

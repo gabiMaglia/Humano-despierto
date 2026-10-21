@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
 import type { StudentCourseAccess } from "@/lib/server/enrollment";
 import { getCourseBySlug } from "@/lib/server/courses";
+import { nextLesson, type NextLesson } from "@/lib/player/navigation";
 
 export interface PlayerChapter {
   id: string;
@@ -65,6 +66,8 @@ export interface LessonPlayerData {
   initialSecondsWatched: number;
   completed: boolean;
   modules: PlayerModule[];
+  /** Primera lección siguiente no bloqueada (orden módulo, posición); null en la última. */
+  nextLesson: NextLesson | null;
   // T-006 (rechazo 1): un anónimo puede llegar acá para una lección `is_preview` (ADR-003) —
   // `lesson_progress`/`lesson_notes` exigen sesión (`saveLessonProgress`/`saveLessonNote`
   // tiran si no hay `user`). El cliente usa esto para no intentar persistir nada sin sesión, en
@@ -310,6 +313,7 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
     initialSecondsWatched: progressRes.data?.seconds_watched ?? 0,
     completed: progressRes.data?.completed ?? false,
     modules,
+    nextLesson: nextLesson(modules, row.id),
     isAuthenticated: userId !== null,
   };
 });
