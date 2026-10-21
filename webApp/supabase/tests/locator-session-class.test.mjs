@@ -26,6 +26,15 @@ const EXENTAS = {
     'la unica lectora es la autora (lesson_notes_read_own, 0004): no hay a quien filtrarle nada.',
 };
 
+// Exentas SOLO de la mitad de forma: siguen con ataque exacto en ATAQUES. No es una via para
+// saltear el trigger, por eso el test de la mitad exacta no las mira.
+const EXENTAS_FORMA = {
+  'course_review_reports.reason':
+    'ADR-012: el reporte no es publico (lo leen la guia que lo escribio y el admin), asi que lleva ' +
+    'solo la mitad exacta de ADR-009 (body_has_known_locator, 0032); un CHECK de forma le cortaria ' +
+    'a la guia citar el link de la resena que denuncia.',
+};
+
 const filaComoOwner = async (db, sql, params) => {
   await db.exec('reset role;');
   return (await db.query(sql, params)).rows[0].id;
@@ -54,7 +63,24 @@ const postFresco = (db) =>
     [ID.courseA, ID.student],
   );
 
+// El motivo se escribe por INSERT y es unico por (resena, quien reporta): se limpia el reporte
+// previo de la guia y se reutiliza la resena del seed.
+const resenaSinReporteDeLaDuena = async (db) => {
+  await db.exec('reset role;');
+  await db.query(`delete from public.course_review_reports where reporter_id = $1`, [ID.teacherA]);
+  return (
+    await db.query(`select id from public.course_reviews where course_id = $1 and user_id = $2`, [ID.courseA, ID.student])
+  ).rows[0].id;
+};
+
 const ATAQUES = {
+  // E1 de la estampa de T-037: la guia duena reporta con el video_id real en el motivo.
+  'course_review_reports.reason': {
+    actor: DUENA,
+    fila: resenaSinReporteDeLaDuena,
+    sql: `insert into public.course_review_reports (review_id, reporter_id, reason)
+          values ($1, '${ID.teacherA}', $2) returning id`,
+  },
   // E1 de la estampa (cierra D-26): la encontro este invariante el dia que nacio y se cerro en 0031.
   'campus_posts.deleted_reason': { actor: DUENA, fila: postFresco, sql: BORRAR('campus_posts') },
   'campus_posts.body': {
@@ -119,12 +145,12 @@ describe('ADR-009/010 · la clase con sesion no acepta localizadores', () => {
 
   test('no hay ataques ni exenciones de columnas que ya no estan en la clase', () => {
     const nombres = new Set(columnas.map((c) => c.columna));
-    const fantasmas = [...Object.keys(ATAQUES), ...Object.keys(EXENTAS)].filter((c) => !nombres.has(c));
+    const fantasmas = [...Object.keys(ATAQUES), ...Object.keys(EXENTAS), ...Object.keys(EXENTAS_FORMA)].filter((c) => !nombres.has(c));
     assert.deepEqual(fantasmas, [], `declaradas pero fuera de la clase: ${fantasmas.join(', ')}`);
   });
 
   test('mitad de FORMA · toda columna no exenta tiene CHECK *_no_locator', () => {
-    const sinCheck = columnas.filter((c) => !EXENTAS[c.columna] && !c.cubierta).map((c) => c.columna);
+    const sinCheck = columnas.filter((c) => !EXENTAS[c.columna] && !EXENTAS_FORMA[c.columna] && !c.cubierta).map((c) => c.columna);
     assert.deepEqual(sinCheck, [], `sin CHECK de forma: ${sinCheck.join(', ')}`);
   });
 

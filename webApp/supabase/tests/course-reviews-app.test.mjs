@@ -18,7 +18,7 @@ import { bootDatabase } from '../harness/db.mjs';
 import { clientePostgrest } from '../harness/postgrest-client.mjs';
 import { seed, ID, SECRET } from './seed.mjs';
 
-const { guardarResena, responderResena, traducirErrorResena } = await import('../../src/lib/reviews/write.mjs');
+const { guardarResena, responderResena, traducirErrorResena, reportarResena, traducirErrorReporte } = await import('../../src/lib/reviews/write.mjs');
 const { elegirDestacada } = await import('../../src/lib/reviews/featured.mjs');
 const { reviewAnchorPath, REVIEWS_ANCHOR } = await import('../../src/lib/reviews/links.mjs');
 
@@ -178,5 +178,47 @@ describe('criterio 7 · el mail de curso completado invita a resenar', () => {
     assert.match(notify, /reviewUrl:[^\n]*reviewAnchorPath\(input\.courseSlug\)/);
     const seccion = await src('components/reviews/ReviewsSection.tsx');
     assert.match(seccion, /id=\{REVIEWS_ANCHOR\}/, 'el ancla del mail no existe en la ficha');
+  });
+});
+
+describe('T-037 · la app reporta por el camino que PostgREST ejecuta', () => {
+  let db;
+  let reviewId;
+  const ADMIN = { sub: ID.admin, userRole: 'admin' };
+
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+    reviewId = (await fila(db, `select id from public.course_reviews where user_id = $1 and course_id = $2`, [ID.student, ID.courseA])).id;
+  });
+  after(async () => db?.close());
+
+  test('la guia duena reporta', async () => {
+    const { error } = await reportarResena(clientePostgrest(db, GUIA_DUENA), {
+      reviewId, reporterId: ID.teacherA, reason: 'Expone datos de una tercera persona.',
+    });
+    assert.equal(error, null, error?.message);
+  });
+
+  test('reportar dos veces se traduce, sin SQLSTATE a la vista', async () => {
+    const { error } = await reportarResena(clientePostgrest(db, GUIA_DUENA), { reviewId, reporterId: ID.teacherA, reason: 'Otra vez' });
+    assert.equal(error.code, '23505');
+    assert.match(traducirErrorReporte(error, 'x'), /Ya reportaste/);
+  });
+
+  test('la guia ajena recibe el mensaje de permiso', async () => {
+    const { error } = await reportarResena(clientePostgrest(db, GUIA_AJENA), { reviewId, reporterId: ID.teacherB, reason: 'Competencia' });
+    assert.equal(error.code, '42501');
+    assert.match(traducirErrorReporte(error, 'x'), /Solo la guía del curso/);
+  });
+
+  test('un video_id en el motivo recibe el mensaje de localizador, no el de permiso', async () => {
+    const { error } = await reportarResena(clientePostgrest(db, ADMIN), { reviewId, reporterId: ID.admin, reason: `Mira ${SECRET.videoId}` });
+    assert.equal(error.code, '42501');
+    assert.match(traducirErrorReporte(error, 'x'), /identificador de un video/);
+  });
+
+  test('una resena que ya no existe (23503) no se muestra como permiso', () => {
+    assert.match(traducirErrorReporte({ code: '23503', message: 'fk' }, 'x'), /ya no existe/);
   });
 });

@@ -76,6 +76,8 @@ const CASOS = {
   lesson_answers_locator_guard: 'una alumna responde con prosa normal',
   // T-030 E1 (D-26): la mitad exacta de R-3 sobre el motivo de moderacion del Campus.
   campus_posts_locator_guard: 'la moderadora borra un mensaje del Campus con un motivo en prosa normal',
+  // --- moderacion de resenas (T-037)
+  course_review_reports_guard: 'la guia duena reporta con prosa normal y la cuenta de quien resolvio se puede borrar',
 
   // --- localizadores (T-035). De estos seis, TRES nunca se verificaron por el lado legitimo:
   //     course_modules, lesson_chapters y lesson_resources. Este ticket existe en parte por eso.
@@ -399,6 +401,22 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
           where course_id = $1`,
         [ID.courseA],
       );
+    });
+
+    test('course_reviews_guard · una inscripta que no es la guia resena (D-20 no corta de mas)', async () => {
+      await db.exec(`reset role;`);
+      await db.query(`insert into public.enrollments (user_id, course_id, status, granted_by) values ($1, $2, 'active', $3)`, [ID.otro, ID.courseA, ID.admin]);
+      try {
+        const r = await asUser(db, { sub: ID.otro, userRole: 'student' }, () =>
+          attempt(db, `insert into public.course_reviews (course_id, user_id, rating) values ($1, $2, 4) returning id`, [ID.courseA, ID.otro]),
+        );
+        assert.equal(r.ok, true, `D-20 bloqueo a una alumna legitima: ${r.message}`);
+        assert.equal(r.rows.length, 1);
+      } finally {
+        await db.exec(`reset role;`);
+        await db.query(`delete from public.course_reviews where user_id = $1 and course_id = $2`, [ID.otro, ID.courseA]);
+        await db.query(`delete from public.enrollments where user_id = $1 and course_id = $2`, [ID.otro, ID.courseA]);
+      }
     });
 
     // 0026 metio la firma de la respuesta en este mismo guard. Su camino legitimo: la guia dueña
@@ -727,5 +745,52 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       await db.exec(`reset role;`);
       await db.exec(`drop trigger if exists t036_trigger_intruso on public.lessons;`);
     }
+  });
+});
+
+// T-037 · la cadena de 0017 sobre `course_reviews`: borrar la cuenta del admin que oculto una
+// resena dispara `on delete set null` sobre `hidden_by`, y el CHECK del trio lo rechazaba. Medido
+// en rojo el 2026-10-21 (23514 course_reviews_hidden_consistency).
+describe('ADR-011 · borrar la cuenta del admin que modero no queda bloqueado', () => {
+  let db;
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+  });
+  after(async () => db?.close());
+
+  test(`course_review_reports_guard · ${CASOS.course_review_reports_guard}`, async () => {
+    await db.exec(`reset role;`);
+    const [{ id: review }] = (await db.query(`select id from public.course_reviews where course_id = $1`, [ID.courseA])).rows;
+    const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+      attempt(db, `insert into public.course_review_reports (review_id, reporter_id, reason) values ($1, $2, $3)`, [
+        review, ID.teacherA, 'Insulta a otra alumna por su nombre.',
+      ]),
+    );
+    assert.equal(r.ok, true, `la guia no pudo reportar: ${r.message}`);
+    await db.exec(`reset role;`);
+    await db.query(
+      `update public.course_review_reports set resolved_at = now(), resolved_by = $1, resolution = 'desestimada' where review_id = $2`,
+      [ID.admin, review],
+    );
+    // El borrado del admin lo hace el caso siguiente (hidden_by); aca se deja el reporte resuelto
+    // por el admin para que ese mismo DELETE pruebe tambien el set null de resolved_by.
+  });
+
+  test('course_reviews · on delete set null de hidden_by', async () => {
+    await db.exec(`reset role;`);
+    await db.query(
+      `update public.course_reviews set hidden_at = now(), hidden_by = $1, hidden_reason = 'spam' where course_id = $2`,
+      [ID.admin, ID.courseA],
+    );
+    const r = await attempt(db, `delete from auth.users where id = $1`, [ID.admin]);
+    assert.equal(r.ok, true, `la cuenta del admin que oculto quedo imborrable: ${r.message}`);
+    const [rep] = (await db.query(`select resolved_at, resolved_by, resolution from public.course_review_reports`)).rows;
+    assert.equal(rep.resolved_by, null, 'resolved_by no se anulo');
+    assert.equal(rep.resolution, 'desestimada', 'se perdio la resolucion al borrar a quien resolvio');
+    const [fila] = (await db.query(`select hidden_at, hidden_by, hidden_reason from public.course_reviews where course_id = $1`, [ID.courseA])).rows;
+    assert.notEqual(fila.hidden_at, null, 'la resena se desoculto al borrar a quien la oculto');
+    assert.equal(fila.hidden_by, null);
+    assert.equal(fila.hidden_reason, 'spam');
   });
 });

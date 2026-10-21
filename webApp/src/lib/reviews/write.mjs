@@ -90,3 +90,37 @@ export function traducirErrorResena(error, fallback) {
   if (code === SIN_FILAS) return 'No encontramos esa reseña en tus cursos.';
   return fallback;
 }
+
+/**
+ * La guía dueña (o el admin) reporta una reseña (T-037, ADR-012). Quién puede lo decide la policy
+ * `course_review_reports_insert`; el motivo con un video_id lo corta el guard.
+ *
+ * @param {any} supabase cliente de sesión (supabase-js)
+ * @param {{ reviewId: string; reporterId: string; reason: string }} input
+ * @returns {Promise<{ error: ErrorDb | null }>}
+ */
+export async function reportarResena(supabase, { reviewId, reporterId, reason }) {
+  const { error } = await supabase
+    .from('course_review_reports')
+    .insert({ review_id: reviewId, reporter_id: reporterId, reason });
+  return { error: error ?? null };
+}
+
+/**
+ * @param {ErrorDb | null | undefined} error
+ * @param {string} fallback
+ * @returns {string}
+ */
+export function traducirErrorReporte(error, fallback) {
+  const code = error?.code;
+  if (code === '23505') return 'Ya reportaste esta reseña. El equipo la va a revisar.';
+  if (code === '42501') {
+    if ((error?.message ?? '').includes(MARCA_LOCALIZADOR)) {
+      return 'El motivo contiene el identificador de un video o archivo del curso. Describilo sin copiarlo.';
+    }
+    return 'Solo la guía del curso o el equipo de administración pueden reportar una reseña.';
+  }
+  if (code === '23514') return 'El motivo no puede estar vacío ni superar los 1000 caracteres.';
+  if (code === '23503') return 'Esa reseña ya no existe.';
+  return fallback;
+}

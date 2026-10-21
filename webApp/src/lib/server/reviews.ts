@@ -3,6 +3,7 @@ import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 import { createClient } from "@/lib/supabase/server";
 import { roundAverage } from "@/lib/reviews/rating";
 import { elegirDestacada } from "@/lib/reviews/featured.mjs";
+import { reportStatus, type ReportStatus } from "@/lib/reviews/report-status";
 
 export interface CourseReview {
   id: string;
@@ -27,12 +28,17 @@ export interface CourseReviewsData {
   reviews: CourseReview[];
   /** La reseña de quien mira, si tiene una. Null si no hay sesión o no reseñó. */
   own: CourseReview | null;
-  /** Si puede reseñar: inscripción activa. Lo decide RLS igual; esto es solo para la UI. */
+  /** Si puede reseñar: inscripción activa y no ser la guía dueña (D-20). Lo decide la base igual;
+   *  esto es solo para la UI. */
   canReview: boolean;
   /** La reseña destacada (c.4): la más reciente con 4-5 estrellas y texto. Null si no hay. */
   featured: CourseReview | null;
   /** Quien mira es la guía dueña: ve el formulario para responder. RLS y el guard deciden igual. */
   viewerIsOwner: boolean;
+  /** Guía dueña o admin: ve "Reportar al admin". RLS (`can_report_review`) decide igual. */
+  viewerCanReport: boolean;
+  /** Reportes propios de quien mira sobre las reseñas visibles, por id de reseña. */
+  viewerReports: Record<string, ReportStatus>;
 }
 
 interface ReviewRow {
@@ -76,7 +82,16 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
   if (error) {
     // Una ficha de curso no se cae porque la sección de reseñas falle.
     console.error(`[reviews] no se pudieron leer las reseñas de ${courseId}: ${error.message}`);
-    return { summary: EMPTY_SUMMARY, reviews: [], own: null, canReview: false, featured: null, viewerIsOwner: false };
+    return {
+      summary: EMPTY_SUMMARY,
+      reviews: [],
+      own: null,
+      canReview: false,
+      featured: null,
+      viewerIsOwner: false,
+      viewerCanReport: false,
+      viewerReports: {},
+    };
   }
 
   const rows = (data ?? []) as unknown as ReviewRow[];
@@ -108,6 +123,8 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
   let own: CourseReview | null = null;
   let canReview = false;
   let viewerIsOwner = false;
+  let viewerCanReport = false;
+  const viewerReports: Record<string, ReportStatus> = {};
   try {
     const sesion = await createClient();
     const { data: userData } = await sesion.auth.getUser();
@@ -115,23 +132,46 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
     if (uid) {
       const propia = rows.find((r) => r.user_id === uid);
       own = propia ? (reviews.find((x) => x.id === propia.id) ?? null) : null;
-      const { count } = await sesion
-        .from("enrollments")
-        .select("id", { count: "exact", head: true })
-        .eq("course_id", courseId)
-        .eq("user_id", uid)
-        .eq("status", "active");
-      canReview = (count ?? 0) > 0;
-      const { data: curso } = await sesion
-        .from("courses")
-        .select("teacher_id")
-        .eq("id", courseId)
-        .maybeSingle();
+      const [{ count }, { data: curso }, { data: perfil }] = await Promise.all([
+        sesion
+          .from("enrollments")
+          .select("id", { count: "exact", head: true })
+          .eq("course_id", courseId)
+          .eq("user_id", uid)
+          .eq("status", "active"),
+        sesion.from("courses").select("teacher_id").eq("id", courseId).maybeSingle(),
+        sesion.from("profiles").select("role").eq("id", uid).maybeSingle(),
+      ]);
       viewerIsOwner = curso?.teacher_id === uid;
+      // D-20: la guía no reseña su propio curso aunque esté inscripta; el guard lo rechaza igual.
+      canReview = (count ?? 0) > 0 && !viewerIsOwner;
+      viewerCanReport = viewerIsOwner || perfil?.role === "admin";
+      if (viewerCanReport && rows.length > 0) {
+        const { data: propios } = await sesion
+          .from("course_review_reports")
+          .select("review_id, resolution")
+          .eq("reporter_id", uid)
+          .in(
+            "review_id",
+            rows.map((r) => r.id),
+          );
+        for (const p of (propios ?? []) as { review_id: string; resolution: string | null }[]) {
+          viewerReports[p.review_id] = reportStatus(p.resolution);
+        }
+      }
     }
   } catch {
-    // Sin sesión no hay reseña propia ni permiso — el estado por defecto ya es ese.
+    // Sin sesión no hay reseña propia ni permiso: el estado por defecto ya es ese.
   }
 
-  return { summary, reviews, own, canReview, featured: elegirDestacada(reviews), viewerIsOwner };
+  return {
+    summary,
+    reviews,
+    own,
+    canReview,
+    featured: elegirDestacada(reviews),
+    viewerIsOwner,
+    viewerCanReport,
+    viewerReports,
+  };
 }
