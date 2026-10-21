@@ -212,3 +212,48 @@ export async function saveLessonNote(lessonId: string, atSeconds: number, body: 
 
   return { id: data.id, atSeconds: data.at_seconds, body: data.body, createdAt: data.created_at };
 }
+
+// La RLS (`user_id = auth.uid()`) es el control; el `.eq("user_id")` es defensa en profundidad.
+// Una nota ajena no da 403: PostgREST filtra en silencio y devuelve 0 filas, por eso 0 filas es error.
+const NOTE_NOT_FOUND = "No se encontró la nota.";
+
+/** Edita el texto de una nota propia. `at_seconds` no está en el payload: se conserva. */
+export async function updateLessonNote(noteId: string, body: string): Promise<NoteResult> {
+  const trimmed = body.trim();
+  if (!trimmed) throw new Error("La nota no puede estar vacía.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado.");
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .update({ body: trimmed })
+    .eq("id", noteId)
+    .eq("user_id", user.id)
+    .select("id, at_seconds, body, created_at");
+  if (error) throw new Error(`No se pudo editar la nota: ${error.message}`);
+  const row = data?.[0];
+  if (!row) throw new Error(NOTE_NOT_FOUND);
+
+  return { id: row.id, atSeconds: row.at_seconds, body: row.body, createdAt: row.created_at };
+}
+
+export async function deleteLessonNote(noteId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado.");
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .delete()
+    .eq("id", noteId)
+    .eq("user_id", user.id)
+    .select("id");
+  if (error) throw new Error(`No se pudo borrar la nota: ${error.message}`);
+  if (!data?.length) throw new Error(NOTE_NOT_FOUND);
+}
