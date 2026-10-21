@@ -7,6 +7,13 @@ export interface SeedUser {
 }
 
 export const ALUMNA: SeedUser = { email: "alumna@test.local", password: "test-1234", enrolledSlug: "tarot-iniciatico" };
+// T-037 · la guia duena de tarot-iniciatico y el admin del seed (T-043 ya lo usaba en su spec).
+export const SOL: SeedUser = {
+  email: "sol.mayor@seed.humano.local",
+  password: "seed-teacher-1234",
+  enrolledSlug: "tarot-iniciatico",
+};
+export const ADMIN: Pick<SeedUser, "email" | "password"> = { email: "admin@test.local", password: "test-1234" };
 export const DELFINA: SeedUser = {
   email: "delfina.curso-completo@seed.humano.local",
   password: "seed-student-1234",

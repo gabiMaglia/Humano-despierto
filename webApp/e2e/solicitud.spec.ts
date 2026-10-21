@@ -1,8 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { ALUMNA, assertStackUp, login, loginAs } from "./fixtures";
+import { ADMIN, ALUMNA, assertStackUp, login, loginAs } from "./fixtures";
 import { psql } from "./db";
 
-const ADMIN = { email: "admin@test.local", password: "test-1234" };
 const ALUMNA_ID = "d0000000-0000-4000-8000-000000000003";
 const SLUG = "herbario-lunar";
 const DE_LA_ALUMNA = `user_id = '${ALUMNA_ID}' and course_id = (select id from public.courses where slug = '${SLUG}')`;
