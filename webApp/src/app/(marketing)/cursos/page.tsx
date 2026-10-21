@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
 import PageHeader from "@/components/layout/PageHeader";
-import { getPublishedCourses } from "@/lib/server/courses";
+import { getPublishedCourses, signCatalogCovers } from "@/lib/server/courses";
 import { formatPriceCents } from "@/lib/utils/format";
 import {
   PAGE_SIZE,
@@ -95,6 +95,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
   const filtered = sortCourses(filterCourses(allCourses, state), state.order);
   const { items: pageCourses, page, totalPages } = paginate(filtered, state.page, PAGE_SIZE);
+  // Solo la pagina visible: firmar el catalogo entero seria una URL por curso que nadie ve.
+  const covers = await signCatalogCovers(pageCourses);
 
   const activeChips: { label: string; href: string }[] = [
     ...disciplineFacets
@@ -234,6 +236,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     slug={course.slug}
                     rating={course.rating}
                     reviewCount={course.reviewCount}
+                    coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}
                   />
                 ))}
               </div>

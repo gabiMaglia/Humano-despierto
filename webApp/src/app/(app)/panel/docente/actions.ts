@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { requireTeacher, assertOwnsCourse } from "@/lib/server/teacher";
+import { UPLOADS_BUCKET } from "@/lib/server/uploads";
 import {
   courseFormSchema,
   priceToCents,
@@ -169,6 +170,7 @@ export async function deleteCourseAction(
   try {
     await assertOwnsCourse(courseId, teacher.id);
     const supabase = await createClient();
+    const { data: current } = await supabase.from("courses").select("cover_path").eq("id", courseId).maybeSingle();
     // RLS `courses_delete_own_draft` (0004) solo deja borrar en 'draft': un curso publicado
     // no se borra desde acá (tendría inscripciones colgando) — el error de Postgres ya lo dice.
     const { error } = await supabase.from("courses").delete().eq("id", courseId);
@@ -177,6 +179,14 @@ export async function deleteCourseAction(
         error: `No se pudo borrar el curso (¿está publicado?): ${error.message}`,
         success: null,
       };
+    }
+    // Borrado el curso, `owns_course` da falso y la sesion ya no puede borrar el objeto. El path
+    // salio de la fila propia que se acaba de borrar y el CHECK lo ata a `covers/<courseId>/`.
+    if (current?.cover_path) {
+      const { error: removeError } = await createServiceRoleClient()
+        .storage.from(UPLOADS_BUCKET)
+        .remove([current.cover_path]);
+      if (removeError) console.error("[T-047] portada de curso borrado sin limpiar", current.cover_path, removeError.message);
     }
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo borrar el curso.", success: null };

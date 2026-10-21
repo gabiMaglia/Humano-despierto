@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
+import SignedImage from "@/components/atoms/SignedImage";
 import StatBlock from "@/components/atoms/StatBlock";
 import CurriculumAccordion from "@/components/course/CurriculumAccordion";
 import PromoVideo from "@/components/course/PromoVideo";
@@ -71,7 +72,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
       {/* Pergamino header */}
       <header className="border-b border-lila-300/18 px-6 py-16 md:px-12 text-center">
-        {/* Glyphs row */}
+        {course.coverUrl ? (
+          <figure className="relative mx-auto mb-8 aspect-[4/3] w-full max-w-xl overflow-hidden rounded-sm">
+            <SignedImage
+              src={course.coverUrl}
+              alt={`Portada del curso ${[course.title, course.titleEm].filter(Boolean).join(" ")}`}
+              loading="eager"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {FRAME_CORNERS.map((cls) => (
+              <span key={cls} className={`absolute h-5 w-5 ${cls} border-gold-400/60`} />
+            ))}
+          </figure>
+        ) : null}
+        {/* La fila de glifos queda siempre; sin portada es todo lo que hay arriba del titulo (c.3). */}
         <div className="mb-6 flex items-center justify-center gap-6">
           <svg className="h-12 w-12 stroke-lila-300/60 fill-none" viewBox="0 0 60 60" strokeWidth={0.6} aria-hidden>
             <circle cx={30} cy={30} r={22} /><circle cx={30} cy={30} r={14} strokeDasharray="1 2" />

@@ -648,6 +648,18 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
   });
 
   // ------------------------------------------------------------ controles positivos
+  // ------------------------------------------------------------ T-047 · portada de otro curso (R-6)
+  // El control con el CHECK revertido esta en course-cover.test.mjs; aca va el inventario del alumno.
+  describe('T-047 · la alumna no toca la portada de un curso', () => {
+    test('UPDATE de cover_path sobre courseB: cero filas', async () => {
+      const r = await asStudent(db, () =>
+        attempt(db, `update public.courses set cover_path = null where id = $1 returning id`, [ID.courseB]),
+      );
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows.length, 0, 'la alumna alcanzo la fila del curso');
+    });
+  });
+
   describe('controles positivos (el esquema no esta simplemente cerrado a todo)', () => {
     test('el alumno edita su propio nombre', async () => {
       const r = await asStudent(db, () =>

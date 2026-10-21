@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 548 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # ~560 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, 1 mock module left (`lib/mocks/landing.ts`, scheduled for removal in T-053), `tokens.css`. Real Supabase queries everywhere else. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 26 migrations (last `0028`), 14 tables, RLS + per-column grants + guard triggers, 502 mutation tests (PGlite). Private Storage bucket `uploads` (T-042; its policies are only tested over HTTP by b1). Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 27 migrations (last `0030`), 14 tables, RLS + per-column grants + guard triggers, 520 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047); its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -148,8 +148,16 @@ covered by mutation tests that fail loudly if you regress them.
    Action after checking enrollment. A `select *` on `lessons` from the client fails with 42501.
    Same for personal data: `profiles.phone` and `profiles.birth_date` have no SELECT for any
    client role; the owner reads them through `my_private_profile()`. A `select *` on `profiles`
-   from the client fails with 42501. Avatars live in the private bucket `uploads`
-   (`avatars/<uid>/<uuid>.<ext>`) and are served by 1 h signed URL.
+   from the client fails with 42501. Avatars and course covers live in the private bucket
+   `uploads` (`avatars/<uid>/<uuid>.<ext>`, `covers/<course_id>/<uuid>.<ext>`).
+   **No session writes to `uploads`** (D-34, migration 0030): the bucket only checks size and the
+   declared MIME, so a client INSERT policy let users bypass the server's byte check. Uploads go
+   through the Server Action with `service_role` (`uploadAsServer`) after validating magic bytes
+   and ownership; sessions keep only SELECT (owner signs her own) and DELETE.
+   `courses.cover_path` is tied to `covers/<id>/` by the CHECK `courses_cover_path_no_locator`.
+   Every `uploads` URL is signed server-side for 1 h; public pages sign through
+   `signPublicUploadUrls`, which calls `connection()`: a page that shows a signed URL must never
+   be prerendered.
 5. **`lesson_progress.completed` is derived, never declared.** It is computed from
    `seconds_watched` against `lessons.duration_seconds` at 90%, in INSERT and UPDATE, with no
    `service_role` bypass. **With `duration_seconds = 0` nobody can ever complete a lesson** —
@@ -163,7 +171,8 @@ covered by mutation tests that fail loudly if you regress them.
 - Fonts: Cinzel (display) · Quicksand (body) · Cormorant Garamond (quote) · Cardo (alt).
 - **No emojis.** Unicode glyphs only: `☉ ☽ ✦ ◐ ◑ ○ ● ✧`.
 - **No raster images.** Inline SVG and Unicode only. (`three.js` powers a WebGL canvas on the
-  login screen — that is the one exception, and it is deliberate.)
+  login screen — that is the one exception, and it is deliberate.) User uploads are the declared
+  exception (S-A): avatar (T-042) and course cover (T-047), jpg/png/webp only, never SVG.
 - Roman-numeral watermarks, Starfield background, ZodiacWheel (`wheelSpin` 60s).
 - Source of truth: `design_handoff_humano_humano/reference/design-system/`. **Copy** tokens into
   the app; never import across apps. Read the hi-fi JSX for spec and data — do not paste its HTML.
@@ -180,7 +189,8 @@ Three things block work and require the repo owner's accounts:
 - **Supabase cloud project** does not exist. The schema has only run on PGlite (`npm test`,
   no PostgREST) and on the local Supabase stack (`supabase start`, where
   `harness/b1-postgrest-attacks.sh` exercises the HTTP surface). Re-run b1 against the cloud
-  instance before any release (locale-dependent CHECKs, see migration 0012).
+  instance before any release (locale-dependent CHECKs, see migration 0012). The Storage
+  policies (`uploads_avatars_*`, `uploads_covers_*`) are verified only by b1.
 - **YouTube Data API v3 key** (`YOUTUBE_API_KEY`, server-side, no `NEXT_PUBLIC_` prefix) —
   lesson duration is resolved by the server from the video, not typed by the teacher.
 - **Google OAuth client** (`SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `_SECRET`, in
