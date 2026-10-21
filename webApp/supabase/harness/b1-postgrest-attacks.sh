@@ -350,6 +350,43 @@ x "delete from public.campus_posts where author_id in ('$ALUMNA','$DOCENTE');"
 x "delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
 
 echo ""
+echo "── T-045 · notas: editar y borrar la nota de OTRA (la RLS filtra en silencio: 200 con [])"
+# Una policy UPDATE/DELETE con USING falso no da 403: PostgREST contesta 200 y `[]`. Se afirma
+# esa forma exacta (con `Prefer: return=representation`) y despues la verdad en la tabla.
+nota_http() {  # $1 rotulo · $2 metodo · $3 id · $4 jwt · $5 filas esperadas · $6 body opcional
+  local out code cuerpo n
+  out=$(curl -s -w $'\n%{http_code}' -X "$2" "$API/rest/v1/lesson_notes?id=eq.$3" \
+        -H "apikey: $ANON" -H "Authorization: Bearer $4" -H "Content-Type: application/json" \
+        -H "Prefer: return=representation" ${6:+-d "$6"})
+  code=$(tail -1 <<<"$out"); cuerpo=$(sed '$d' <<<"$out")
+  n=$(python3 -c "import sys,json;print(len(json.load(sys.stdin)))" <<<"$cuerpo" 2>/dev/null || echo "?")
+  if [ "$code" = "200" ] && [ "$n" = "$5" ]; then
+    printf '  ok    %-52s HTTP %s, %s fila(s)\n' "$1" "$code" "$n"
+  else
+    printf '  FALLA %-52s HTTP %s, filas=%s (esperaba 200 y %s)\n       %s\n' "$1" "$code" "$n" "$5" "$(head -c 160 <<<"$cuerpo")"
+    fallos=$((fallos+1))
+  fi
+}
+x "delete from public.lesson_notes where body like 'b1-nota:%';
+   insert into public.lesson_notes (user_id,course_id,lesson_id,at_seconds,body) values
+     ('$DOCENTE','$CURSO','$LEC',10,'b1-nota: de la docente'),
+     ('$ALUMNA','$CURSO','$LEC',20,'b1-nota: de la alumna');"
+NOTA_AJENA=$(q "select id from public.lesson_notes where body='b1-nota: de la docente';")
+NOTA_PROPIA=$(q "select id from public.lesson_notes where body='b1-nota: de la alumna';")
+nota_http "(n1) editar la nota ajena"            PATCH  "$NOTA_AJENA"  "$ALUMNA_JWT" 0 '{"body":"secuestrada"}'
+nota_http "(n2) borrar la nota ajena"            DELETE "$NOTA_AJENA"  "$ALUMNA_JWT" 0
+esperar   "(n3) robar la nota (user_id propio)"  403 PATCH "lesson_notes?id=eq.$NOTA_AJENA" "$ALUMNA_JWT" "{\"user_id\":\"$ALUMNA\"}"
+CUERPO_AJENA=$(q "select body || '|' || user_id from public.lesson_notes where id='$NOTA_AJENA';")
+if [ "$CUERPO_AJENA" = "b1-nota: de la docente|$DOCENTE" ]; then
+  printf '  ok    %-52s %s\n' "la nota ajena sigue intacta en la DB" "afirmado, no supuesto"
+else
+  printf '  FALLA la nota ajena cambio: %s\n' "$CUERPO_AJENA"; fallos=$((fallos+1))
+fi
+nota_http "(n4) editar la nota PROPIA (camino legitimo)" PATCH  "$NOTA_PROPIA" "$ALUMNA_JWT" 1 '{"body":"b1-nota: editada"}'
+nota_http "(n5) borrar la nota PROPIA (camino legitimo)" DELETE "$NOTA_PROPIA" "$ALUMNA_JWT" 1
+x "delete from public.lesson_notes where body like 'b1-nota:%';"
+
+echo ""
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"
