@@ -168,6 +168,10 @@ const INSERT_ESPERADO = {
 
   enrollments: ['user_id', 'course_id'],
 
+  // T-033 · guardados. SIN guard, decidido: sin texto libre ni estado; `user_id` lo compuerta
+  // el WITH CHECK de `course_wishlist_insert_own` (duena + curso publicado).
+  course_wishlist: ['user_id', 'course_id'],
+
   courses: ['slug', 'title', 'title_em', 'subtitle', 'intro', 'discipline', 'level', 'price_cents',
             'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id',
             'learning_objectives', 'prerequisites', 'description', 'language', 'promo_video_id'],

@@ -3,6 +3,7 @@ import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPublishedCourses, signCatalogCovers } from "@/lib/server/courses";
+import { getWishlistIds } from "@/lib/server/wishlist";
 import { formatPriceCents } from "@/lib/utils/format";
 import {
   PAGE_SIZE,
@@ -97,6 +98,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const { items: pageCourses, page, totalPages } = paginate(filtered, state.page, PAGE_SIZE);
   // Solo la pagina visible: firmar el catalogo entero seria una URL por curso que nadie ve.
   const covers = await signCatalogCovers(pageCourses);
+  // T-033 · una consulta para todas las cards. Sin sesión el botón lleva al login y vuelve acá,
+  // con los filtros puestos.
+  const savedIds = await getWishlistIds();
+  const loginHref = savedIds ? null : `/entrar?next=${encodeURIComponent(hrefFor(current))}`;
 
   const activeChips: { label: string; href: string }[] = [
     ...disciplineFacets
@@ -237,6 +242,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     rating={course.rating}
                     reviewCount={course.reviewCount}
                     coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}
+                    wishlist={{ courseId: course.id, saved: savedIds?.has(course.id) ?? false, loginHref }}
                   />
                 ))}
               </div>

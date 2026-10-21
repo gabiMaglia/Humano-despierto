@@ -4,6 +4,7 @@ import { aggregateRatings } from "@/lib/reviews/rating";
 import { signPublicUploadUrls } from "@/lib/server/uploads";
 
 export interface PublishedCourseSummary {
+  id: string;
   slug: string;
   title: string;
   titleEm: string | null;
@@ -197,6 +198,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       return sum + moduleSeconds;
     }, 0);
     return {
+      id: row.id,
       slug: row.slug,
       title: row.title,
       titleEm: row.title_em,

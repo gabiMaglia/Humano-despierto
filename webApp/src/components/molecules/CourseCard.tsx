@@ -4,6 +4,7 @@ import Avatar from "@/components/atoms/Avatar";
 import SignedImage from "@/components/atoms/SignedImage";
 import Stars from "@/components/reviews/Stars";
 import { formatRating } from "@/lib/reviews/rating";
+import WishlistButton from "@/components/course/WishlistButton";
 
 export interface CourseCardData {
   num: string;
@@ -27,11 +28,13 @@ export interface CourseCardData {
 
 interface Props extends CourseCardData {
   className?: string;
+  /** T-033 · sin esto la card no dibuja botón (landing). `loginHref` solo sin sesión. */
+  wishlist?: { courseId: string; saved: boolean; loginHref: string | null };
 }
 
 export default function CourseCard({
   num, tag, title, titleEm, desc, teacher, price,
-  weeks, level, moon, featured, slug, rating, reviewCount, coverUrl, className,
+  weeks, level, moon, featured, slug, rating, reviewCount, coverUrl, className, wishlist,
 }: Props) {
   const ratingText = rating !== undefined && reviewCount ? formatRating(rating, reviewCount) : null;
   return (
@@ -44,12 +47,15 @@ export default function CourseCard({
     // y el pie ocupan siempre lo mismo, sin importar cuanto texto traiga cada curso.
     // Antes cada card medía distinto segun el largo de la descripcion y la grilla
     // quedaba despareja.
+    //
+    // T-033 · el botón de guardar es HERMANO del link, no hijo: un <button> dentro de un <a> es
+    // HTML inválido. El elevado al hover vive en el contenedor para que se muevan juntos.
+    <div className={cn("group relative h-full transition-transform duration-300 hover:-translate-y-1", className)}>
     <Link
       href={`/cursos/${slug}`}
       className={cn(
-        "cosmos-card group relative flex h-full cursor-pointer flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lila-glow",
-        featured && "border-lila-300/40 bg-cosmos-elev",
-        className
+        "cosmos-card relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow duration-300 group-hover:shadow-lila-glow",
+        featured && "border-lila-300/40 bg-cosmos-elev"
       )}
     >
       {/* Image placeholder */}
@@ -74,7 +80,7 @@ export default function CourseCard({
         )}
         {/* Featured flag */}
         {featured && (
-          <span className="absolute top-3 right-3 font-display text-eyebrow tracking-cosmic text-gold-400 bg-cosmos-0/70 px-2 py-0.5 rounded-pill">
+          <span className="absolute top-3 right-14 font-display text-eyebrow tracking-cosmic text-gold-400 bg-cosmos-0/70 px-2 py-0.5 rounded-pill">
             ✦ destacado
           </span>
         )}
@@ -132,5 +138,12 @@ export default function CourseCard({
         </div>
       </div>
     </Link>
+    {wishlist && (
+      <WishlistButton
+        {...wishlist}
+        className="absolute right-3 top-3 z-10"
+      />
+    )}
+    </div>
   );
 }
