@@ -69,7 +69,10 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /cursos  ·  /cursos/[slug]          Catalogue · course page (objectives, promo video, reviews)
 /guias  ·  /guias/[slug]            Teacher directory + public profile
 /diario  ·  /diario/[slug]          Blog, written by teachers
-/entrar                             Login + register (client-side Supabase Auth)
+/entrar                             Login + register; honours ?next=, else lands by role
+/entrar/recuperar                   Request a password-reset link (neutral reply)
+/entrar/nueva-clave                 Choose a new password                     [link session]
+/auth/callback                      GoTrue code exchange (confirmation, recovery)
 /certificado/[code]                 Public certificate verification
 /inscribirme/[curso]                Checkout MOCK: no handlers, replaced by T-043 (request + admin approval)
 /panel                              Student dashboard                         [auth]
@@ -87,8 +90,7 @@ under `(app)/`, which re-read `profiles.role`.
 ### Known gaps (measured 2026-10-21, see `docs/superpowers/specs/2026-10-21-cierre-funcional-master.md`)
 - **Resources are not downloadable.** `lesson_resources` are listed by name only; no route serves
   the Drive link after checking enrollment (T-044).
-- **No password reset, no email confirmation, no Google OAuth** (T-040, T-041). Login always
-  redirects to `/panel` regardless of role.
+- **No Google OAuth** (T-041). Password reset and email confirmation landed in T-040.
 - **Profiles are not editable** and there is no Storage usage (T-042).
 - **Mail transport is a bare SMTP client for Mailpit**: no AUTH, no TLS (T-054).
 - **No rate limiting, no error capture, no CSP** (SP-6).
@@ -103,6 +105,13 @@ with `import 'server-only'`.
 **Supabase** (ADR-002) provides Auth + Postgres + RLS. Two clients, never mixed:
 the user-session client (anon key + JWT, subject to RLS) for everything ordinary, and the
 `service_role` client (bypasses RLS) **only** for privileged operations.
+
+**Auth by mail** (T-040, D8): `enable_confirmations = true`, so `signUp` leaves no session. The
+session is born in `/auth/callback`, which also sends the welcome mail (deduped by `mail_log`).
+`?next=` is sanitised only by `src/lib/auth/safe-next.ts`; without a valid `next` the login
+lands by `profiles.role` (`/panel/admin`, `/panel/docente`, `/panel`). Mail links must be
+opened in the browser that requested them: the PKCE verifier lives in a cookie. Local e2e needs
+`SMTP_HOST=127.0.0.1` and `SMTP_PORT=54325` in `webApp/.env.local` for the app's own mails.
 
 ### Security rules that are enforced by the schema — do not fight them
 These exist because the same class of bug reached production in a sibling project. They are
