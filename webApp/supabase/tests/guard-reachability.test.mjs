@@ -335,6 +335,22 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       );
     });
 
+    test('course_reviews_guard · una inscripta que no es la guia resena (D-20 no corta de mas)', async () => {
+      await db.exec(`reset role;`);
+      await db.query(`insert into public.enrollments (user_id, course_id, status, granted_by) values ($1, $2, 'active', $3)`, [ID.otro, ID.courseA, ID.admin]);
+      try {
+        const r = await asUser(db, { sub: ID.otro, userRole: 'student' }, () =>
+          attempt(db, `insert into public.course_reviews (course_id, user_id, rating) values ($1, $2, 4) returning id`, [ID.courseA, ID.otro]),
+        );
+        assert.equal(r.ok, true, `D-20 bloqueo a una alumna legitima: ${r.message}`);
+        assert.equal(r.rows.length, 1);
+      } finally {
+        await db.exec(`reset role;`);
+        await db.query(`delete from public.course_reviews where user_id = $1 and course_id = $2`, [ID.otro, ID.courseA]);
+        await db.query(`delete from public.enrollments where user_id = $1 and course_id = $2`, [ID.otro, ID.courseA]);
+      }
+    });
+
     // 0026 metio la firma de la respuesta en este mismo guard. Su camino legitimo: la guia dueña
     // manda SOLO el texto (sin grant sobre `responded_*`) y el guard firma por ella.
     test('course_reviews_guard · la guia dueña responde y el guard firma (0026)', async () => {
@@ -560,5 +576,31 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       await db.exec(`reset role;`);
       await db.exec(`drop trigger if exists t036_trigger_intruso on public.lessons;`);
     }
+  });
+});
+
+// T-037 · la cadena de 0017 sobre `course_reviews`: borrar la cuenta del admin que oculto una
+// resena dispara `on delete set null` sobre `hidden_by`, y el CHECK del trio lo rechazaba. Medido
+// en rojo el 2026-10-21 (23514 course_reviews_hidden_consistency).
+describe('ADR-011 · borrar la cuenta del admin que modero no queda bloqueado', () => {
+  let db;
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+  });
+  after(async () => db?.close());
+
+  test('course_reviews · on delete set null de hidden_by', async () => {
+    await db.exec(`reset role;`);
+    await db.query(
+      `update public.course_reviews set hidden_at = now(), hidden_by = $1, hidden_reason = 'spam' where course_id = $2`,
+      [ID.admin, ID.courseA],
+    );
+    const r = await attempt(db, `delete from auth.users where id = $1`, [ID.admin]);
+    assert.equal(r.ok, true, `la cuenta del admin que oculto quedo imborrable: ${r.message}`);
+    const [fila] = (await db.query(`select hidden_at, hidden_by, hidden_reason from public.course_reviews where course_id = $1`, [ID.courseA])).rows;
+    assert.notEqual(fila.hidden_at, null, 'la resena se desoculto al borrar a quien la oculto');
+    assert.equal(fila.hidden_by, null);
+    assert.equal(fila.hidden_reason, 'spam');
   });
 });
