@@ -117,6 +117,11 @@ const COLUMNAS = [
   ['profiles.headline',            (v) => [`update public.profiles set headline = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.location',            (v) => [`update public.profiles set location = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.quote',               (v) => [`update public.profiles set quote = $1 where id = $2`, [v, ID.teacherA]]],
+  // T-042 · `avatar_path` lo lee `anon` (la ficha firma la URL desde ahi) y lo escribe la duena. Su
+  // CHECK es un regex de dominio cerrado llamado `_no_locator`. El ataque conserva el prefijo
+  // `avatars/<id propio>/` para pasar el guard de carpeta: lo que este barrido prueba es el CHECK
+  // (23514), y sin el prefijo el 42501 del guard lo taparia.
+  ['profiles.avatar_path',         (v) => [`update public.profiles set avatar_path = 'avatars/' || id::text || '/' || $1 where id = $2`, [v, ID.teacherA]]],
   // T-022 · Diario. `slug`/`title`/`excerpt` son metadata corta de catalogo, misma clase que
   // `courses.*`. `body` queda deliberadamente AFUERA de esta lista — ver EXENTAS_POR_GUARD y la
   // nota larga de la migracion 0018: lo protege `guard_diario_posts` (coincidencia exacta contra
