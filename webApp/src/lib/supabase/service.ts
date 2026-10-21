@@ -6,7 +6,8 @@ import { createClient } from "@supabase/supabase-js";
  * Uso EXCLUSIVO: leer/escribir columnas localizadoras de contenido pago
  * (`lessons.video_id`, `lesson_resources.drive_file_id`/`.url`) y otros campos de servidor
  * (`courses.status`, `lessons.is_published`/`duration_seconds`, `enrollments`,
- * `profiles.role`) — ADR-003 regla A. Cualquier otro uso de este cliente anula RLS sin que
+ * `profiles.role`) — ADR-003 regla A. También firma el avatar de la ficha pública
+ * (`/guias/[slug]`, T-042), nunca lee datos de `profiles`. Cualquier otro uso de este cliente anula RLS sin que
  * nadie lo note; el llamador es responsable de verificar el permiso ANTES de invocarlo (este
  * cliente no verifica nada por sí mismo, sólo bypassa).
  */

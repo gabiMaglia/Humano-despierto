@@ -62,3 +62,38 @@ test("c.8 · la alumna carga y borra su fecha de nacimiento", async ({ page, req
   await page.reload();
   await expect(page.getByLabel("Fecha de nacimiento")).toHaveValue("");
 });
+
+// PNG 1x1 real: la action mira la firma de 8 bytes, pero un PNG valido deja que el navegador lo pinte.
+const PNG_1X1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+test("c.7 · avatar firmado en la ficha publica, sin datos privados, y al quitarlo vuelve el glifo", async ({ page, browser, request }) => {
+  await assertStackUp(request);
+  await loginDocente(page);
+  const anon = await browser.newContext();
+  const pub = await anon.newPage();
+  try {
+    await guardarPerfil(page, { telefono: "+54 11 4321-9876", fecha: "1981-07-19" });
+    await page.getByLabel(/Elegir imagen/).setInputFiles({ name: "retrato.png", mimeType: "image/png", buffer: PNG_1X1 });
+    await page.getByRole("button", { name: "Subir imagen" }).click();
+    await expect(page.getByText("Imagen actualizada.")).toBeVisible();
+
+    const res = await pub.goto(`/guias/${SOL.slug}`);
+    const html = (await res?.text()) ?? "";
+    expect(html).not.toContain("4321-9876");
+    expect(html).not.toContain("1981-07-19");
+    const retrato = pub.getByRole("img", { name: `Retrato de ${SOL.fullName}` });
+    await expect(retrato).toHaveAttribute("src", /\/storage\/v1\/object\/sign\/uploads\/avatars\//);
+
+    await page.goto("/panel/perfil");
+    await page.getByRole("button", { name: "Quitar imagen" }).click();
+    await expect(page.getByText("Imagen quitada.")).toBeVisible();
+    await pub.reload();
+    await expect(pub.getByRole("img", { name: `Retrato de ${SOL.fullName}` })).toHaveCount(0);
+  } finally {
+    await guardarPerfil(page, { telefono: "", fecha: "" });
+    await anon.close();
+  }
+});

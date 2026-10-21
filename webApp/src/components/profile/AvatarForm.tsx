@@ -43,13 +43,14 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
         <FormStatus state={uploadState} />
       </form>
       {avatarUrl && (
-        <form action={removeAction} className="flex flex-col items-center gap-2">
+        <form action={removeAction}>
           <button type="submit" disabled={removing} className="btn-ritual btn-ritual-ghost rounded-pill">
             Quitar imagen
           </button>
-          <FormStatus state={removeState} />
         </form>
       )}
+      {/* Fuera del bloque condicional: al quitar, `avatarUrl` pasa a null y el aviso se iria con el form. */}
+      <FormStatus state={removeState} />
     </section>
   );
 }

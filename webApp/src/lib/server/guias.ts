@@ -1,5 +1,8 @@
 import "server-only";
+import { cache } from "react";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
+import { createServiceRoleClient } from "@/lib/supabase/service";
+import { signAvatarUrl } from "@/lib/server/avatar";
 
 // T-017 · lectura publica de la ficha de docente (`/guias`, `/guias/[slug]`, la seccion
 // "Maestra" de la landing). Reemplaza `src/lib/mocks/guia.ts`.
@@ -40,6 +43,7 @@ export interface PublicTeacherProfile extends PublicTeacherCard {
   bio: string | null;
   formations: { year: string; title: string; place: string }[];
   testimonials: { quote: string; who: string; course: string }[];
+  avatarUrl: string | null;
   courses: PublicTeacherCourse[];
 }
 
@@ -55,6 +59,7 @@ interface TeacherRow {
   bio: string | null;
   formations: { year: string; title: string; place: string }[] | null;
   testimonials: { quote: string; who: string; course: string }[] | null;
+  avatar_path: string | null;
 }
 
 interface CourseRow {
@@ -82,7 +87,7 @@ async function fetchTeachersAndCourses() {
       supabase
         .from("profiles")
         .select(
-          "id, full_name, slug, glyph, headline, location, quote, years_practice, bio, formations, testimonials"
+          "id, full_name, slug, glyph, headline, location, quote, years_practice, bio, formations, testimonials, avatar_path"
         )
         .eq("role", "teacher")
         .not("slug", "is", null),
@@ -133,7 +138,8 @@ export async function getPublicTeachers(): Promise<PublicTeacherCard[]> {
     .sort((a, b) => a.fullName.localeCompare(b.fullName, "es"));
 }
 
-export async function getTeacherBySlug(slug: string): Promise<PublicTeacherProfile | null> {
+// `cache`: generateMetadata y la pagina piden la misma ficha; sin esto son dos firmas por request.
+export const getTeacherBySlug = cache(async (slug: string): Promise<PublicTeacherProfile | null> => {
   const { teachers, courses } = await fetchTeachersAndCourses();
   const row = teachers.find((t) => t.slug === slug);
   if (!row) return null;
@@ -146,6 +152,9 @@ export async function getTeacherBySlug(slug: string): Promise<PublicTeacherProfi
     bio: row.bio,
     formations: row.formations ?? [],
     testimonials: row.testimonials ?? [],
+    // service_role solo FIRMA: `anon` no tiene SELECT sobre storage.objects, y el path ya paso por
+    // el guard de carpeta de 0028, asi que no puede apuntar al archivo de otra persona.
+    avatarUrl: await signAvatarUrl(createServiceRoleClient(), row.avatar_path),
     courses: courses
       .filter((c) => c.teacher_id === row.id)
       .map((c) => ({
@@ -157,7 +166,7 @@ export async function getTeacherBySlug(slug: string): Promise<PublicTeacherProfi
         moonGlyph: c.moon_glyph,
       })),
   };
-}
+});
 
 /**
  * "Maestra" de la landing. Sin un flag `featured` en `profiles` (no se justifica una columna
