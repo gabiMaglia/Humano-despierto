@@ -33,7 +33,10 @@ alta() {
   curl -s -X POST "$API/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" \
     -d "{\"email\":\"$1\",\"password\":\"$PASS\"${2:+,\"data\":$2}}" >/dev/null
   # Se reafirman contraseña Y rol: el signup no los pisa si el usuario ya existía.
-  x "update auth.users set encrypted_password = crypt('$PASS', gen_salt('bf'))
+  # T-040 (D8): con `enable_confirmations = true` el signup deja la cuenta sin confirmar y el
+  # login del harness rebota; se confirma acá en vez de abrir el link de Mailpit.
+  x "update auth.users set encrypted_password = crypt('$PASS', gen_salt('bf')),
+       email_confirmed_at = coalesce(email_confirmed_at, now())
      where email = '$1';"
   x "update public.profiles set role = '${3:-student}'
      where id = (select id from auth.users where email = '$1');"
