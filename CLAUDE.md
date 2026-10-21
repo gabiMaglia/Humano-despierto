@@ -90,7 +90,8 @@ under `(app)/`, which re-read `profiles.role`.
 ### Known gaps (measured 2026-10-21, see `docs/superpowers/specs/2026-10-21-cierre-funcional-master.md`)
 - **Resources are not downloadable.** `lesson_resources` are listed by name only; no route serves
   the Drive link after checking enrollment (T-044).
-- **No Google OAuth** (T-041). Password reset and email confirmation landed in T-040.
+- **Google OAuth is wired but unproven against Google** (T-041): it needs the PO's OAuth client
+  credentials (see "External dependencies"); e2e only intercepts `/auth/v1/authorize`.
 - **Profiles are not editable** and there is no Storage usage (T-042).
 - **Mail transport is a bare SMTP client for Mailpit**: no AUTH, no TLS (T-054).
 - **No rate limiting, no error capture, no CSP** (SP-6).
@@ -123,7 +124,9 @@ the same exchange as mail confirmation. Logic lives in `src/lib/auth/google.ts`.
 Google identity to the account with the same verified mail automatically (and drops that
 account's unconfirmed identities). `handle_new_user` takes `full_name` or `name` from the
 provider and leaves the name empty if it looks like a locator, instead of aborting the sign-up.
-Without a valid `next` Google lands on `/panel` (the role-based landing is password-login only).
+Without a valid `next` the `redirect_to` carries no query and `resolveAuthCallback` lands by
+`profiles.role` read after the exchange, so the role-based landing applies to every login
+(password, Google, mail confirmation); a failed role read falls back to `/panel`.
 
 ### Security rules that are enforced by the schema — do not fight them
 These exist because the same class of bug reached production in a sibling project. They are
