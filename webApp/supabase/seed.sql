@@ -791,4 +791,45 @@ from (values
 left join teachers t on t.full_name = v.teacher_name
 on conflict (id) do update set body = excluded.body, updated_at = excluded.updated_at;
 
+-- ---------------------------------------------------------------- fixtures de prueba por rol
+-- T-038 c.7 · Antes vivian solo en la base local y un `db reset` los borro (N-01). Contrasena
+-- de los tres: test-1234. Mismo patron que las docentes de arriba: el trigger
+-- on_auth_user_created siembra profiles como student y el UPDATE corrige el rol. La docente
+-- no lleva slug a proposito: sin slug queda fuera del directorio publico /guias.
+-- Solo para local: el ticket que lleve el schema a la nube los excluye.
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values
+  ('d0000000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'admin@test.local',
+   crypt('test-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Admin de Prueba"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('d0000000-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'docente@test.local',
+   crypt('test-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Docente de Prueba"}'::jsonb,
+   now(), now(), '', '', '', ''),
+  ('d0000000-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'alumna@test.local',
+   crypt('test-1234', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Alumna de Prueba"}'::jsonb,
+   now(), now(), '', '', '', '')
+on conflict (id) do nothing;
+
+update public.profiles set role = 'admin'
+where id = 'd0000000-0000-4000-8000-000000000001' and role <> 'admin';
+
+update public.profiles set role = 'teacher'
+where id = 'd0000000-0000-4000-8000-000000000002' and role <> 'teacher';
+
+-- La alumna de prueba cursa tarot-iniciatico (tiene lecciones publicadas con video_id) y NO
+-- esta en herbario-lunar: T-039 c.7 usa ese curso como ataque R-8.
+insert into public.enrollments (user_id, course_id, status, granted_by)
+select 'd0000000-0000-4000-8000-000000000003'::uuid, c.id, 'active', null
+from public.courses c where c.slug = 'tarot-iniciatico'
+on conflict (user_id, course_id) do update set status = excluded.status;
+
 commit;

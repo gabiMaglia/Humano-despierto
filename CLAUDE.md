@@ -54,7 +54,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~3.6k LOC.** 11 route files, 24 components, 8 mock modules, `tokens.css`, zustand store. |
-| `webApp/supabase` | **Schema live.** 24 migrations, 14 tables, RLS + per-column grants + guard triggers, 449 mutation tests. |
+| `webApp/supabase` | **Schema live.** 24 migrations, 14 tables, RLS + per-column grants + guard triggers, 449 mutation tests. Fixtures `@test.local` (admin, docente, alumna) en `seed.sql`. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
