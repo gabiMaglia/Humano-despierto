@@ -43,6 +43,16 @@ const respuestaFresca = (autor) => async (db) =>
     `insert into public.lesson_answers (question_id, author_id, body) values ($1, $2, 'Respuesta base') returning id`,
     [await preguntaFresca(db), autor],
   );
+// T-031 · un BORRADOR: sobre un publicado el ataque fallaria por el congelado (42501 por la razon
+// equivocada) y la columna se contaria cubierta sin haber probado el localizador.
+const borradorFresco = (db) =>
+  filaComoOwner(
+    db,
+    `insert into public.course_announcements (course_id, author_id, title, body)
+     values ($1, $2, 'Titulo base', 'Cuerpo base') returning id`,
+    [ID.courseA, ID.teacherA],
+  );
+
 const BORRAR = (tabla) =>
   `update public.${tabla} set deleted_at = now(), deleted_by = '${ID.teacherA}', deleted_reason = $2
     where id = $1 returning id`;
@@ -84,6 +94,17 @@ const ATAQUES = {
     sql: `update public.lesson_answers set body = $2 where id = $1 returning id`,
   },
   'lesson_answers.deleted_reason': { actor: DUENA, fila: respuestaFresca(ID.student), sql: BORRAR('lesson_answers') },
+  'course_announcements.title': {
+    actor: DUENA,
+    fila: borradorFresco,
+    sql: `update public.course_announcements set title = $2 where id = $1 returning id`,
+  },
+  'course_announcements.body': {
+    actor: DUENA,
+    fila: borradorFresco,
+    sql: `update public.course_announcements set body = $2 where id = $1 returning id`,
+  },
+  'course_announcements.deleted_reason': { actor: DUENA, fila: borradorFresco, sql: BORRAR('course_announcements') },
 };
 
 const NUEVAS_T030 = [
@@ -93,6 +114,8 @@ const NUEVAS_T030 = [
   'lesson_questions.deleted_reason',
   'lesson_questions.title',
 ];
+
+const NUEVAS_T031 = ['course_announcements.body', 'course_announcements.deleted_reason', 'course_announcements.title'];
 
 describe('ADR-009/010 · la clase con sesion no acepta localizadores', () => {
   let db;
@@ -110,6 +133,26 @@ describe('ADR-009/010 · la clase con sesion no acepta localizadores', () => {
     const nombres = columnas.map((c) => c.columna);
     const faltan = NUEVAS_T030.filter((c) => !nombres.includes(c));
     assert.deepEqual(faltan, [], `el recorte no ve: ${faltan.join(', ')}`);
+  });
+
+  test('el recorte ve las columnas de T-031', () => {
+    const nombres = columnas.map((c) => c.columna);
+    const faltan = NUEVAS_T031.filter((c) => !nombres.includes(c));
+    assert.deepEqual(faltan, [], `el recorte no ve: ${faltan.join(', ')}`);
+  });
+
+  test('mutacion · sin course_announcements_locator_guard el video_id entra', async () => {
+    const id = await borradorFresco(db);
+    await db.exec(`reset role; begin;`);
+    try {
+      await db.exec(`drop trigger course_announcements_locator_guard on public.course_announcements;`);
+      const r = await asUser(db, DUENA, () =>
+        attempt(db, `update public.course_announcements set body = $2 where id = $1`, [id, `Mira ${SECRET.videoId}`]),
+      );
+      assert.equal(r.ok, true, 'sin el trigger el ataque DEBERIA pasar; si no, este test no prueba el trigger');
+    } finally {
+      await db.exec(`reset role; rollback;`);
+    }
   });
 
   test('toda columna de la clase tiene ataque o exencion escrita', () => {
