@@ -14,61 +14,13 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { bootDatabase, asUser, attempt } from '../harness/db.mjs';
+import { bootDatabase } from '../harness/db.mjs';
+import { clientePostgrest } from '../harness/postgrest-client.mjs';
 import { seed, ID, SECRET } from './seed.mjs';
 
 const { guardarResena, responderResena, traducirErrorResena } = await import('../../src/lib/reviews/write.mjs');
 const { elegirDestacada } = await import('../../src/lib/reviews/featured.mjs');
 const { reviewAnchorPath, REVIEWS_ANCHOR } = await import('../../src/lib/reviews/links.mjs');
-
-/** Cliente minimo con la forma de supabase-js que emite el SQL de PostgREST, como `sub`. */
-function clientePostgrest(db, actor) {
-  const run = (sql, params) =>
-    asUser(db, actor, async () => {
-      const r = await attempt(db, sql, params);
-      return r.ok ? { data: r.rows, error: null } : { data: null, error: { code: r.code, message: r.message } };
-    });
-
-  return {
-    from(table) {
-      return {
-        insert(row) {
-          const cols = Object.keys(row);
-          return run(
-            `insert into public.${table} (${cols.join(', ')}) values (${cols.map((_, i) => `$${i + 1}`).join(', ')})`,
-            Object.values(row),
-          );
-        },
-        upsert(row, { onConflict }) {
-          const cols = Object.keys(row);
-          return run(
-            `insert into public.${table} (${cols.join(', ')}) values (${cols.map((_, i) => `$${i + 1}`).join(', ')})
-             on conflict (${onConflict}) do update set ${cols.map((c) => `${c} = excluded.${c}`).join(', ')}`,
-            Object.values(row),
-          );
-        },
-        update(vals) {
-          const filtros = [];
-          let returning = '';
-          const b = {
-            eq(col, v) { filtros.push([col, v]); return b; },
-            select(cols) { returning = ` returning ${cols}`; return b; },
-            then(resolve, reject) {
-              const sets = Object.keys(vals);
-              const params = [...Object.values(vals), ...filtros.map(([, v]) => v)];
-              const where = filtros.map(([c], i) => `${c} = $${sets.length + i + 1}`).join(' and ');
-              return run(
-                `update public.${table} set ${sets.map((c, i) => `${c} = $${i + 1}`).join(', ')} where ${where}${returning}`,
-                params,
-              ).then(resolve, reject);
-            },
-          };
-          return b;
-        },
-      };
-    },
-  };
-}
 
 const ALUMNA = { sub: ID.student, userRole: 'student' };
 const GUIA_DUENA = { sub: ID.teacherA, userRole: 'teacher' };
