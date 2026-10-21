@@ -11,6 +11,8 @@ import { getStudentDashboard } from "@/lib/server/enrollment";
 import StudentRequests from "@/components/molecules/StudentRequests";
 import { ensureCertificate } from "@/lib/server/certificates";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import AnnouncementList from "@/components/announcements/AnnouncementList";
+import { getRecentAnnouncementsForStudent } from "@/lib/server/announcements";
 
 // T-033 · "Mi aprendizaje": pestañas por `?tab=` sobre lo de T-007.
 // T-007 · panel del alumno. Reemplaza el mock `STUDENT.enrolled` por inscripciones activas +
@@ -74,6 +76,7 @@ export default async function DashboardPage({
   // El curso tocado más recientemente con progreso < 100; si no queda ninguno, el más reciente.
   const continuing = tabs.enCurso[0] ?? tabs.completados[0];
   const visibleCourses = tab === "completados" ? tabs.completados : tabs.enCurso;
+  const news = await getRecentAnnouncementsForStudent(courses.map((c) => c.courseId));
 
   return (
     <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
@@ -121,6 +124,14 @@ export default async function DashboardPage({
               )}
             </div>
           </div>
+        )}
+
+        {/* Novedades (T-031): arriba de las pestañas, sin anuncios no se dibuja. */}
+        {news.length > 0 && (
+          <section aria-label="Novedades de tus cursos" className="mx-auto max-w-4xl px-6 pt-10 md:px-12">
+            <h2 className="mb-5 font-display text-lg tracking-wide text-ink">Novedades de tus cursos</h2>
+            <AnnouncementList items={news} showCourse />
+          </section>
         )}
 
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">

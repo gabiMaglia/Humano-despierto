@@ -694,6 +694,93 @@ esperar "(q15b) motivo de Campus en prosa"            204 PATCH "campus_posts?id
 x "delete from public.lesson_questions where course_id='$CURSO';"
 x "delete from public.campus_posts where author_id in ('$PREG','$CUR');"
 x "delete from public.enrollments where user_id in ('$PREG','$CUR') and course_id='$CURSO';"
+echo ""
+echo "── T-031 · anuncios: escribe la duena, publica el servidor, leen las inscriptas, nada pago en el texto"
+# Helpers propios (nombres distintos a los de T-030 a proposito: no depender de su orden).
+crear_anuncio() {  # $1 jwt · $2 body json -> id o vacio
+  curl -s -X POST "$API/rest/v1/course_announcements" -H "apikey: $ANON" -H "Authorization: Bearer $1" \
+       -H "Content-Type: application/json" -H "Prefer: return=representation" -d "$2" |
+    python3 -c "import sys,json
+try:
+    d = json.load(sys.stdin)
+    print(d[0]['id'] if isinstance(d, list) and d else '')
+except Exception:
+    print('')" 2>/dev/null
+}
+# 200 + N filas exactas: RLS que filtra en silencio contesta 200 con [] y eso hay que afirmarlo.
+filas_anuncio() {  # $1 rotulo · $2 metodo · $3 path · $4 jwt · $5 filas esperadas · $6 body opcional
+  local out code cuerpo n
+  out=$(curl -s -w $'\n%{http_code}' -X "$2" "$API/rest/v1/$3" \
+        -H "apikey: $ANON" -H "Authorization: Bearer $4" -H "Content-Type: application/json" \
+        -H "Prefer: return=representation" ${6:+-d "$6"})
+  code=$(tail -1 <<<"$out"); cuerpo=$(sed '$d' <<<"$out")
+  n=$(python3 -c "import sys,json;print(len(json.load(sys.stdin)))" <<<"$cuerpo" 2>/dev/null || echo "?")
+  if [ "$code" = "200" ] && [ "$n" = "$5" ]; then printf '  ok    %-52s HTTP %s, %s fila(s)\n' "$1" "$code" "$n"
+  else printf '  FALLA %-52s HTTP %s, filas=%s (esperaba 200 y %s)\n' "$1" "$code" "$n" "$5"; fallos=$((fallos+1)); fi
+}
+# Actoras PROPIAS: b1-alumna tiene que seguir sin inscripcion para el chequeo final.
+alta "b1-anuncios-inscripta@test.local" '' student
+alta "b1-anuncios-ajena@test.local" '' teacher
+alta "b1-anuncios-admin@test.local" '' admin
+INSC_JWT=$(tok "b1-anuncios-inscripta@test.local"); AJENA_JWT=$(tok "b1-anuncios-ajena@test.local")
+ADM_JWT=$(tok "b1-anuncios-admin@test.local")
+INSC=$(q "select id from auth.users where email='b1-anuncios-inscripta@test.local';")
+AJENA=$(q "select id from auth.users where email='b1-anuncios-ajena@test.local';")
+ADM=$(q "select id from auth.users where email='b1-anuncios-admin@test.local';")
+x "insert into public.enrollments (user_id,course_id,status) values ('$INSC','$CURSO','active')
+   on conflict (user_id,course_id) do update set status='active';"
+# Idempotencia. `x` es postgres (service): el guard no frena.
+x "delete from public.course_announcements where course_id='$CURSO';"
+
+esperar "(a1) la inscripta crea un anuncio"          403 POST "course_announcements" "$INSC_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$INSC\",\"title\":\"No deberia\",\"body\":\"No soy la docente\"}"
+esperar "(a2) docente de otro curso crea"            403 POST "course_announcements" "$AJENA_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$AJENA\",\"title\":\"No deberia\",\"body\":\"No es mi curso\"}"
+esperar "(a3) la duena nace publicado (status)"      403 POST "course_announcements" "$DOCENTE_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$DOCENTE\",\"title\":\"Atajo\",\"body\":\"Sin pasar por el servidor\",\"status\":\"published\"}"
+esperar "(a4) anon lee anuncios"                     403 GET "course_announcements?select=id,title" "$ANON"
+
+ANUNCIO=$(crear_anuncio "$DOCENTE_JWT" \
+  "{\"course_id\":\"$CURSO\",\"author_id\":\"$DOCENTE\",\"title\":\"Clase en vivo\",\"body\":\"El jueves repasamos.\"}")
+if [ -n "$ANUNCIO" ]; then printf '  ok    %-52s %s\n' "(a5) la duena crea un borrador (control positivo, 201)" "$ANUNCIO"
+else printf '  FALLA %-52s\n' "(a5) la duena no pudo crear el borrador"; fallos=$((fallos+1)); fi
+
+esperar "(a6) la duena manda status=published"       403 PATCH "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT" '{"status":"published"}'
+filas_anuncio "(a7) la inscripta no ve el borrador"  GET "course_announcements?id=eq.$ANUNCIO&select=id" "$INSC_JWT" 0
+filas_anuncio "(a8) la ajena edita el borrador"      PATCH "course_announcements?id=eq.$ANUNCIO" "$AJENA_JWT" 0 '{"body":"secuestrado"}'
+esperar "(a9) video_id real en el body"              403 PATCH "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT" '{"body":"Miren SECRETVIDEO"}'
+esperar "(a9b) forma de link en el titulo"           400 PATCH "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT" '{"title":"drive.google.com/file/d/LEAKED123"}'
+esperar "(a10) la duena corrige su borrador"         204 PATCH "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT" '{"body":"El jueves repasamos la cruz celta."}'
+
+# Publicar es del servidor: lo que hace el Server Action con service_role, por HTTP con la service key.
+esperar "(a11) service_role publica"                 204 PATCH "course_announcements?id=eq.$ANUNCIO&status=eq.draft" "$SRV" '{"status":"published"}'
+PUB=$(q "select (published_at is not null)::text from public.course_announcements where id='$ANUNCIO';")
+[ "$PUB" = "true" ] && printf '  ok    %-52s\n' "(a11b) published_at lo puso el servidor" \
+  || { printf '  FALLA (a11b) published_at=%s\n' "$PUB"; fallos=$((fallos+1)); }
+filas_anuncio "(a12) la inscripta lee el publicado"  GET "course_announcements?id=eq.$ANUNCIO&select=id,title" "$INSC_JWT" 1
+filas_anuncio "(a12b) b1-alumna sin inscripcion"     GET "course_announcements?id=eq.$ANUNCIO&select=id" "$ALUMNA_JWT" 0
+esperar "(a13) la duena edita lo publicado"          403 PATCH "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT" '{"body":"Reescrito"}'
+esperar "(a13b) service_role lo despublica"          403 PATCH "course_announcements?id=eq.$ANUNCIO" "$SRV" '{"status":"draft"}'
+
+esperar "(a14) la inscripta lo retira"               403 PATCH "course_announcements?id=eq.$ANUNCIO" "$INSC_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$INSC\",\"deleted_reason\":\"no me gusta\"}"
+esperar "(a15) la duena sin motivo"                  403 PATCH "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$DOCENTE\"}"
+esperar "(a16) DELETE fisico, la duena"              403 DELETE "course_announcements?id=eq.$ANUNCIO" "$DOCENTE_JWT"
+esperar "(a17) el admin modera con motivo"           204 PATCH "course_announcements?id=eq.$ANUNCIO" "$ADM_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$ADM\",\"deleted_reason\":\"control positivo\"}"
+FIRMA=$(q "select deleted_by from public.course_announcements where id='$ANUNCIO';")
+[ "$FIRMA" = "$ADM" ] && printf '  ok    %-52s\n' "(a17b) el retiro quedo firmado por el admin" \
+  || { printf '  FALLA (a17b) deleted_by=%s\n' "$FIRMA"; fallos=$((fallos+1)); }
+filas_anuncio "(a18) la inscripta ya no lo ve"       GET "course_announcements?id=eq.$ANUNCIO&select=id" "$INSC_JWT" 0
+
+# mail_log sigue cerrado a todo cliente (0019): ni la duena reclama turnos.
+esperar "(a19) la duena reclama un turno de mail"    403 POST "rpc/claim_or_reclaim_mail_slot" "$DOCENTE_JWT" \
+  "{\"p_recipient_user_id\":\"$DOCENTE\",\"p_mail_type\":\"course_announcement\",\"p_scope_key\":\"$ANUNCIO\"}"
+
+# Limpieza: la tabla y la inscripcion como estaban.
+x "delete from public.course_announcements where course_id='$CURSO';"
+x "delete from public.enrollments where user_id='$INSC' and course_id='$CURSO';"
 
 echo ""
 echo "── T-048 · la docente DUENA del curso no lee progreso ni certificados de sus alumnas por PostgREST"

@@ -8,6 +8,9 @@ import { renderWelcomeMail } from "@/lib/server/mail/templates/welcome";
 import { renderTeacherNewStudentMail } from "@/lib/server/mail/templates/teacher-new-student";
 import { renderEnrollmentRejectedMail } from "@/lib/server/mail/templates/enrollment-rejected";
 import { getSiteUrl } from "@/lib/server/site-url";
+import { renderCourseAnnouncementMail } from "@/lib/server/mail/templates/course-announcement";
+import { ANNOUNCEMENT_MAIL_CONCURRENCY, buildAnnouncementRecipients } from "@/lib/announcements/recipients";
+import { settleWithConcurrency } from "@/lib/utils/concurrency";
 
 // T-020 · capa de orquestación: junta los datos (nombre, curso, docente, email) y llama a
 // `sendMail`. Cada función atrapa TODO internamente — DB incluida, no solo el transporte — así
@@ -57,7 +60,8 @@ export type MailType =
   | "enrollment_granted"
   | "course_completed"
   | "teacher_new_student"
-  | "enrollment_rejected";
+  | "enrollment_rejected"
+  | "course_announcement";
 
 interface MailClaim {
   id: string;
@@ -372,5 +376,98 @@ export async function notifyEnrollmentRejected(input: {
     if (result.ok) await confirmMailSent(claim);
   } catch (err) {
     console.error("[mail] notifyEnrollmentRejected falló:", err);
+  }
+}
+
+// `max_rows` de PostgREST (supabase/config.toml): pedir más devuelve igual 1000 y el resto se
+// perdería en silencio.
+const ENROLLMENT_PAGE = 1000;
+
+async function listActiveEnrollmentUserIds(courseId: string): Promise<{ user_id: string }[]> {
+  const db = getAdminSupabaseClient();
+  const rows: { user_id: string }[] = [];
+  for (let from = 0; ; from += ENROLLMENT_PAGE) {
+    const { data, error } = await db
+      .from("enrollments")
+      .select("user_id")
+      .eq("course_id", courseId)
+      .eq("status", "active")
+      .order("user_id")
+      .range(from, from + ENROLLMENT_PAGE - 1);
+    if (error) throw new Error(`no se pudieron listar las inscriptas de ${courseId}: ${error.message}`);
+    rows.push(...((data ?? []) as { user_id: string }[]));
+    if (!data || data.length < ENROLLMENT_PAGE) return rows;
+  }
+}
+
+type AnnouncementDelivery = "sent" | "failed" | "not_claimed" | "unresolved";
+
+/**
+ * T-031 · un mail por inscripta activa cuando la docente publica. Corre en `after()` (lo dispara
+ * `publishAnnouncement`), nunca dentro del request: contra un SMTP mudo cada intento cuesta hasta
+ * 15 s.
+ *
+ * Dedupe por `mail_log`: `(profiles.id, 'course_announcement', course_announcements.id)`, los dos
+ * ids devueltos por la base (canónicos y estables por evento, 0022 a y b). Volver a disparar el
+ * mismo anuncio no reclama a quien ya tiene turno vivo o confirmado.
+ *
+ * Atrapa TODO: un SMTP caído deja el anuncio publicado y las filas con `sent_at` nulo.
+ */
+export async function notifyAnnouncementPublished(input: { announcementId: string }): Promise<void> {
+  try {
+    const db = getAdminSupabaseClient();
+    const { data: announcement, error } = await db
+      .from("course_announcements")
+      .select("id, course_id, author_id, title, body, status, deleted_at")
+      .eq("id", input.announcementId)
+      .maybeSingle();
+    if (error || !announcement) {
+      console.error(`[mail] no se pudo leer el anuncio ${input.announcementId}: ${error?.message ?? "no existe"}`);
+      return;
+    }
+    // Un retiro entre el click y este `after` no manda nada.
+    if (announcement.status !== "published" || announcement.deleted_at) return;
+
+    const course = await getCourseInfo(announcement.course_id);
+    if (!course) return;
+
+    const recipients = buildAnnouncementRecipients(
+      await listActiveEnrollmentUserIds(course.id),
+      announcement.author_id,
+    );
+    const courseUrl = `${getSiteUrl()}/cursos/${course.slug}`;
+
+    const results = await settleWithConcurrency(
+      recipients,
+      ANNOUNCEMENT_MAIL_CONCURRENCY,
+      async (userId): Promise<AnnouncementDelivery> => {
+        // Resolver antes de reclamar (orden de notifyWelcome): sin dirección no se gasta el turno.
+        const student = await getUserEmail(userId);
+        if (!student) return "unresolved";
+        const claim = await claimOrReclaimMailSlot(student.id, "course_announcement", announcement.id);
+        if (!claim) return "not_claimed";
+        const { subject, html, text } = renderCourseAnnouncementMail({
+          studentName: student.name,
+          courseTitle: course.title,
+          teacherName: course.teacherName,
+          announcementTitle: announcement.title,
+          announcementBody: announcement.body,
+          courseUrl,
+        });
+        const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+        if (!result.ok) return "failed";
+        await confirmMailSent(claim);
+        return "sent";
+      },
+    );
+
+    const tally: Record<string, number> = {};
+    for (const r of results) {
+      const key = r.status === "fulfilled" ? r.value : "error";
+      tally[key] = (tally[key] ?? 0) + 1;
+    }
+    console.info(`[mail] anuncio ${announcement.id}: ${recipients.length} destinatarias ${JSON.stringify(tally)}`);
+  } catch (err) {
+    console.error("[mail] notifyAnnouncementPublished falló:", err);
   }
 }

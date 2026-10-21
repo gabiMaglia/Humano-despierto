@@ -213,6 +213,11 @@ const INSERT_ESPERADO = {
   lesson_answers: ['question_id', 'author_id', 'body'],
   lesson_question_votes: ['question_id', 'user_id'],
 
+  // T-031 · Anuncios. `status`/`published_at` fuera del grant (R-4): publicar es un Server Action
+  // con service_role. Nada nace retirado, asi que `deleted_*` tampoco. `author_id` lo compuerta el
+  // WITH CHECK (= auth.uid()) y `guard_course_announcements` lo revalida.
+  course_announcements: ['course_id', 'author_id', 'title', 'body'],
+
   // T-022 · Diario. `status`/`published_at` fuera del grant a proposito (ADR-008, criterio 3):
   // publicar es privilegio de service_role, mismo patron que `courses`. `body` SI viaja en el
   // INSERT — es contenido, no metadata de servidor — y lo protege `guard_diario_posts`
