@@ -17,12 +17,14 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { bootDatabase, asUser, asAnon, attempt } from '../harness/db.mjs';
+import { columnasDeLaClase } from './locator-columns.mjs';
 import { seed, ID } from './seed.mjs';
 
 const CHECK_VIOLATION = '23514';
 const PRIV_DENIED = '42501';
 
 const asOwnerTeacher = (db, fn) => asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, fn);
+const asStudentWriter = (db, fn) => asUser(db, { sub: ID.student, userRole: 'student' }, fn);
 const asService = async (db, fn) => {
   await db.exec(`set role service_role;`);
   try {
@@ -39,7 +41,11 @@ const LOCALIZADORES = [
   ['esquema pelado, otro host',  'Material: ftp://archivos.humano/manual.pdf'],
   ['www sin esquema',            'Manual completo en www.humano-archivos.net'],
   ['acortador',                  'Descarga: bit.ly/3xKmQ2p'],
-  ['youtube corto',              'Clase completa youtu.be/dQw4w9WgXcQ'],
+  // T-035 · el id NO puede ser `SECRET.videoId`. Desde 0025 el guard de coincidencia exacta
+  // corre ANTES que el CHECK (los triggers BEFORE preceden a las constraints) y devolveria 42501,
+  // con lo cual este caso dejaria de probar la heuristica de FORMA, que es lo unico que este
+  // bloque existe para probar. `aB3dE5gH7jK` tiene la misma forma y no es de nadie.
+  ['youtube corto',              'Clase completa youtu.be/aB3dE5gH7jK'],
   ['telegram',                   'Pedilo por t.me/humanocanal'],
   ['id de Drive suelto (44)',    'Manual 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'],
   ['id de Drive suelto (28)',    'Manual 0B7l3RHEZ8bC9dGVKLW5aVXpDSDQ'],
@@ -86,10 +92,38 @@ const COLUMNAS = [
   // version del barrido a mano se la habia salteado. Es exactamente el olvido que el invariante existe para atrapar.
   ['courses.moon_glyph',           (v) => [`update public.courses set moon_glyph = $1 where id = $2`, [v, ID.courseA]]],
   ['courses.includes',             (v) => [`update public.courses set includes = array['Acceso de por vida', $1] where id = $2`, [v, ID.courseA]]],
+  // T-027 · misma clase exacta que `intro`: texto libre de la ficha de venta, escrito por la
+  // docente, leido por `anon` sin sesion. Los dos arrays entran por `array_has_locator`, igual
+  // que `includes` -- el CHECK va POR ELEMENTO, asi que el ataque tiene que ir dentro del array
+  // y no en lugar de el, o se estaria probando otra cosa.
+  ['courses.description',          (v) => [`update public.courses set description = $1 where id = $2`, [v, ID.courseA]]],
+  // T-028 · misma clase: los lee `anon` sin sesion en la ficha del curso. `body` lo escribe la
+  // alumna inscripta, `response` la guia dueña -- las dos son texto libre del catalogo publico.
+  // El barrido nacio asumiendo que TODO el catalogo lo escribe la docente. T-028 rompe esa
+  // asuncion: `body` lo escribe la ALUMNA inscripta, y el guard de 0024 impide que la guia lo
+  // toque. Por eso estas dos entradas declaran su actor -- correr `body` como docente daria un
+  // 42501 del guard, no el 23514 del CHECK, y el barrido estaria probando otra cosa.
+  ['course_reviews.body',          (v) => [`update public.course_reviews set body = $1 where course_id = $2`, [v, ID.courseA]], 'student'],
+  // Solo `response`: desde 0026 `responded_*` no tienen grant de cliente y los firma el guard.
+  ['course_reviews.response',      (v) => [`update public.course_reviews set response = $1 where course_id = $2`, [v, ID.courseA]], 'teacher'],
+  ['courses.learning_objectives',  (v) => [`update public.courses set learning_objectives = array['Leer el tarot', $1] where id = $2`, [v, ID.courseA]]],
+  ['courses.prerequisites',        (v) => [`update public.courses set prerequisites = array['Ninguno', $1] where id = $2`, [v, ID.courseA]]],
   ['profiles.full_name',           (v) => [`update public.profiles set full_name = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.slug',                (v) => [`update public.profiles set slug = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.glyph',               (v) => [`update public.profiles set glyph = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.bio',                 (v) => [`update public.profiles set bio = $1 where id = $2`, [v, ID.teacherA]]],
+  // T-017 · agregadas junto con la ficha publica de la docente (0011): misma clase que `bio` --
+  // texto libre, escrito por la propia docente, legible por `anon` sin inscripcion.
+  ['profiles.headline',            (v) => [`update public.profiles set headline = $1 where id = $2`, [v, ID.teacherA]]],
+  ['profiles.location',            (v) => [`update public.profiles set location = $1 where id = $2`, [v, ID.teacherA]]],
+  ['profiles.quote',               (v) => [`update public.profiles set quote = $1 where id = $2`, [v, ID.teacherA]]],
+  // T-022 · Diario. `slug`/`title`/`excerpt` son metadata corta de catalogo, misma clase que
+  // `courses.*`. `body` queda deliberadamente AFUERA de esta lista — ver EXENTAS_POR_GUARD y la
+  // nota larga de la migracion 0018: lo protege `guard_diario_posts` (coincidencia exacta contra
+  // los localizadores reales, sin falsos positivos en un link legitimo), no la heuristica de forma.
+  ['diario_posts.slug',            (v) => [`update public.diario_posts set slug = $1 where id = $2`, [v, ID.postA]]],
+  ['diario_posts.title',           (v) => [`update public.diario_posts set title = $1 where id = $2`, [v, ID.postA]]],
+  ['diario_posts.excerpt',         (v) => [`update public.diario_posts set excerpt = $1 where id = $2`, [v, ID.postA]]],
 ];
 
 /**
@@ -97,36 +131,27 @@ const COLUMNAS = [
  * toda columna de TEXTO LIBRE que el cliente puede ESCRIBIR y que `anon` puede LEER
  * (o sea: legible sin inscripcion) tiene que estar cubierta por un CHECK `*_no_locator`.
  */
-const columnasDeLaClase = async (db) =>
-  (
-    await db.query(`
-      with cols as (
-        select c.relname as tabla, a.attname as col, c.oid as reloid, a.attnum
-        from pg_class c
-        join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
-        join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
-        where c.relkind = 'r'
-          and format_type(a.atttypid, a.atttypmod) ~ 'text|char'
-      )
-      select tabla || '.' || col as columna,
-             exists (
-               select 1 from pg_constraint k
-               where k.conrelid = cols.reloid
-                 and k.contype = 'c'
-                 and k.conname like '%\\_no\\_locator'
-                 and cols.attnum = any (k.conkey)
-             ) as cubierta
-      from cols
-      where has_column_privilege('anon', reloid, attnum, 'SELECT')
-        and (has_column_privilege('authenticated', reloid, attnum, 'UPDATE')
-          or has_column_privilege('authenticated', reloid, attnum, 'INSERT'))
-      order by 1
-    `)
-  ).rows;
 
 // Unica excepcion admitida: columnas cuyo dominio ya esta cerrado por un CHECK de enumeracion,
 // donde "texto libre" es falso. Se enumeran a mano para que agregar una exija justificarla.
-const EXENTAS_POR_ENUM = ['courses.currency', 'lesson_resources.type', 'lessons.video_provider'];
+// T-027 suma dos: `language` es `char(2)` con CHECK `^[a-z]{2}$` y `promo_video_id` lleva el
+// MISMO CHECK de formato que `lessons.video_id` (`^[A-Za-z0-9_-]{11}$`). En ninguna de las dos
+// cabe una URL ni un id ajeno: el dominio esta cerrado por el regex, igual que en `currency`.
+// Pegar una URL entera en `promo_video_id` falla con 23514 — verificado en course-landing.test.mjs.
+const EXENTAS_POR_ENUM = [
+  'courses.currency', 'courses.language', 'courses.promo_video_id',
+  'lesson_resources.type', 'lessons.video_provider',
+];
+
+// T-022 · Segunda excepcion admitida, con motivo distinto: la columna ES texto libre de la
+// clase (anon la lee, la docente la escribe) pero deliberadamente NO lleva la heuristica de
+// FORMA (`text_has_locator`) porque bloquearia todo link, y un post de blog es justo el lugar
+// donde un link legitimo pertenece — a diferencia de `lesson_resources.name` o `courses.intro`,
+// que nunca lo necesitan. La protege otro mecanismo de la MISMA adr (ADR-009/0016): un guard con
+// coincidencia EXACTA contra los localizadores reales (`body_has_known_locator`, ya usado por
+// `campus_posts.body`), sin bypass de service_role — invariante, no permiso. Ver la nota larga
+// en la migracion 0018 para el razonamiento completo, incluida la comparacion con el precedente.
+const EXENTAS_POR_GUARD = ['diario_posts.body'];
 
 describe('T-016 · ningun texto libre del catalogo acepta un localizador', () => {
   let db;
@@ -245,10 +270,11 @@ describe('T-016 · ningun texto libre del catalogo acepta un localizador', () =>
 
   // ---------------------------------------------------------------- 4 · el barrido (criterio 2)
   describe('barrido de la clase · toda columna de la lista rechaza el localizador', () => {
-    for (const [columna, sentencia] of COLUMNAS) {
+    for (const [columna, sentencia, actor] of COLUMNAS) {
       test(columna, async () => {
         const [sql, params] = sentencia('Manual — drive.google.com/file/d/LEAKED123');
-        const r = await asOwnerTeacher(db, () => attempt(db, sql, params));
+        const como = actor === 'student' ? asStudentWriter : asOwnerTeacher;
+        const r = await como(db, () => attempt(db, sql, params));
         assert.equal(r.ok, false, `${columna} acepta un localizador`);
         assert.equal(r.code, CHECK_VIOLATION, `${columna} fallo por otra razon: ${r.message}`);
       });
@@ -262,8 +288,8 @@ describe('T-016 · ningun texto libre del catalogo acepta un localizador', () =>
         .filter((c) => !c.cubierta)
         .map((c) => c.columna);
       assert.deepEqual(
-        descubiertas,
-        EXENTAS_POR_ENUM,
+        descubiertas.sort(),
+        [...EXENTAS_POR_ENUM, ...EXENTAS_POR_GUARD].sort(),
         'hay texto libre de catalogo sin CHECK de localizador (o una exencion sin justificar)',
       );
     });

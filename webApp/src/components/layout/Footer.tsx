@@ -1,13 +1,28 @@
+import Link from "next/link";
+
+// C-02 · Solo destinos que existen. Antes eran diez etiquetas con ancla vacia — la navegacion
+// entera del pie era decorativa. "Biblioteca", "Becas", "Contacto", "Newsletter", "Instagram" y
+// "Substack" no tienen ruta ni cuenta detras: vuelven cuando exista el destino. Un link ausente
+// es honesto; uno que no lleva a ningun lado le enseña a la usuaria que la interfaz miente.
 const COLS = [
-  { title: "Estudiar", links: ["Cursos", "Guías", "Diario", "Círculo"] },
-  { title: "Templo",   links: ["Círculo", "Biblioteca", "Becas"]            },
-  { title: "Hablar",   links: ["Contacto","Newsletter","Instagram","Substack"]  },
+  {
+    title: "Estudiar",
+    links: [
+      { label: "Cursos", href: "/cursos" },
+      { label: "Guías", href: "/guias" },
+      { label: "Diario", href: "/diario" },
+    ],
+  },
+  {
+    title: "Templo",
+    links: [{ label: "Círculo", href: "/circulo" }],
+  },
 ] as const;
 
 export default function Footer() {
   return (
     <footer className="border-t border-lila-300/18 bg-cosmos-0 px-6 py-12 md:px-12">
-      <div className="mx-auto max-w-7xl grid gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="mx-auto max-w-7xl grid gap-10 md:grid-cols-[2fr_1fr_1fr]">
 
         {/* Brand */}
         <div>
@@ -33,10 +48,13 @@ export default function Footer() {
             <h4 className="mb-4 font-display text-eyebrow tracking-[0.18em] text-ink uppercase">{title}</h4>
             <ul className="space-y-2">
               {links.map((l) => (
-                <li key={l}>
-                  <a href="#" className="font-body text-sm text-ink-soft transition-colors hover:text-lila-300">
-                    {l}
-                  </a>
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="font-body text-sm text-ink-soft transition-colors hover:text-lila-300"
+                  >
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>

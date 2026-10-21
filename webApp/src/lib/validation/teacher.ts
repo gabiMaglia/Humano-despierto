@@ -1,4 +1,7 @@
 import { z } from "zod";
+// El predicado vive en un modulo plano para que el test de paridad ejecute ESTA
+// misma funcion en vez de reconstruirla parseando el fuente (ver locator.mjs).
+import { hasLocator } from "@/lib/validation/locator.mjs";
 
 // Validación de formularios del panel docente (T-005 c.8). Sin `server-only`
 // a propósito: son schemas puros, sin secreto ni cliente de datos — los
@@ -17,24 +20,6 @@ import { z } from "zod";
 //   1. `://` cualquier esquema · 2. `www.` · 3. host con TLD conocido
 //   4. id de Drive suelto: 25+ de [A-Za-z0-9_] con dígito Y mayúscula Y minúscula.
 //      `-` queda fuera del charset o "Ritual-de-Luna-Nueva-Enero2026" sería falso positivo.
-const LOCATOR_PATTERNS: RegExp[] = [
-  /:\/\//,
-  /(^|[^a-z0-9])www\./i,
-  // SIN la bandera /i, a proposito: es el espejo exacto de la migracion 0010. Con
-  // insensibilidad a mayusculas, un typo de prosa castellana ("termina.Me parece")
-  // se lee como un dominio .me y bloquea texto legitimo. Un dominio pegado viene en
-  // minuscula; el typo capitaliza porque arranca oracion. Si esta linea y el CHECK de
-  // la DB dejan de coincidir, el usuario ve un error de Postgres crudo o al reves.
-  /[a-z0-9]\.(com|net|org|io|co|app|dev|edu|gov|info|me|be|ly|gl|nz|cloud|link|site|online|page|xyz|tv)([^a-z]|$)/,
-];
-
-function hasLocator(v: string): boolean {
-  if (LOCATOR_PATTERNS.some((re) => re.test(v))) return true;
-  return (v.match(/[A-Za-z0-9_]{25,}/g) ?? []).some(
-    (run) => /[0-9]/.test(run) && /[a-z]/.test(run) && /[A-Z]/.test(run),
-  );
-}
-
 function rejectUrl(field: string, v: string): boolean {
   return !hasLocator(v);
 }
@@ -78,6 +63,26 @@ export const courseFormSchema = z.object({
   // `includes` es el gemelo semántico de `lesson_resources.name`: el "qué incluye el curso"
   // del catálogo. Se valida línea por línea porque en la DB es text[] y el CHECK va por elemento.
   includes: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "qué incluye"),
+  // T-027 · los tres de texto son de la misma clase que `intro`: los lee `anon` sin sesion.
+  //
+  // LO QUE ESTE SCHEMA NO PUEDE CUBRIR, y hay que saberlo: `noLocator` es el espejo de
+  // `text_has_locator` — la mitad de FORMA de ADR-009. La otra mitad (coincidencia EXACTA contra
+  // `lessons.video_id`) necesita CONSULTAR la base y no se puede replicar aca. Un video_id son
+  // 11 caracteres sin forma de URL: pasa este schema y lo frena `courses_locator_guard` (0023)
+  // con un 42501 que el Server Action tiene que traducir, o la docente ve un error crudo.
+  description: noLocator(z.string().trim().max(8000).optional().or(z.literal("")), "descripción"),
+  learningObjectives: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "qué vas a aprender"),
+  prerequisites: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "requisitos"),
+  language: z
+    .string().trim().toLowerCase()
+    .regex(/^[a-z]{2}$/, "El idioma son 2 letras (ej: es).")
+    .default("es"),
+  // Mismo corte que `lessons.video_id` (T-005 c.4): el id, no la URL. Pegar la URL entera falla
+  // aca con un mensaje legible en vez de rebotar contra el CHECK de la DB.
+  promoVideoId: z
+    .string().trim()
+    .regex(/^[A-Za-z0-9_-]{11}$/, "Es el id del video (11 caracteres), no la URL entera.")
+    .optional().or(z.literal("")),
 });
 
 export type CourseFormInput = z.input<typeof courseFormSchema>;

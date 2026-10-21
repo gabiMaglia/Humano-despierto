@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cinzel, Quicksand, Cormorant_Garamond, Cardo } from "next/font/google";
 import AuthProvider from "@/components/providers/AuthProvider";
+import { getSiteUrl } from "@/lib/server/site-url";
 import "@/styles/globals.css";
 
 const cinzel = Cinzel({
@@ -33,7 +34,11 @@ const cardo = Cardo({
 });
 
 export const metadata: Metadata = {
-  title: "Humano Despierto — Escuela Holística",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: "Humano Despierto — Escuela Holística",
+    template: "%s — Humano Despierto",
+  },
   description: "Una escuela para oficios sutiles del alma. Astrología, tarot, herbalismo y reiki por guías con linaje.",
 };
 

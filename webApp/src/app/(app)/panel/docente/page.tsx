@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Nav from "@/components/layout/Nav";
+import PanelTabs from "@/components/teacher/PanelTabs";
 import { requireTeacher, listTeacherCourses } from "@/lib/server/teacher";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -18,6 +19,7 @@ export default async function TeacherPanelPage() {
     <div className="min-h-screen bg-cosmos-0 text-ink">
       <Nav />
       <div className="pt-16">
+        <PanelTabs active="cursos" />
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
           <div>
             <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">

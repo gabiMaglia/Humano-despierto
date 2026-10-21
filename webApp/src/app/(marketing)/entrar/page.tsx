@@ -6,6 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { fullNameSchema } from "@/lib/validation/profile";
+import { sendWelcomeEmailAction } from "./actions";
 import type { SolidType } from "@/components/cosmos/PlatonicSolid";
 
 const PlatonicSolid = dynamic(() => import("@/components/cosmos/PlatonicSolid"), { ssr: false });
@@ -77,6 +78,14 @@ export default function EntrarPage() {
       return;
     }
 
+    // T-020 mail 3/4: bienvenida, solo en el flujo de alta — nunca al iniciar sesión.
+    // `enable_confirmations = false` (config.toml) deja la sesión puesta apenas `signUp`
+    // resuelve, así que el Server Action ya encuentra a `getCurrentUser()` con quién trabajar.
+    // No se espera esta llamada para navegar: un mail que tarda no puede demorar el login.
+    if (tab === "registro") {
+      void sendWelcomeEmailAction();
+    }
+
     router.push("/panel");
     router.refresh();
   }
@@ -137,7 +146,18 @@ export default function EntrarPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* `method="post"` no lo usa nadie mientras haya JS: `handleSubmit` hace preventDefault
+            y el login va por Supabase. Está por lo que pasa si el JS NO carga — un chunk que
+            falla, una extensión, una red que corta. En ese caso el navegador hace el envío
+            nativo, que por defecto es GET, y un GET pone los campos en la URL: historial,
+            logs del servidor y cabecera Referer.
+            Hoy no se filtra nada porque los inputs son controlados y no tienen `name`, así que
+            no se serializa ninguno — lo verifiqué con el JS deshabilitado y la URL queda en
+            `/entrar?` vacía. Pero eso es un accidente afortunado, no una defensa: alcanza con
+            que alguien agregue `name="password"` para autocompletado y la contraseña empieza a
+            viajar en la query. Con POST, ese día el peor caso es un 405, no una credencial en
+            el historial del navegador. */}
+        <form onSubmit={handleSubmit} method="post" className="space-y-4">
           {tab === "registro" && (
             <div>
               <label className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">

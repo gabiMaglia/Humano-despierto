@@ -26,6 +26,7 @@ interface YouTubePlayer {
   getCurrentTime(): number;
   getDuration(): number;
   getPlayerState(): number;
+  getIframe(): HTMLIFrameElement;
   destroy(): void;
 }
 
@@ -100,7 +101,8 @@ export function useYouTubePlayer(
   videoId: string,
   initialStartSeconds: number,
   initialDurationSeconds: number,
-  onProgressTick: (seconds: number, isPlaying: boolean) => void
+  onProgressTick: (seconds: number, isPlaying: boolean) => void,
+  iframeTitle: string
 ): UseYouTubePlayerResult {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const onProgressTickRef = useRef(onProgressTick);
@@ -133,6 +135,10 @@ export function useYouTubePlayer(
           onReady: (event) => {
             if (cancelled) return;
             setReady(true);
+            // X-01 · el <iframe> lo crea la IFrame API, no nuestro JSX, asi que el `title` hay
+            // que ponerlo aca: sin el, el contenido PRINCIPAL de la pantalla no tiene nombre
+            // accesible y un lector de pantalla anuncia solo "marco".
+            event.target.getIframe().setAttribute("title", iframeTitle);
             const d = event.target.getDuration();
             if (d > 0) setDuration(d);
           },

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Esquema, RLS y test de mutacion de la base Supabase de humano",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4"

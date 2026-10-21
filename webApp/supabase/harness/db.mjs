@@ -11,22 +11,39 @@ export const BASELINE_SQL = join(here, '00_supabase_baseline.sql');
  * Levanta un Postgres efimero con la linea de base de Supabase + todas las migraciones.
  * `extraBaseline` permite inyectar SQL despues de las migraciones para simular una
  * regresion (ver el control negativo del test).
+ *
+ * `until` (nombre exacto de un archivo de migracion) corta la aplicacion despues de ese archivo,
+ * para sembrar datos "previos" y probar lo que una migracion posterior hace con ellos;
+ * `applyRemaining()` aplica el resto. Un `until` que no coincide con ningun archivo es un error:
+ * si no, se aplicaria todo y el test pasaria sin probar nada.
  */
-export async function bootDatabase({ afterMigrations = [] } = {}) {
+export async function bootDatabase({ afterMigrations = [], until = null } = {}) {
   const db = await PGlite.create();
   await db.exec(await readFile(BASELINE_SQL, 'utf8'));
 
   const files = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith('.sql')).sort();
   if (files.length === 0) throw new Error('no hay migraciones en supabase/migrations');
-  for (const file of files) {
-    try {
-      await db.exec(await readFile(join(MIGRATIONS_DIR, file), 'utf8'));
-    } catch (error) {
-      throw new Error(`migracion ${file} fallo: ${error.message}`);
-    }
+  let cut = files.length;
+  if (until !== null) {
+    const idx = files.indexOf(until);
+    if (idx === -1) throw new Error(`until='${until}' no coincide con ninguna migracion`);
+    cut = idx + 1;
   }
+
+  const apply = async (list) => {
+    for (const file of list) {
+      try {
+        await db.exec(await readFile(join(MIGRATIONS_DIR, file), 'utf8'));
+      } catch (error) {
+        throw new Error(`migracion ${file} fallo: ${error.message}`);
+      }
+    }
+  };
+
+  await apply(files.slice(0, cut));
   for (const sql of afterMigrations) await db.exec(sql);
-  return { db, migrations: files };
+  const applyRemaining = () => apply(files.slice(cut));
+  return { db, migrations: files, applyRemaining };
 }
 
 /** Vuelve al rol dueño (equivalente a cerrar la conexion de PostgREST). */

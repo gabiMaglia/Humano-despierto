@@ -157,8 +157,16 @@ const INSERT_ESPERADO = {
   // enrollments       — SIN grant de INSERT y ademas enrollments_guard cubre insert/update/delete.
 
   // Guard nuevo (c.2): status/featured/published_at fuera del grant Y bloqueadas por trigger.
+  // T-027 suma los cinco de la ficha de venta. Se declaran ACA a mano a proposito: este test
+  // es la fricción que hace imposible exponer una columna sin decidirlo. Su defensa no es el
+  // grant -- son material de venta y anon los lee -- sino ADR-009 en sus dos mitades (0023).
+  // T-028 · la alumna declara curso, autoria, nota y texto. NO declara `response` (es de la
+  // guia) ni `hidden_*` (del admin, y fuera de todo grant de cliente).
+  course_reviews: ['course_id', 'user_id', 'rating', 'body'],
+
   courses: ['slug', 'title', 'title_em', 'subtitle', 'intro', 'discipline', 'level', 'price_cents',
-            'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id'],
+            'currency', 'roman_num', 'moon_glyph', 'includes', 'teacher_id',
+            'learning_objectives', 'prerequisites', 'description', 'language', 'promo_video_id'],
 
   // Guard nuevo (c.3): is_published, video_id y —desde T-012— duration_seconds fuera del grant
   // Y bloqueadas por trigger. La duracion la trae YouTube, no el docente (decision del PO).
@@ -177,6 +185,18 @@ const INSERT_ESPERADO = {
   // SIN guard, decidido: `user_id` es el unico campo sensible y lo compuerta el WITH CHECK de
   // `lesson_notes_insert_own` (user_id = auth.uid()). El control es una policy, no el grant.
   lesson_notes: ['user_id', 'course_id', 'lesson_id', 'at_seconds', 'body'],
+
+  // T-021 · Campus. `deleted_at`/`deleted_by`/`deleted_reason` FUERA del INSERT a proposito
+  // (nadie nace borrado): estan en el grant de UPDATE (la via de moderacion), nunca en el de
+  // INSERT. `author_id` SI viaja en el INSERT (lo manda el cliente) pero el WITH CHECK de
+  // `campus_posts_insert` exige `author_id = auth.uid()` y el guard trigger lo revalida.
+  campus_posts: ['course_id', 'author_id', 'body'],
+
+  // T-022 · Diario. `status`/`published_at` fuera del grant a proposito (ADR-008, criterio 3):
+  // publicar es privilegio de service_role, mismo patron que `courses`. `body` SI viaja en el
+  // INSERT — es contenido, no metadata de servidor — y lo protege `guard_diario_posts`
+  // (`body_has_known_locator`), no el grant.
+  diario_posts: ['teacher_id', 'slug', 'title', 'excerpt', 'body'],
 };
 
 const listaEsperada = Object.entries(INSERT_ESPERADO)
@@ -481,6 +501,8 @@ describe('T-011 · guards de INSERT', () => {
           'lessons.is_published',
           'lessons.video_id',
           'lessons.duration_seconds',
+          'diario_posts.status',
+          'diario_posts.published_at',
         ]) {
           assert.ok(!lista.includes(col), `${col} volvio al grant de INSERT de ${rol}`);
         }

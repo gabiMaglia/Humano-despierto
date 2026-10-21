@@ -26,39 +26,9 @@ export const DISCIPLINES = [
   { label: "Herbalismo",  desc: "Plantas aliadas, tinturas, ritual",    accent: "lila" },
 ] as const;
 
-export const COURSES = [
-  {
-    num: "I", tag: "Astrología",
-    title: "Carta natal", titleEm: "esencial",
-    desc: "El mapa del alma encarnada en doce casas. Ocho semanas para leer cualquier carta con confianza.",
-    teacher: "Luna Arce", price: "$ 240", weeks: "8 sem · 24 lecciones",
-    featured: false, slug: "carta-natal-esencial",
-  },
-  {
-    num: "II", tag: "Tarot",
-    title: "Tarot", titleEm: "iniciático",
-    desc: "Los 22 arcanos como espejo. Aprenderás a sostener consultas con ética y profundidad simbólica.",
-    teacher: "Sol Mayor", price: "$ 280", weeks: "10 semanas · a tu ritmo",
-    featured: true, slug: "tarot-iniciatico",
-  },
-  {
-    num: "III", tag: "Reiki",
-    title: "Reiki", titleEm: "nivel I",
-    desc: "Iniciación en la imposición de manos. Cuerpo sutil, chakras, ética del canal.",
-    teacher: "Aurora Violeta", price: "$ 180", weeks: "6 semanas · a tu ritmo",
-    featured: false, slug: "reiki-nivel-1",
-  },
-] as const;
-
-export const MAESTRA = {
-  name:     "Luna Arce",
-  title:    "Astróloga · Tarotista · 22 años de práctica",
-  quote:    "No enseño técnicas, enseño a escuchar lo que ya sabe el cuerpo.",
-  sign:     "♓ Piscis · Asc. Escorpio",
-  courses:  3,
-  students: 418,
-  href:     "/guias/luna-arce",
-} as const;
+// T-017 · `COURSES` y `MAESTRA` se eliminaron de este archivo: `FeaturedCourses.tsx` lee
+// `courses.featured` y `MaestraFeature.tsx` lee `profiles` (ver `src/lib/server/courses.ts` y
+// `src/lib/server/guias.ts`). Ningún componente de curso/docente importa ya de `@/lib/mocks/`.
 
 export const LUNAR_DAYS = [
   { phase: "new",      date: "6 MAY",  label: "sembrar"  },
@@ -71,6 +41,14 @@ export const LUNAR_DAYS = [
   { phase: "crescent", date: "3 JUN",  label: "descansar"},
 ] as const;
 
+// T-017 · MOCK DECLARADO A PROPOSITO, fuera de alcance del ticket (criterio 3: "salen de la
+// base o se marcan como placeholder visible"). Son citas de ALUMNAS sin curso ni docente
+// asociado -- prueba social generica de la landing, no la ficha de una docente (eso SI se
+// desmockeo, ver `profiles.testimonials` en `src/lib/server/guias.ts`). No hay tabla de
+// reviews en el esquema de 9 tablas ratificado (T-001): crear una -- con alta real de alumnas,
+// moderacion, vinculo a inscripcion verificada -- es una feature nueva (reviews), no conectar
+// un mock existente. `TestimonialsSection.tsx` lo marca visiblemente como ilustrativo en
+// pantalla para que no parezca un dato real.
 export const TESTIMONIALS = [
   {
     quote: "Encontré aquí la profundidad que faltaba en mis formaciones previas. Volví a sentirme estudiante.",

@@ -1,0 +1,244 @@
+// T-027 · Campos de la ficha de curso + S-05 — TEST DE MUTACION REAL.
+//
+// Mismo estandar que el resto de la suite: cada caso ejecuta el DML del atacante contra un
+// Postgres de verdad, con SET ROLE authenticated y los claims del JWT en `request.jwt.claims`
+// exactamente como los deja PostgREST, y afirma sobre el SQLSTATE devuelto.
+//
+// S-05 (auditoria 2026-09-09) es la mitad EXACTA de ADR-009 aplicada a `courses`. Nunca habia
+// estado: `body_has_known_locator` cubria `campus_posts` (0016) y `diario_posts` (0018/0020) y
+// no `courses`, cuyos `intro`/`title`/`subtitle` se sirven a `anon` SIN SESION. La fuga se
+// reprodujo contra el stack local antes de escribir la migracion.
+//
+// Por que un video_id se escapa del CHECK de forma: son 11 caracteres sin `://` ni `www.` ni
+// una corrida de 25+ alfanumericos. `text_has_locator` lo deja pasar por construccion — es
+// exactamente la evasion por la que QA rechazo T-022.
+
+import { test, describe, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { bootDatabase, asUser, asAnon, attempt } from '../harness/db.mjs';
+import { seed, ID, SECRET } from './seed.mjs';
+
+const PRIV_DENIED = '42501';
+const CHECK_VIOLATION = '23514';
+
+const asTeacherA = (db, fn) => asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, fn);
+
+// Cada caso lleva su propio slug: `courses.slug` es unique, asi que los casos que esperan
+// exito chocarian entre si compartiendolo.
+const insertCourse = (db, slug, columna, valorSql) =>
+  asTeacherA(db, () =>
+    attempt(
+      db,
+      `insert into public.courses (slug, title, discipline, level, teacher_id, ${columna})
+       values ($1, 'Curso de prueba', 'tarot', 'inicial', $2, ${valorSql}) returning id`,
+      [slug, ID.teacherA],
+    ),
+  );
+
+describe('T-027 · campos de ficha de curso + S-05', () => {
+  let db;
+
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+  });
+
+  after(async () => db?.close());
+
+  // ------------------------------------------------------- S-05 · coincidencia exacta
+  describe('S-05 · un localizador pago no entra en un campo servido a anon', () => {
+    test('el video_id real en `intro` es rechazado — la fuga original', async () => {
+      const r = await insertCourse(db, 's05-intro', 'intro', `'Mira este video: ${SECRET.videoId}'`);
+      assert.equal(r.ok, false, 'el video_id paso a un campo que anon lee sin sesion');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('el video_id real en `description` es rechazado — campo nuevo de T-027', async () => {
+      const r = await insertCourse(db, 's05-desc', 'description', `'Mira este video: ${SECRET.videoId}'`);
+      assert.equal(r.ok, false);
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('el video_id real en `title` es rechazado', async () => {
+      const r = await asTeacherA(db, () =>
+        attempt(
+          db,
+          `insert into public.courses (slug, title, discipline, level, teacher_id)
+           values ('s05-title', $1, 'tarot', 'inicial', $2) returning id`,
+          [SECRET.videoId, ID.teacherA],
+        ),
+      );
+      assert.equal(r.ok, false);
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('el drive_file_id real en `learning_objectives` es rechazado', async () => {
+      const r = await insertCourse(db, 's05-obj', 'learning_objectives', `array['Bajar ${SECRET.driveFileId}']`);
+      assert.equal(r.ok, false, 'el bucle de arrays del guard no cubre learning_objectives');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('el drive_file_id real en `prerequisites` es rechazado', async () => {
+      const r = await insertCourse(db, 's05-prereq', 'prerequisites', `array['Tener ${SECRET.driveFileId}']`);
+      assert.equal(r.ok, false);
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('el UPDATE tambien esta cubierto, no solo el INSERT', async () => {
+      const creado = await insertCourse(db, 's05-update', 'description', `'Prosa normal.'`);
+      assert.equal(creado.ok, true, 'no se pudo sembrar el curso base del caso');
+      const r = await asTeacherA(db, () =>
+        attempt(db, `update public.courses set description = $1 where slug = 's05-update'`, [
+          `Mira: ${SECRET.videoId}`,
+        ]),
+      );
+      assert.equal(r.ok, false, 'el guard es BEFORE INSERT OR UPDATE — el UPDATE se colo');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    // Sin este caso, un guard que rechace TODO tambien daria verde en los de arriba.
+    test('prosa legitima con la palabra "video" NO se bloquea', async () => {
+      const r = await insertCourse(db, 's05-ok', 'description', `'Cada leccion es un video corto y hay material para bajar.'`);
+      assert.equal(r.ok, true, `falso positivo: el guard bloquea prosa normal (${r.message})`);
+    });
+  });
+
+  // ------------------------------------------------------- CHECKs de dominio
+  describe('CHECKs de dominio de los campos nuevos', () => {
+    test('promo_video_id no acepta la URL entera', async () => {
+      const r = await insertCourse(db, 'dom-url', 'promo_video_id', `'https://youtu.be/dQw4w9WgXcQ'`);
+      assert.equal(r.ok, false, 'pegar la URL entera tiene que fallar, igual que en lessons');
+      assert.equal(r.code, CHECK_VIOLATION);
+    });
+
+    test('promo_video_id acepta un id de 11 caracteres', async () => {
+      const r = await insertCourse(db, 'dom-ok', 'promo_video_id', `'aBcD1234_-x'`);
+      assert.equal(r.ok, true, r.message);
+    });
+
+    // `char(2)` corta antes de que el CHECK llegue a evaluarse: Postgres devuelve 22001
+    // (string_data_right_truncation), no 23514. Lo que importa es que NO entra; el codigo se
+    // afirma como lo que realmente pasa, no como lo que uno supuso al escribir la migracion.
+    test('language rechaza tres letras — lo frena el tipo, no el CHECK', async () => {
+      const r = await insertCourse(db, 'dom-lang3', 'language', `'esp'`);
+      assert.equal(r.ok, false);
+      assert.equal(r.code, '22001');
+    });
+
+    test('language rechaza mayusculas', async () => {
+      const r = await insertCourse(db, 'dom-langup', 'language', `'ES'`);
+      assert.equal(r.ok, false);
+      assert.equal(r.code, CHECK_VIOLATION);
+    });
+  });
+
+  // ------------------------------------------------------- grants (R-1)
+  describe('R-1 · los campos nuevos estan expuestos a proposito, no por accidente', () => {
+    // Corre como `anon` de verdad (asAnon), no como authenticated con un claim de anon: el grant
+    // que se prueba es el de 0023 a `anon`, y authenticated tiene el suyo propio.
+    test('anon puede leer los cinco campos nuevos — son material de venta', async () => {
+      await db.exec(`update public.courses set promo_video_id = 'aBcD1234_-y' where id = '${ID.courseA}'`);
+      const r = await asAnon(db, () =>
+        attempt(
+          db,
+          `select learning_objectives, prerequisites, description, language, promo_video_id
+             from public.courses where id = $1`,
+          [ID.courseA],
+        ),
+      );
+      assert.equal(r.ok, true, `anon no puede leer los campos nuevos (${r.code}: ${r.message})`);
+      assert.equal(r.rows.length, 1, 'anon no ve la fila del curso publicado');
+      assert.equal(r.rows[0].promo_video_id, 'aBcD1234_-y');
+    });
+  });
+
+  // ------------------------------------------------------- agregados (criterio 6)
+  // La ficha publica muestra este numero a `anon`: tiene que coincidir con la realidad. Una baja
+  // no es una inscripta, y el conteo de un borrador no se publica (la ficha de un draft no existe).
+  describe('course_student_count · solo inscripciones activas de cursos publicados', () => {
+    const contar = (courseId) =>
+      asAnon(db, () => attempt(db, `select public.course_student_count($1) as n`, [courseId]));
+
+    before(async () => {
+      // El seed deja a la alumna activa en courseA. Se suman una baja en courseA y una activa
+      // en el borrador: las dos tienen que quedar fuera del conteo.
+      await db.exec(`
+        insert into public.enrollments (user_id, course_id, status, granted_by) values
+          ('${ID.otro}',    '${ID.courseA}',     'revoked', '${ID.admin}'),
+          ('${ID.student}', '${ID.courseDraft}', 'active',  '${ID.admin}');
+      `);
+    });
+
+    test('una activa cuenta y una revocada no', async () => {
+      const r = await contar(ID.courseA);
+      assert.equal(r.ok, true, `anon no puede ejecutar la funcion (${r.code}: ${r.message})`);
+      assert.equal(r.rows[0].n, 1);
+    });
+
+    test('un curso sin inscriptas devuelve 0, no null', async () => {
+      const r = await contar(ID.courseB);
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows[0].n, 0);
+    });
+
+    test('un borrador devuelve 0 aunque tenga inscriptas activas', async () => {
+      const r = await contar(ID.courseDraft);
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows[0].n, 0, 'el conteo de un borrador se filtra a anon');
+    });
+  });
+});
+
+// ------------------------------------------------------- D-2 · intro -> description
+// Riesgo de la spec T-027: `intro` venia haciendo de descripcion. Al partirse en dos campos, los
+// cursos que ya existian no pueden quedar con la descripcion larga vacia. Se siembra ANTES de
+// 0023 porque es la unica forma de probar lo que una migracion hace con filas existentes.
+describe('0023 · copia intro a description en los cursos que ya existian', () => {
+  const ANTES_DE_0023 = '20260811210000_0022_mail_log_attempts.sql';
+  const DOCENTE = '20000000-0000-4000-8000-0000000000d2';
+  let db;
+
+  before(async () => {
+    let applyRemaining;
+    ({ db, applyRemaining } = await bootDatabase({ until: ANTES_DE_0023 }));
+    await db.exec(`
+      insert into auth.users (id, email) values ('${DOCENTE}', 'previa@humano.test');
+      update public.profiles set role = 'teacher', full_name = 'Previa' where id = '${DOCENTE}';
+      insert into public.courses (slug, title, discipline, level, teacher_id, status, intro) values
+        ('previo-con-intro', 'Previo', 'tarot', 'inicial', '${DOCENTE}', 'published', 'Texto de portada'),
+        ('previo-sin-intro', 'Previo 2', 'tarot', 'inicial', '${DOCENTE}', 'draft', null);
+    `);
+    // `updated_at` lo pisa el trigger en el insert; se fija despues, sin triggers, a un valor conocido.
+    await db.exec(`
+      alter table public.courses disable trigger user;
+      update public.courses set updated_at = '2026-01-01T00:00:00Z' where teacher_id = '${DOCENTE}';
+      alter table public.courses enable trigger user;
+    `);
+    await applyRemaining();
+  });
+
+  after(async () => db?.close());
+
+  test('un curso con intro queda con la misma description', async () => {
+    const { rows } = await db.query(`select intro, description from public.courses where slug = 'previo-con-intro'`);
+    assert.equal(rows[0].description, 'Texto de portada', 'el curso existente perdio su descripcion');
+    assert.equal(rows[0].intro, 'Texto de portada', 'intro tiene que quedar como estaba');
+  });
+
+  test('un curso sin intro sigue sin description', async () => {
+    const { rows } = await db.query(`select description from public.courses where slug = 'previo-sin-intro'`);
+    assert.equal(rows[0].description, null);
+  });
+
+  // La copia la hace la migracion, no la docente: "Ultima actualizacion" (criterio 4) no se mueve.
+  test('la copia no toca updated_at', async () => {
+    const { rows } = await db.query(
+      `select updated_at = '2026-01-01T00:00:00Z'::timestamptz as igual from public.courses where slug = 'previo-con-intro'`,
+    );
+    assert.equal(rows[0].igual, true, 'la migracion movio la fecha de ultima actualizacion');
+  });
+
+  test('el harness rechaza un until que no existe', async () => {
+    await assert.rejects(bootDatabase({ until: '0022_no_existe.sql' }), /no coincide con ninguna migracion/);
+  });
+});
