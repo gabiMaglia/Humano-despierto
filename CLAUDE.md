@@ -118,6 +118,13 @@ Every auth redirect is a trusted origin + `safeNext`: `getSiteUrl()` on the serv
 authority. Adding a port means adding its exact entry there. Local e2e needs
 `SMTP_HOST=127.0.0.1` and `SMTP_PORT=54325` in `webApp/.env.local` for the app's own mails.
 
+**Google OAuth** (T-041, D5): `/entrar` → `signInWithOAuth` (PKCE) → GoTrue → `/auth/callback`,
+the same exchange as mail confirmation. Logic lives in `src/lib/auth/google.ts`. GoTrue links a
+Google identity to the account with the same verified mail automatically (and drops that
+account's unconfirmed identities). `handle_new_user` takes `full_name` or `name` from the
+provider and leaves the name empty if it looks like a locator, instead of aborting the sign-up.
+Without a valid `next` Google lands on `/panel` (the role-based landing is password-login only).
+
 ### Security rules that are enforced by the schema — do not fight them
 These exist because the same class of bug reached production in a sibling project. They are
 covered by mutation tests that fail loudly if you regress them.
@@ -160,13 +167,17 @@ covered by mutation tests that fail loudly if you regress them.
 - The only mock left is `src/lib/mocks/landing.ts` (T-053 removes it). Do not add mocks.
 
 ## External dependencies not yet provisioned
-Two things block work and require the repo owner's accounts:
+Three things block work and require the repo owner's accounts:
 - **Supabase cloud project** does not exist. The schema has only run on PGlite (`npm test`,
   no PostgREST) and on the local Supabase stack (`supabase start`, where
   `harness/b1-postgrest-attacks.sh` exercises the HTTP surface). Re-run b1 against the cloud
   instance before any release (locale-dependent CHECKs, see migration 0012).
 - **YouTube Data API v3 key** (`YOUTUBE_API_KEY`, server-side, no `NEXT_PUBLIC_` prefix) —
   lesson duration is resolved by the server from the video, not typed by the teacher.
+- **Google OAuth client** (`SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `_SECRET`, in
+  `webApp/.env.local`; read by the Supabase CLI on `supabase start`, not by Next). Local
+  authorised redirect URI: `http://127.0.0.1:54321/auth/v1/callback`. Without them the Google
+  button ends in a Google error page.
 
 Secrets go in `webApp/.env.local` (gitignored). `SUPABASE_SERVICE_ROLE_KEY` must **never** carry
 the `NEXT_PUBLIC_` prefix: it bypasses RLS entirely and the prefix would ship it to the browser.
