@@ -151,4 +151,40 @@ describe('T-027 · campos de ficha de curso + S-05', () => {
       assert.equal(r.rows[0].promo_video_id, 'aBcD1234_-y');
     });
   });
+
+  // ------------------------------------------------------- agregados (criterio 6)
+  // La ficha publica muestra este numero a `anon`: tiene que coincidir con la realidad. Una baja
+  // no es una inscripta, y el conteo de un borrador no se publica (la ficha de un draft no existe).
+  describe('course_student_count · solo inscripciones activas de cursos publicados', () => {
+    const contar = (courseId) =>
+      asAnon(db, () => attempt(db, `select public.course_student_count($1) as n`, [courseId]));
+
+    before(async () => {
+      // El seed deja a la alumna activa en courseA. Se suman una baja en courseA y una activa
+      // en el borrador: las dos tienen que quedar fuera del conteo.
+      await db.exec(`
+        insert into public.enrollments (user_id, course_id, status, granted_by) values
+          ('${ID.otro}',    '${ID.courseA}',     'revoked', '${ID.admin}'),
+          ('${ID.student}', '${ID.courseDraft}', 'active',  '${ID.admin}');
+      `);
+    });
+
+    test('una activa cuenta y una revocada no', async () => {
+      const r = await contar(ID.courseA);
+      assert.equal(r.ok, true, `anon no puede ejecutar la funcion (${r.code}: ${r.message})`);
+      assert.equal(r.rows[0].n, 1);
+    });
+
+    test('un curso sin inscriptas devuelve 0, no null', async () => {
+      const r = await contar(ID.courseB);
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows[0].n, 0);
+    });
+
+    test('un borrador devuelve 0 aunque tenga inscriptas activas', async () => {
+      const r = await contar(ID.courseDraft);
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows[0].n, 0, 'el conteo de un borrador se filtra a anon');
+    });
+  });
 });
