@@ -40,10 +40,13 @@ test("c.3 c.5 sale a GoTrue con provider google, PKCE y vuelta al callback con e
   expect((await page.context().cookies()).some((c) => VERIFIER_COOKIE.test(c.name))).toBe(true);
 });
 
-test("c.3 un next externo vuelve como /panel", async ({ page }) => {
-  const { origin, authorize } = await clickGoogle(page, "/entrar?next=https%3A%2F%2Fevil.tld");
-  expect(authorize.searchParams.get("redirect_to")).toBe(`${origin}/auth/callback?next=%2Fpanel`);
-});
+// Mandar /panel por defecto taparía a admin y docente: sin next válido decide el callback (T-040 c.9).
+for (const entrar of ["/entrar?next=https%3A%2F%2Fevil.tld", "/entrar"]) {
+  test(`c.3 c.9 ${entrar}: sin next, el callback decide por rol`, async ({ page }) => {
+    const { origin, authorize } = await clickGoogle(page, entrar);
+    expect(authorize.searchParams.get("redirect_to")).toBe(`${origin}/auth/callback`);
+  });
+}
 
 test("c.4 cancelar en Google vuelve al error neutro de T-040 y sin sesión", async ({ page }) => {
   const { authorize } = await clickGoogle(page, "/entrar?next=%2Fpanel");
