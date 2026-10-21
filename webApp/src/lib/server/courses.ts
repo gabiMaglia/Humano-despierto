@@ -1,5 +1,6 @@
 import "server-only";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
+import { aggregateRatings } from "@/lib/reviews/rating";
 
 export interface PublishedCourseSummary {
   slug: string;
@@ -18,6 +19,10 @@ export interface PublishedCourseSummary {
   // Reemplazo de `courses.duration_weeks` (eliminada, ADR-004/T-001): agregado real de
   // `lessons.duration_seconds` publicadas del curso. Usado por T-019 para el filtro de duración.
   totalDurationSeconds: number;
+  publishedAt: string | null;
+  /** Derivados de `course_reviews` (ocultas ya filtradas por RLS); ausentes sin reseñas. */
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface CourseDetailLesson {
@@ -82,6 +87,8 @@ interface PublishedCourseModuleRow {
 }
 
 interface PublishedCourseRow {
+  id: string;
+  published_at: string | null;
   slug: string;
   title: string;
   title_em: string | null;
@@ -146,8 +153,8 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      `slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency, roman_num,
-       moon_glyph, featured,
+      `id, published_at, slug, title, title_em, subtitle, intro, discipline, level, price_cents,
+       currency, roman_num, moon_glyph, featured,
        teacher:profiles!courses_teacher_id_fkey(full_name, bio),
        course_modules(lessons(duration_seconds, is_published))`
     )
@@ -159,7 +166,22 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
   }
 
   const rows = (data ?? []) as unknown as PublishedCourseRow[];
+
+  // Opcion (b) del spec R-01: agregar en TS. Una consulta para todos los cursos; `anon` ya lee
+  // `rating` (RLS filtra `hidden_at`). Umbral para pasar a SQL: ~200 reseñas por curso o 100 cursos.
+  // Si falla, el catalogo se sirve igual sin rating: una señal ausente no lo tumba.
+  const ratings = new Map<string, { average: number; total: number }>();
+  if (rows.length > 0) {
+    const { data: rv, error: rvError } = await supabase
+      .from("course_reviews")
+      .select("course_id, rating")
+      .in("course_id", rows.map((r) => r.id));
+    if (rvError) console.error(`[courses] no se pudo leer el rating del catalogo: ${rvError.message}`);
+    else for (const [id, agg] of aggregateRatings(rv ?? [])) ratings.set(id, agg);
+  }
+
   return rows.map((row) => {
+    const agg = ratings.get(row.id);
     const teacher = firstTeacher(row.teacher);
     const totalDurationSeconds = (row.course_modules ?? []).reduce((sum, m) => {
       const moduleSeconds = (m.lessons ?? [])
@@ -182,6 +204,8 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       featured: row.featured,
       teacherName: teacher?.full_name ?? "—",
       totalDurationSeconds,
+      publishedAt: row.published_at,
+      ...(agg ? { rating: agg.average, reviewCount: agg.total } : {}),
     };
   });
 }

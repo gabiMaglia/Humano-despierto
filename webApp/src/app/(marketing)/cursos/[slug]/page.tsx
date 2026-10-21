@@ -7,6 +7,7 @@ import StatBlock from "@/components/atoms/StatBlock";
 import CurriculumAccordion from "@/components/course/CurriculumAccordion";
 import PromoVideo from "@/components/course/PromoVideo";
 import ReviewsSection from "@/components/reviews/ReviewsSection";
+import { visibleDescription } from "@/lib/catalog/description";
 import { getCourseBySlug } from "@/lib/server/courses";
 import { getStudentCourseAccess } from "@/lib/server/enrollment";
 import { getCourseReviews } from "@/lib/server/reviews";
@@ -51,6 +52,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
   if (!course) notFound();
+  const longDescription = visibleDescription(course.intro, course.description);
 
   const [access, reviews] = await Promise.all([
     getStudentCourseAccess(course.id),
@@ -233,12 +235,12 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
       {/* Descripcion larga — `intro` queda como el parrafo de portada, arriba. Mismo split en
           parrafos que usan diario/[slug] y guias/[slug]: no hay un tercer metodo. */}
-      {course.description && (
+      {longDescription && (
         <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
           <div className="mx-auto max-w-3xl">
             <SectionDivider label="Sobre este curso" className="mb-10" />
             <div className="space-y-5">
-              {course.description.split(/\n{2,}/).filter(Boolean).map((par, i) => (
+              {longDescription.split(/\n{2,}/).filter(Boolean).map((par, i) => (
                 <p key={i} className="font-body text-base text-ink-soft leading-relaxed">{par}</p>
               ))}
             </div>

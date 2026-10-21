@@ -13,6 +13,9 @@ import {
   filterCourses,
   hrefFor,
   paginate,
+  sortCourses,
+  withParam,
+  type CatalogOrder,
   parseCatalogFilterState,
   toggleListParam,
   toURLSearchParams,
@@ -67,6 +70,12 @@ function FilterGroup({
 }
 
 
+const ORDER_OPTIONS: { key: CatalogOrder; label: string }[] = [
+  { key: "relevancia", label: "Relevancia" },
+  { key: "mejor-valorado", label: "Mejor valorado" },
+  { key: "mas-nuevo", label: "Más nuevo" },
+];
+
 export const metadata: Metadata = {
   title: "Cursos",
   description: "Tarot, astrología, herbalismo, reiki y magia. Cursos on-demand con guías de linaje.",
@@ -84,7 +93,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const levelFacets = buildLevelFacets(allCourses, state);
   const durationFacets = buildDurationFacets(allCourses, state);
 
-  const filtered = filterCourses(allCourses, state);
+  const filtered = sortCourses(filterCourses(allCourses, state), state.order);
   const { items: pageCourses, page, totalPages } = paginate(filtered, state.page, PAGE_SIZE);
 
   const activeChips: { label: string; href: string }[] = [
@@ -121,6 +130,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             {state.disciplines.length > 0 && (
               <input type="hidden" name="disciplina" value={state.disciplines.join(",")} />
             )}
+            {state.order !== "relevancia" && <input type="hidden" name="orden" value={state.order} />}
             {state.levels.length > 0 && <input type="hidden" name="nivel" value={state.levels.join(",")} />}
             {state.durations.length > 0 && (
               <input type="hidden" name="duracion" value={state.durations.join(",")} />
@@ -175,6 +185,24 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             )}
           </div>
 
+          <nav aria-label="Ordenar cursos" className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="font-display text-eyebrow uppercase tracking-[0.2em] text-ink-faint">Ordenar</span>
+            {ORDER_OPTIONS.map((o) => (
+              <Link
+                key={o.key}
+                href={hrefFor(withParam(current, "orden", o.key))}
+                aria-pressed={state.order === o.key}
+                className={`rounded-pill border px-3 py-1 font-display text-eyebrow ${
+                  state.order === o.key
+                    ? "border-lila-300/60 bg-lila-300/20 text-lila-300"
+                    : "border-lila-300/20 text-ink-faint hover:text-ink-soft"
+                }`}
+              >
+                {o.label}
+              </Link>
+            ))}
+          </nav>
+
           {filtered.length === 0 ? (
             <div className="cosmos-card flex flex-col items-center gap-4 px-6 py-20 text-center">
               <span className="font-display text-2xl text-lila-300">✧</span>
@@ -204,6 +232,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     moon={course.moonGlyph ?? undefined}
                     featured={course.featured}
                     slug={course.slug}
+                    rating={course.rating}
+                    reviewCount={course.reviewCount}
                   />
                 ))}
               </div>
