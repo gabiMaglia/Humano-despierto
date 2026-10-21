@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { startGoogleSignIn } from "@/lib/auth/google";
 
 interface Props {
-  // `null` cuando /entrar no recibió un `next` válido; `startGoogleSignIn` lo resuelve a /panel.
+  // `null` cuando /entrar no recibió un `next` válido; el callback elige entonces por rol.
   next: string | null;
   disabled?: boolean;
   onError: (message: string) => void;

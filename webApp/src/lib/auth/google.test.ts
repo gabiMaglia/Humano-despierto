@@ -28,14 +28,13 @@ describe("startGoogleSignIn", () => {
     );
   });
 
-  // `null` es lo que /entrar pasa cuando no hay `next` válido (T-040 c.9).
+  // `null` es lo que /entrar pasa cuando no hay `next` válido. Sin `next` el callback elige el
+  // destino por rol (T-040 c.9); mandar `/panel` acá dejaría a admin y docente en el panel de alumna.
   it.each([["https://evil.tld"], ["//evil.tld"], ["/\\evil.tld"], [""], [null]])(
-    "next %j vuelve a sanearse y cae en /panel (c.3)",
+    "next %j vuelve a sanearse y el callback queda sin next (c.3, T-040 c.9)",
     async (raw) => {
       await startGoogleSignIn(client, ORIGIN, raw);
-      expect(signInWithOAuth.mock.calls[0][0].options.redirectTo).toBe(
-        "http://localhost:3000/auth/callback?next=%2Fpanel",
-      );
+      expect(signInWithOAuth.mock.calls[0][0].options.redirectTo).toBe("http://localhost:3000/auth/callback");
     },
   );
 

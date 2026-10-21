@@ -97,7 +97,7 @@ export default function EntrarForm({ next, linkError }: Props) {
       password,
       options: {
         data: { full_name: nombre },
-        emailRedirectTo: callbackUrl(window.location.origin, next ?? DEFAULT_NEXT),
+        emailRedirectTo: callbackUrl(window.location.origin, next),
       },
     });
     setLoading(false);

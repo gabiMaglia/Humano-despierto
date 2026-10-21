@@ -44,4 +44,9 @@ describe("callbackUrl", () => {
       "http://localhost:3000/auth/callback?next=%2Fleccion%2Fabc%3Ftab%3Dnotas",
     );
   });
+
+  // T-041 ronda 2: sin `next` el callback elige por rol (c.9 de T-040); `?next=/panel` lo taparía.
+  it("sin next no agrega query", () => {
+    expect(callbackUrl("http://localhost:3000", null)).toBe("http://localhost:3000/auth/callback");
+  });
 });
