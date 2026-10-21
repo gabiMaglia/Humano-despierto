@@ -90,6 +90,7 @@ export interface AdminCourseRow {
   title: string;
   status: CourseStatus;
   teacherName: string;
+  createdAt: string;
 }
 
 interface TeacherRow {
@@ -101,6 +102,7 @@ interface AdminCourseQueryRow {
   slug: string;
   title: string;
   status: CourseStatus;
+  created_at: string;
   teacher: TeacherRow | TeacherRow[] | null;
 }
 
@@ -114,7 +116,7 @@ export async function listAllCourses(): Promise<AdminCourseRow[]> {
   const { data, error } = await db
     .from("courses")
     .select(
-      "id, slug, title, status, teacher:profiles!courses_teacher_id_fkey(full_name)"
+      "id, slug, title, status, created_at, teacher:profiles!courses_teacher_id_fkey(full_name)"
     )
     .order("created_at", { ascending: true });
 
@@ -129,6 +131,7 @@ export async function listAllCourses(): Promise<AdminCourseRow[]> {
     title: row.title,
     status: row.status,
     teacherName: firstTeacher(row.teacher)?.full_name ?? "—",
+    createdAt: row.created_at,
   }));
 }
 
