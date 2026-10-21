@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { AVATAR_BUCKET } from "@/lib/server/avatar";
+import { uploadAsServer } from "@/lib/server/uploads";
 import type { ActionState } from "@/lib/action-state";
 import { profileFormSchema, toProfileUpdate } from "@/lib/validation/profile";
 import { buildAvatarPath, checkAvatarBytes, IMAGE_MIME } from "@/lib/validation/image";
@@ -78,25 +80,23 @@ export async function uploadAvatarAction(_prev: ActionState, formData: FormData)
   if (!user) return SESSION_EXPIRED;
 
   const { data: current } = await supabase.from("profiles").select("avatar_path").eq("id", user.id).single();
+  // `user.id` sale de la sesion, no del request: es lo unico que ata la carpeta a quien sube.
   const path = buildAvatarPath(user.id, crypto.randomUUID(), check.kind);
-  const bucket = supabase.storage.from(AVATAR_BUCKET);
 
-  // Cliente de sesion, no service_role: si este codigo armara mal la carpeta, la policy de Storage
-  // lo frena. Es la segunda barrera y solo existe si se sube como la usuaria.
-  const { error: uploadError } = await bucket.upload(path, bytes, {
-    contentType: IMAGE_MIME[check.kind],
-    upsert: false,
-  });
+  // D-34: service_role, porque una policy de INSERT de sesion dejaba subir por `/storage/v1` sin
+  // pasar por la validacion de bytes de arriba. El guard de 0028 sigue atando `avatar_path` a la
+  // carpeta propia en el UPDATE de abajo, que si va con la sesion.
+  const { error: uploadError } = await uploadAsServer(path, bytes, IMAGE_MIME[check.kind]);
   if (uploadError) return { error: "No se pudo subir la imagen.", success: null };
 
   const { error: updateError } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", user.id);
   if (updateError) {
-    await bucket.remove([path]);
+    await createServiceRoleClient().storage.from(AVATAR_BUCKET).remove([path]);
     return { error: "No se pudo guardar la imagen en tu perfil.", success: null };
   }
 
   // Si falla, queda un objeto sin referencia; no justifica revertir un avatar que ya se ve bien.
-  if (current?.avatar_path) await bucket.remove([current.avatar_path]);
+  if (current?.avatar_path) await supabase.storage.from(AVATAR_BUCKET).remove([current.avatar_path]);
 
   revalidateProfile();
   return { error: null, success: "Imagen actualizada." };

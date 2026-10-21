@@ -14,10 +14,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
-    // T-042 · el avatar viaja en el FormData de un Server Action y el tope por defecto es 1 MB. 3 MB
-    // cubre los 2 MB del avatar mas el overhead multipart; el tope real lo impone el servidor
-    // (`checkAvatarBytes`), asi que 2 MB + 1 byte llega a la action y recibe un mensaje propio.
-    serverActions: { bodySizeLimit: "3mb" },
+    // T-042/T-047 · avatar y portada viajan en el FormData de un Server Action y el tope por
+    // defecto es 1 MB. 4 MB cubre los 3 MB de la portada mas el overhead multipart: 3,1 MB tiene
+    // que LLEGAR a la action para recibir su mensaje (criterio 2 de T-047). El tope real lo
+    // imponen `checkAvatarBytes`/`checkCoverBytes`.
+    serverActions: { bodySizeLimit: "4mb" },
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

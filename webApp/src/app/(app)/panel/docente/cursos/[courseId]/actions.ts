@@ -16,6 +16,8 @@ import {
   firstIssueMessage,
 } from "@/lib/validation/teacher";
 import type { TeacherActionState } from "@/lib/teacher/action-state";
+import { UPLOADS_BUCKET, uploadAsServer } from "@/lib/server/uploads";
+import { buildCoverPath, checkCoverBytes, IMAGE_MIME, isUuid } from "@/lib/validation/image";
 
 const TEMP_POSITION = 999999;
 
@@ -720,4 +722,87 @@ export async function deleteResourceAction(
 
   revalidatePath(`/panel/docente/cursos/${courseId}/lecciones/${lessonId}`);
   return { error: null, success: "Recurso borrado." };
+}
+
+// ==================================================================== portada (T-047)
+
+function revalidateCover(courseId: string) {
+  revalidatePath(`/panel/docente/cursos/${courseId}`);
+  revalidatePath("/cursos");
+  revalidatePath("/cursos/[slug]", "page");
+  revalidatePath("/");
+}
+
+export async function uploadCourseCoverAction(
+  _prevState: TeacherActionState,
+  formData: FormData
+): Promise<TeacherActionState> {
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!isUuid(courseId)) return { error: "Falta el curso.", success: null };
+  const file = formData.get("cover");
+  if (!(file instanceof File)) return { error: "Elegí una imagen.", success: null };
+
+  // Se valida antes de abrir sesion: un archivo invalido no tiene por que tocar Supabase (c.2).
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const check = checkCoverBytes(bytes);
+  if (!check.ok) return { error: check.error, success: null };
+
+  const teacher = await requireTeacher();
+  try {
+    await assertOwnsCourse(courseId, teacher.id);
+    const supabase = await createClient();
+    const { data: current } = await supabase.from("courses").select("cover_path").eq("id", courseId).single();
+    const path = buildCoverPath(courseId, crypto.randomUUID(), check.kind);
+
+    // D-34: sube service_role, nunca la sesion (sin policy de INSERT en `uploads`). Lo que ata el
+    // objeto al curso es lo de arriba: bytes validados, titularidad verificada, path armado aca
+    // con un courseId que ya paso `isUuid`. El UPDATE de abajo va con la sesion y el CHECK de 0030.
+    const { error: uploadError } = await uploadAsServer(path, bytes, IMAGE_MIME[check.kind]);
+    if (uploadError) return { error: "No se pudo subir la portada.", success: null };
+
+    const { error: updateError } = await supabase.from("courses").update({ cover_path: path }).eq("id", courseId);
+    if (updateError) {
+      await createServiceRoleClient().storage.from(UPLOADS_BUCKET).remove([path]);
+      return { error: "No se pudo guardar la portada en el curso.", success: null };
+    }
+
+    // Si falla queda un objeto sin referencia; no justifica revertir una portada que ya se ve bien.
+    if (current?.cover_path) {
+      const { error: removeError } = await supabase.storage.from(UPLOADS_BUCKET).remove([current.cover_path]);
+      if (removeError) console.error("[T-047] portada anterior sin referencia", current.cover_path, removeError.message);
+    }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo subir la portada.", success: null };
+  }
+
+  revalidateCover(courseId);
+  return { error: null, success: "Portada actualizada." };
+}
+
+export async function removeCourseCoverAction(
+  _prevState: TeacherActionState,
+  formData: FormData
+): Promise<TeacherActionState> {
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!isUuid(courseId)) return { error: "Falta el curso.", success: null };
+
+  const teacher = await requireTeacher();
+  try {
+    await assertOwnsCourse(courseId, teacher.id);
+    const supabase = await createClient();
+    const { data: current } = await supabase.from("courses").select("cover_path").eq("id", courseId).single();
+    if (!current?.cover_path) return { error: null, success: "El curso no tenía portada." };
+
+    const { error } = await supabase.from("courses").update({ cover_path: null }).eq("id", courseId);
+    if (error) return { error: "No se pudo quitar la portada.", success: null };
+
+    // Con la sesion: la policy `uploads_covers_delete_own` alcanza y no hace falta saltear RLS.
+    const { error: removeError } = await supabase.storage.from(UPLOADS_BUCKET).remove([current.cover_path]);
+    if (removeError) console.error("[T-047] portada quitada sin borrar en Storage", current.cover_path, removeError.message);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo quitar la portada.", success: null };
+  }
+
+  revalidateCover(courseId);
+  return { error: null, success: "Portada quitada." };
 }
