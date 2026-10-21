@@ -114,4 +114,92 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------- 2 · course_review_reports
+-- Spec ADR-012 tal cual salvo el CHECK del trio (desvio 3 del plan de T-037): con el literal del
+-- ADR, `resolved_by on delete set null` dejaba imborrable la cuenta del admin que resolvio.
+create table public.course_review_reports (
+  id           uuid        primary key default gen_random_uuid(),
+  review_id    uuid        not null references public.course_reviews (id) on delete cascade,
+  reporter_id  uuid        not null references public.profiles (id) on delete cascade,
+  reason       text        not null,
+  created_at   timestamptz not null default now(),
+  resolved_at  timestamptz,
+  resolved_by  uuid        references public.profiles (id) on delete set null,
+  resolution   text        check (resolution in ('oculta', 'desestimada')),
+
+  -- Una persona reporta una resena una vez: reportar en bucle es la forma barata de presionar.
+  constraint course_review_reports_unique unique (review_id, reporter_id),
+  constraint course_review_reports_reason_not_blank check (length(btrim(reason)) > 0),
+  constraint course_review_reports_reason_max check (char_length(reason) <= 1000),
+  constraint course_review_reports_resolution_consistency check (
+    (resolved_at is null) = (resolution is null)
+    and (resolved_by is null or resolved_at is not null)
+  )
+);
+
+create index course_review_reports_pending_idx
+  on public.course_review_reports (created_at) where resolved_at is null;
+create index course_review_reports_review_idx on public.course_review_reports (review_id);
+
+-- Quien puede reportar ESTA resena. security definer porque tiene que ver la resena aunque la
+-- policy de lectura no se la muestre al que pregunta, y lee `profiles.role` (R-2): una guia
+-- degradada sigue figurando como teacher_id de sus cursos (D-16).
+create or replace function public.can_report_review(p_review_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select public.is_admin() or exists (
+    select 1
+      from public.course_reviews r
+      join public.courses c on c.id = r.course_id
+      join public.profiles p on p.id = c.teacher_id
+     where r.id = p_review_id
+       and c.teacher_id = auth.uid()
+       and p.role = 'teacher'
+  );
+$$;
+
+alter table public.course_review_reports enable row level security;
+
+create policy course_review_reports_insert on public.course_review_reports
+  for insert to authenticated
+  with check (reporter_id = (select auth.uid()) and public.can_report_review(review_id));
+
+-- Lee quien lo escribio y el admin. Ninguna alumna, ni sobre su propia resena (ADR-012 c.4).
+create policy course_review_reports_read on public.course_review_reports
+  for select to authenticated
+  using (reporter_id = (select auth.uid()) or public.is_admin());
+
+-- Sin policy de UPDATE ni DELETE para clientes: resolver es de service_role y el borrado llega
+-- por la cascada de la resena (las acciones referenciales no pasan por RLS).
+
+-- Checklist ADR-011:
+--   1 · Operacion legitima que podria bloquear: la guia reportando con prosa normal, y el
+--       `on delete set null` de resolved_by al borrar la cuenta de quien resolvio (caso en
+--       guard-reachability). Solo mira `reason` cuando cambia, asi ese UPDATE no lo dispara.
+--   2 · Bypass de service_role: no hay; un localizador no entra al motivo por ningun camino.
+create or replace function public.guard_course_review_reports()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+begin
+  if (tg_op = 'INSERT' or new.reason is distinct from old.reason)
+     and public.body_has_known_locator(new.reason) then
+    raise exception 'el motivo contiene un localizador de contenido pago'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger course_review_reports_guard
+  before insert or update on public.course_review_reports
+  for each row execute function public.guard_course_review_reports();
+
+-- R-1: whitelist. La tabla nace sin privilegios de cliente (0003), pero se revoca igual por si el
+-- ambiente trae los default privileges de Supabase.
+revoke all on public.course_review_reports from anon, authenticated;
+grant select (id, review_id, reporter_id, reason, created_at, resolved_at, resolution)
+  on public.course_review_reports to authenticated;
+grant insert (review_id, reporter_id, reason) on public.course_review_reports to authenticated;
+grant all on public.course_review_reports to service_role;
+
+grant execute on function public.can_report_review(uuid) to authenticated, service_role;
+
 revoke execute on all functions in schema public from public;

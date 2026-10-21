@@ -510,9 +510,13 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       // T-042 suma `my_private_profile`: SECURITY DEFINER porque `phone`/`birth_date` no tienen
       // grant de SELECT para nadie. Filtra por `auth.uid()`, asi que solo devuelve la fila propia;
       // a `anon` no se le otorga (no tiene fila propia que leer).
+      // T-037 suma `can_report_review`: SECURITY DEFINER porque la evalua la policy de INSERT de
+      // `course_review_reports` y tiene que ver la resena y el curso aunque la RLS de quien
+      // reporta no se los muestre. Devuelve si/no sobre un id que el llamador ya tiene. A `anon`
+      // no se le otorga: no tiene grant sobre la tabla.
       const ESPERADO_AUTH = [
         ...ESPERADO_ANON, 'array_has_locator', 'body_has_known_locator', 'campus_post_authors',
-        'can_author', 'can_read_campus_thread', 'can_write_campus_post', 'has_course_access',
+        'can_author', 'can_read_campus_thread', 'can_report_review', 'can_write_campus_post', 'has_course_access',
         'is_campus_moderator', 'is_service_context', 'my_private_profile', 'text_has_locator',
       ].sort();
       const fns = await functionPrivileges(db);

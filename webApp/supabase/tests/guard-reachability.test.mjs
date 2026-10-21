@@ -65,6 +65,7 @@ const CASOS = {
 
   // --- moderacion
   campus_posts_guard: 'la moderadora hace soft delete con autor y motivo',
+  course_review_reports_guard: 'la guia duena reporta con prosa normal y la cuenta de quien resolvio se puede borrar',
 
   // --- localizadores (T-035). De estos seis, TRES nunca se verificaron por el lado legitimo:
   //     course_modules, lesson_chapters y lesson_resources. Este ticket existe en parte por eso.
@@ -590,6 +591,24 @@ describe('ADR-011 · borrar la cuenta del admin que modero no queda bloqueado', 
   });
   after(async () => db?.close());
 
+  test(`course_review_reports_guard · ${CASOS.course_review_reports_guard}`, async () => {
+    await db.exec(`reset role;`);
+    const [{ id: review }] = (await db.query(`select id from public.course_reviews where course_id = $1`, [ID.courseA])).rows;
+    const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+      attempt(db, `insert into public.course_review_reports (review_id, reporter_id, reason) values ($1, $2, $3)`, [
+        review, ID.teacherA, 'Insulta a otra alumna por su nombre.',
+      ]),
+    );
+    assert.equal(r.ok, true, `la guia no pudo reportar: ${r.message}`);
+    await db.exec(`reset role;`);
+    await db.query(
+      `update public.course_review_reports set resolved_at = now(), resolved_by = $1, resolution = 'desestimada' where review_id = $2`,
+      [ID.admin, review],
+    );
+    // El borrado del admin lo hace el caso siguiente (hidden_by); aca se deja el reporte resuelto
+    // por el admin para que ese mismo DELETE pruebe tambien el set null de resolved_by.
+  });
+
   test('course_reviews · on delete set null de hidden_by', async () => {
     await db.exec(`reset role;`);
     await db.query(
@@ -598,6 +617,9 @@ describe('ADR-011 · borrar la cuenta del admin que modero no queda bloqueado', 
     );
     const r = await attempt(db, `delete from auth.users where id = $1`, [ID.admin]);
     assert.equal(r.ok, true, `la cuenta del admin que oculto quedo imborrable: ${r.message}`);
+    const [rep] = (await db.query(`select resolved_at, resolved_by, resolution from public.course_review_reports`)).rows;
+    assert.equal(rep.resolved_by, null, 'resolved_by no se anulo');
+    assert.equal(rep.resolution, 'desestimada', 'se perdio la resolucion al borrar a quien resolvio');
     const [fila] = (await db.query(`select hidden_at, hidden_by, hidden_reason from public.course_reviews where course_id = $1`, [ID.courseA])).rows;
     assert.notEqual(fila.hidden_at, null, 'la resena se desoculto al borrar a quien la oculto');
     assert.equal(fila.hidden_by, null);
