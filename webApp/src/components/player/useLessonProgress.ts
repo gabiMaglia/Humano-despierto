@@ -10,7 +10,8 @@ const THROTTLE_MS = 5000;
 
 interface Options {
   lessonId: string;
-  isAuthenticated: boolean;
+  /** Inscripta o sesión en una preview (0004). Dueña y admin ven el player sin cursarlo (T-030). */
+  canTrackProgress: boolean;
   initialSecondsWatched: number;
   initialCompleted: boolean;
 }
@@ -24,7 +25,7 @@ export interface LessonProgress {
 
 export function useLessonProgress({
   lessonId,
-  isAuthenticated,
+  canTrackProgress,
   initialSecondsWatched,
   initialCompleted,
 }: Options): LessonProgress {
@@ -44,11 +45,10 @@ export function useLessonProgress({
 
   const flush = useCallback(
     async (force: boolean) => {
-      // T-006 (rechazo 1): un anónimo puede estar acá viendo una lección `is_preview`
-      // (ADR-003). `lesson_progress` exige sesión — sin esto, cada tick intenta persistir y
-      // falla contra el server action, en vez de simplemente no aplicar (no hay progreso propio
-      // que guardar sin usuario).
-      if (!isAuthenticated) return;
+      // Sin sesión, o con sesión de docente/admin que no cursa (T-030), `lesson_progress`
+      // rechaza el INSERT por RLS: no hay progreso propio que guardar, y sin este corte cada tick
+      // fallaría contra el server action.
+      if (!canTrackProgress) return;
       if (completedRef.current) return;
       const seconds = Math.floor(maxSecondsRef.current);
       if (seconds <= lastSavedRef.current) return;
@@ -75,7 +75,7 @@ export function useLessonProgress({
       inFlightRef.current = run;
       await run;
     },
-    [lessonId, isAuthenticated]
+    [lessonId, canTrackProgress]
   );
 
   const onTick = useCallback(
