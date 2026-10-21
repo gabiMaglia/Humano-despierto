@@ -1,7 +1,9 @@
+import Link from "next/link";
 import Nav from "@/components/layout/Nav";
 import ProgressRing from "@/components/atoms/ProgressRing";
 import { getCurrentUser } from "@/lib/server/auth";
 import { getStudentDashboard } from "@/lib/server/enrollment";
+import { ensureCertificate } from "@/lib/server/certificates";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { toRoman } from "@/lib/utils/roman";
 
@@ -27,13 +29,27 @@ export default async function DashboardPage() {
           <p className="max-w-md font-body text-sm text-ink-soft">
             Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
           </p>
-          <a href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
+          <Link href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
             Explorar el catálogo ↦
-          </a>
+          </Link>
         </div>
       </div>
     );
   }
+
+  // T-018 · el certificado se emite al completar TODAS las lecciones publicadas — no lo declara
+  // nadie, `ensureCertificate` vuelve a verificarlo server-side (ADR-007 extendido). Se pide
+  // acá, perezoso, para los cursos que YA están al 100%: cubre tanto al que lo completó recién
+  // (todavía sin fila en `certificates`) como a datos de seed sembrados directo en la base
+  // (delfina.curso-completo, sin haber pasado nunca por `saveLessonProgress`).
+  const certificateEntries = await Promise.all(
+    courses
+      .filter((c) => c.progressPercent === 100)
+      .map(async (c) => [c.courseId, await ensureCertificate(c.courseId)] as const)
+  );
+  const certificateByCourse = new Map(
+    certificateEntries.filter((entry): entry is [string, string] => entry[1] !== null)
+  );
 
   const continuing = courses.find((c) => c.progressPercent < 100) ?? courses[0];
 
@@ -67,13 +83,13 @@ export default async function DashboardPage() {
           </div>
           <div className="flex flex-col items-start gap-2">
             {continuing.continueLessonId ? (
-              <a href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
+              <Link href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
                 Continuar ↦
-              </a>
+              </Link>
             ) : (
-              <a href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
+              <Link href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
                 Ver curso ↦
-              </a>
+              </Link>
             )}
             {continuing.lastSeenAt && (
               <span className="font-quote italic text-sm text-ink-soft">
@@ -87,7 +103,7 @@ export default async function DashboardPage() {
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="font-display text-lg tracking-wide text-ink">Tu camino actual</h2>
-            <a href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</a>
+            <Link href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</Link>
           </div>
           <div className="space-y-4">
             {courses.map((c, i) => (
@@ -112,8 +128,18 @@ export default async function DashboardPage() {
                 <div className="flex-none flex flex-col items-center gap-2">
                   <ProgressRing value={c.progressPercent} />
                   {c.progressPercent < 100 && c.continueLessonId && (
-                    <a href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
+                    <Link href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap">
                       Continuar ↦
+                    </Link>
+                  )}
+                  {c.progressPercent === 100 && certificateByCourse.get(c.courseId) && (
+                    <a
+                      href={`/certificado/${certificateByCourse.get(c.courseId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-display text-eyebrow tracking-cosmic text-gold-400 hover:text-lila-300 transition-colors whitespace-nowrap"
+                    >
+                      Ver certificado ↦
                     </a>
                   )}
                 </div>

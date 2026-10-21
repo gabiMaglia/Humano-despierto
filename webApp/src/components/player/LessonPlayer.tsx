@@ -29,6 +29,11 @@ const STATE_ICON_CLASS: Record<PlayerLessonState, string> = {
 // la pestaña, donde se fuerza el flush para no perder el último tramo visto.
 const THROTTLE_MS = 5000;
 
+// Una sola fuente para el orden de las pestañas: el `.map` que las dibuja y las flechas que
+// navegan entre ellas tienen que recorrer lo mismo o divergen.
+const TABS = ["modulos", "notas", "recursos"] as const;
+type TabId = (typeof TABS)[number];
+
 function formatClock(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));
   const h = Math.floor(total / 3600);
@@ -43,7 +48,7 @@ interface Props {
 }
 
 export default function LessonPlayer({ data }: Props) {
-  const [tab, setTab] = useState<"modulos" | "notas" | "recursos">("notas");
+  const [tab, setTab] = useState<TabId>("notas");
   const [completed, setCompleted] = useState(data.completed);
   const [notes, setNotes] = useState<PlayerNote[]>(data.notes);
   const [noteDraft, setNoteDraft] = useState("");
@@ -51,6 +56,16 @@ export default function LessonPlayer({ data }: Props) {
   const [noteError, setNoteError] = useState<string | null>(null);
 
   const containerId = `yt-player-${data.lessonId}`;
+
+  // Patron ARIA de tablist: el grupo es UNA sola parada de Tab y adentro se navega con flechas.
+  function handleTabKeys(e: React.KeyboardEvent) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const i = TABS.indexOf(tab);
+    const next = e.key === "ArrowRight" ? TABS[(i + 1) % TABS.length] : TABS[(i - 1 + TABS.length) % TABS.length];
+    setTab(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  }
 
   // Estado de progreso vive en refs: se lee/actualiza desde el tick del player (cada 1s) sin
   // recrear el callback ni disparar renders extra — sólo `completed` importa para la UI.
@@ -108,7 +123,8 @@ export default function LessonPlayer({ data }: Props) {
     data.videoId,
     completed ? 0 : data.initialSecondsWatched,
     data.durationSeconds,
-    handleProgressTick
+    handleProgressTick,
+    data.title
   );
 
   // Flush al ocultar la pestaña / desmontar — el intervalo de 1s no corre confiablemente en
@@ -271,10 +287,21 @@ export default function LessonPlayer({ data }: Props) {
 
         {/* SIDE tabs */}
         <aside className="w-72 flex-none border-l border-lila-300/18 flex-col hidden md:flex">
-          <div className="flex border-b border-lila-300/18">
-            {(["modulos", "notas", "recursos"] as const).map((t) => (
+          <div
+            role="tablist"
+            aria-label="Contenido de la lección"
+            onKeyDown={handleTabKeys}
+            className="flex border-b border-lila-300/18"
+          >
+            {TABS.map((t) => (
               <button
                 key={t}
+                type="button"
+                role="tab"
+                id={`tab-${t}`}
+                aria-selected={tab === t}
+                aria-controls={`panel-${t}`}
+                tabIndex={tab === t ? 0 : -1}
                 onClick={() => setTab(t)}
                 className={cn(
                   "flex-1 py-3 font-display text-eyebrow tracking-cosmic capitalize transition-colors",
@@ -286,7 +313,15 @@ export default function LessonPlayer({ data }: Props) {
             ))}
           </div>
 
-          <div className="flex-1 overflow-auto p-4">
+          {/* Un solo panel: solo se renderiza la pestaña activa, asi que el id y el
+              aria-labelledby siguen a `tab` en vez de haber tres contenedores. */}
+          <div
+            id={`panel-${tab}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${tab}`}
+            tabIndex={0}
+            className="flex-1 overflow-auto p-4"
+          >
             {tab === "modulos" && (
               <div className="space-y-2">
                 {data.modules.map((m) => (

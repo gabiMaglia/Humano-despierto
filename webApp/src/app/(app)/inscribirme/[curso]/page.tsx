@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import { cn } from "@/lib/utils/cn";
@@ -47,9 +48,9 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-cosmos-0 text-ink">
       {/* Top bar */}
       <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-4 flex flex-wrap items-center gap-4 md:gap-8">
-        <a href="/cursos/tarot-iniciatico" className="font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors whitespace-nowrap">
+        <Link href="/cursos/tarot-iniciatico" className="font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors whitespace-nowrap">
           ← Volver al curso
-        </a>
+        </Link>
 
         {/* Step indicator */}
         <div className="flex flex-1 items-center justify-center gap-2 md:gap-3">
@@ -266,15 +267,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Help widget */}
-          <div className="mt-4 cosmos-card p-5 flex gap-4">
-            <span className="text-2xl text-gold-400 flex-none">☉</span>
-            <div>
-              <p className="mb-1 font-display text-sm tracking-wide text-ink">¿Dudás antes de cruzar?</p>
-              <p className="mb-2 font-body text-xs text-ink-soft">Hablá con una guía. 15 minutos, sin compromiso.</p>
-              <a href="#" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Pedir conversación ↦</a>
-            </div>
-          </div>
         </aside>
       </div>
     </div>

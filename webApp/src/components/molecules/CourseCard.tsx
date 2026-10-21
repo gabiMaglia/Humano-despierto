@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import Avatar from "@/components/atoms/Avatar";
 
@@ -25,11 +26,17 @@ export default function CourseCard({
   weeks, level, moon, featured, slug, className,
 }: Props) {
   return (
+    // El <article> entero es un link al detalle. La card tenia `cursor-pointer` desde la
+    // maqueta pero nunca tuvo `Link`: la unica forma de llegar a un curso era tipear la
+    // URL. Es el camino de navegacion principal del producto y estuvo roto todo el
+    // tiempo, tapado por un cursor que prometia que se podia hacer click.
+    //
     // Altura fija y estructura de alto determinado: el tag, el titulo, la descripcion
     // y el pie ocupan siempre lo mismo, sin importar cuanto texto traiga cada curso.
     // Antes cada card medía distinto segun el largo de la descripcion y la grilla
     // quedaba despareja.
-    <article
+    <Link
+      href={`/cursos/${slug}`}
       className={cn(
         "cosmos-card group relative flex h-full cursor-pointer flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lila-glow",
         featured && "border-lila-300/40 bg-cosmos-elev",
@@ -100,6 +107,6 @@ export default function CourseCard({
           <span className="font-display text-sm tracking-wide text-gold-400">{price}</span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

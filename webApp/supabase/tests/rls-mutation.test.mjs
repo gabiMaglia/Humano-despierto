@@ -473,8 +473,18 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
     });
 
     test('anon y authenticated solo tienen EXECUTE donde se lo otorgo a mano', async () => {
+      // T-027 suma `course_student_count`, y es la unica de esta lista que `anon` llama de
+      // forma DIRECTA (las demas las evalua una politica o un CHECK). Es SECURITY DEFINER y lee
+      // `enrollments`, que `anon` no puede leer y no debe poder — RLS le da 401. Se le otorga
+      // igual porque el dato que devuelve es CUANTAS, nunca QUIENES: un entero, sin fila, sin
+      // user_id, sin forma de iterar hacia una identidad. Es la prueba social de la ficha de
+      // venta y es el motivo por el que el dato esta ahi.
+      // Lo que la vuelve defendible como oraculo es el filtro `c.status = 'published'` de su
+      // cuerpo (0023): un curso en borrador devuelve 0 pase lo que pase, asi que tampoco
+      // delata la existencia ni el tamaño de lo que todavia no se publico.
       const ESPERADO_ANON = [
-        'can_read_course', 'current_app_role', 'is_admin', 'lesson_is_preview', 'owns_course',
+        'can_read_course', 'course_student_count', 'current_app_role', 'is_admin',
+        'lesson_is_preview', 'owns_course',
       ];
       // `is_service_context` sigue siendo la unica excepcion: la llaman `guard_courses_insert` y
       // `guard_lessons`, que son SECURITY INVOKER. `lesson_progress_completes` (T-011) estuvo aca
@@ -485,9 +495,19 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       // propio PDF (42501 dentro del CHECK — medido en el control c.3 de locator-free-text).
       // No son oraculo de nada: son puras sobre un texto que el llamador ya tiene, no leen tablas.
       // A `anon` no se le otorgan: no tiene ningun grant de escritura, nunca evalua un CHECK.
+      // T-021 suma `can_read_campus_thread`/`can_write_campus_post`/`is_campus_moderator`: leen
+      // `enrollments` (via `has_course_access`) igual que ella, y por la misma razon no se le
+      // otorgan a `anon` — el Campus entero exige sesion, ni el hilo general es publico.
+      // 0016 suma `body_has_known_locator`, y esta SI es distinta de las de arriba: es
+      // SECURITY DEFINER y lee columnas `service_role`-only (`lessons.video_id`,
+      // `lesson_resources.drive_file_id`). Necesita EXECUTE porque la llama el guard trigger,
+      // que es SECURITY INVOKER a proposito. Es un oraculo acotado —responde si/no sobre un
+      // string que el llamador YA tiene, sin decir de que curso es ni devolver ningun
+      // localizador— y esta declarado como tal en la cabecera de 0016. A `anon` no se le otorga.
       const ESPERADO_AUTH = [
-        ...ESPERADO_ANON, 'array_has_locator', 'can_author', 'has_course_access',
-        'is_service_context', 'text_has_locator',
+        ...ESPERADO_ANON, 'array_has_locator', 'body_has_known_locator', 'campus_post_authors',
+        'can_author', 'can_read_campus_thread', 'can_write_campus_post', 'has_course_access',
+        'is_campus_moderator', 'is_service_context', 'text_has_locator',
       ].sort();
       const fns = await functionPrivileges(db);
       assert.deepEqual(fns.filter((f) => f.anon).map((f) => f.proname).sort(), ESPERADO_ANON);

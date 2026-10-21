@@ -13,6 +13,8 @@ export const ID = {
   resourceA: '70000000-0000-4000-8000-00000000000a',
   chapterA:  '80000000-0000-4000-8000-00000000000a',
   chapterPreview: '80000000-0000-4000-8000-00000000000b',
+  postA:      '90000000-0000-4000-8000-00000000000a',
+  postDraftB: '90000000-0000-4000-8000-00000000000b',
 };
 
 /** Valores centinela: si aparecen en una respuesta de cliente, hubo fuga. */
@@ -63,5 +65,19 @@ export async function seed(db) {
 
     insert into public.enrollments (user_id, course_id, granted_by) values
       ('${ID.student}', '${ID.courseA}', '${ID.admin}');
+
+    -- T-028 · una resena de la alumna inscripta. Sin ella el barrido de localizadores sobre
+    -- course_reviews correria contra CERO filas y pasaria trivialmente -- el mismo modo de
+    -- fallo vacuo que el proyecto ya arrastro dos veces.
+    insert into public.course_reviews (course_id, user_id, rating, body) values
+      ('${ID.courseA}', '${ID.student}', 5, 'Volveria a hacerlo con los ojos cerrados.');
+
+    insert into public.diario_posts (id, teacher_id, slug, title, excerpt, body, status, published_at) values
+      ('${ID.postA}', '${ID.teacherA}', 'sobre-los-eclipses', 'Sobre los eclipses que no se pueden esquivar',
+       'Notas de campo despues del eclipse en Tauro.',
+       'Hay transitos que pasan rozando y hay otros que parten la corteza.', 'published', now());
+    insert into public.diario_posts (id, teacher_id, slug, title, body, status, published_at) values
+      ('${ID.postDraftB}', '${ID.teacherB}', 'borrador-de-luna', 'Borrador sin publicar',
+       'Todavia lo estoy escribiendo.', 'draft', null);
   `);
 }

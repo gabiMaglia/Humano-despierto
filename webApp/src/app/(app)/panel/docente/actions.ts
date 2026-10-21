@@ -27,6 +27,11 @@ function readCourseForm(formData: FormData) {
     romanNum: String(formData.get("romanNum") ?? ""),
     moonGlyph: String(formData.get("moonGlyph") ?? ""),
     includes: String(formData.get("includes") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    learningObjectives: String(formData.get("learningObjectives") ?? ""),
+    prerequisites: String(formData.get("prerequisites") ?? ""),
+    language: String(formData.get("language") ?? "es"),
+    promoVideoId: String(formData.get("promoVideoId") ?? ""),
   });
 }
 
@@ -63,6 +68,11 @@ export async function createCourseAction(
         roman_num: v.romanNum || null,
         moon_glyph: v.moonGlyph || null,
         includes: includesToArray(v.includes),
+        description: v.description || null,
+        learning_objectives: includesToArray(v.learningObjectives),
+        prerequisites: includesToArray(v.prerequisites),
+        language: v.language,
+        promo_video_id: v.promoVideoId || null,
         teacher_id: teacher.id,
       })
       .select("id")
@@ -72,6 +82,13 @@ export async function createCourseAction(
       if (error.code === "23505") {
         return { error: "Ya existe un curso con ese slug. Elegí otro.", success: null };
       }
+      // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
+      // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
+      // Sin esta traduccion la docente ve un error crudo del motor.
+      if (error.code === "42501") {
+        return { error: "Alguno de los campos públicos del curso contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en la ficha, que se lee sin inscripción.", success: null };
+      }
+
       return { error: `No se pudo crear el curso: ${error.message}`, success: null };
     }
     newCourseId = data.id;
@@ -113,11 +130,23 @@ export async function updateCourseAction(
         roman_num: v.romanNum || null,
         moon_glyph: v.moonGlyph || null,
         includes: includesToArray(v.includes),
+        description: v.description || null,
+        learning_objectives: includesToArray(v.learningObjectives),
+        prerequisites: includesToArray(v.prerequisites),
+        language: v.language,
+        promo_video_id: v.promoVideoId || null,
       })
       .eq("id", courseId);
 
     if (error) {
       if (error.code === "23505") return { error: "Ya existe un curso con ese slug.", success: null };
+      // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
+      // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
+      // Sin esta traduccion la docente ve un error crudo del motor.
+      if (error.code === "42501") {
+        return { error: "Alguno de los campos públicos del curso contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en la ficha, que se lee sin inscripción.", success: null };
+      }
+
       return { error: `No se pudo guardar: ${error.message}`, success: null };
     }
   } catch (err) {

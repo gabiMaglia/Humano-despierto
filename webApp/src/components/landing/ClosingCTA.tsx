@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function ClosingCTA() {
   return (
     <section
@@ -25,12 +27,12 @@ export default function ClosingCTA() {
       </p>
 
       <div className="flex flex-col justify-center gap-3.5 sm:flex-row">
-        <a href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill">
+        <Link href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill">
           Comenzar el viaje ↦
-        </a>
-        <a href="/circulo" className="btn-ritual btn-ritual-ghost rounded-pill">
+        </Link>
+        <Link href="/circulo" className="btn-ritual btn-ritual-ghost rounded-pill">
           Hablar con una guía
-        </a>
+        </Link>
       </div>
     </section>
   );

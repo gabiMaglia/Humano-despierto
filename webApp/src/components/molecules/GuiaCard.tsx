@@ -1,12 +1,10 @@
 import Link from "next/link";
-import type { Guia } from "@/lib/mocks/guia";
+import type { PublicTeacherCard } from "@/lib/server/guias";
+import { toRoman } from "@/lib/utils/roman";
 
-type GuiaCardData = Pick<
-  Guia,
-  "slug" | "name" | "glyph" | "role" | "location" | "coursesCount" | "rating" | "sun" | "moon" | "asc" | "quote"
->;
-
-export default function GuiaCard({ slug, name, glyph, role, location, coursesCount, sun, moon, asc, quote }: GuiaCardData) {
+export default function GuiaCard({
+  slug, fullName, glyph, headline, location, coursesCount, yearsPractice, discipline, quote,
+}: PublicTeacherCard) {
   return (
     <Link href={`/guias/${slug}`} className="group block">
       <article className="cosmos-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lila-glow cursor-pointer">
@@ -28,28 +26,37 @@ export default function GuiaCard({ slug, name, glyph, role, location, coursesCou
 
         {/* Body */}
         <div className="p-5">
-          <p className="mb-0.5 font-display text-eyebrow tracking-[0.2em] text-gold-400 uppercase">{role}</p>
-          <h3 className="mb-0.5 font-display text-xl tracking-wide text-ink group-hover:text-lila-200 transition-colors">{name}</h3>
-          <p className="mb-4 font-display text-eyebrow tracking-cosmic text-ink-faint">✦ {location}</p>
+          {headline && (
+            <p className="mb-0.5 font-display text-eyebrow tracking-[0.2em] text-gold-400 uppercase">{headline}</p>
+          )}
+          <h3 className="mb-0.5 font-display text-xl tracking-wide text-ink group-hover:text-lila-200 transition-colors">{fullName}</h3>
+          {location && (
+            <p className="mb-4 font-display text-eyebrow tracking-cosmic text-ink-faint">✦ {location}</p>
+          )}
 
-          {/* Chart signs */}
-          <div className="mb-4 flex gap-4 border-b border-lila-300/12 pb-4">
-            {[
-              { glyph: "☉", label: "Sol",  value: sun  },
-              { glyph: "☽", label: "Luna", value: moon },
-              { glyph: "↑", label: "Asc.", value: asc  },
-            ].map(({ glyph: g, label, value }) => (
-              <div key={label} className="flex-1">
-                <p className="font-display text-[9px] tracking-[0.15em] text-ink-faint uppercase mb-0.5">{g} {label}</p>
-                <p className="font-display text-eyebrow tracking-wide text-lila-300">{value}</p>
-              </div>
-            ))}
-          </div>
+          {(yearsPractice != null || discipline) && (
+            <div className="mb-4 flex gap-4 border-b border-lila-300/12 pb-4">
+              {yearsPractice != null && (
+                <div className="flex-1">
+                  <p className="font-display text-[9px] tracking-[0.15em] text-ink-faint uppercase mb-0.5">Años</p>
+                  <p className="font-display text-eyebrow tracking-wide text-lila-300">{toRoman(yearsPractice)}</p>
+                </div>
+              )}
+              {discipline && (
+                <div className="flex-1">
+                  <p className="font-display text-[9px] tracking-[0.15em] text-ink-faint uppercase mb-0.5">Disciplina</p>
+                  <p className="font-display text-eyebrow tracking-wide text-lila-300">{discipline}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Quote */}
-          <p className="font-quote italic text-sm text-ink-soft leading-relaxed line-clamp-2">
-            &ldquo;{quote}&rdquo;
-          </p>
+          {quote && (
+            <p className="font-quote italic text-sm text-ink-soft leading-relaxed line-clamp-2">
+              &ldquo;{quote}&rdquo;
+            </p>
+          )}
         </div>
       </article>
     </Link>

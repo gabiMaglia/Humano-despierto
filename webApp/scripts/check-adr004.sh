@@ -17,9 +17,25 @@
 set -uo pipefail
 BASE=${1:-http://localhost:3099}
 
+# T-017 · /guias/luz-marini, /guias/mara-iturri, /guias/ines-volpe salen de la lista: eran
+# perfiles de `guia.ts` sin ningun curso real en el catalogo de 9 (docentes ficticias que el
+# mock nunca alineo con `CATALOG_COURSES`). T-017 sirve /guias desde `profiles` (rol teacher)
+# y solo hay 3 docentes reales, las que dictan los 9 cursos: sol-mayor, luna-arce,
+# aurora-violeta. Decision y fundamento completos en `supabase/migrations/
+# 20260810130000_0011_profile_public_fields.sql` y en el seed.
+# T-017 · el id de leccion hardcodeado quedaba viejo cada vez que alguien re-corre el seed:
+# `course_modules`/`lessons` de este subarbol se recrean con DELETE + INSERT (gen_random_uuid()
+# en cada fila, ver seed.sql) porque el UNIQUE de posicion es DEFERRABLE y no sirve de arbiter
+# de ON CONFLICT -- asi que el id de la leccion de vista previa CAMBIA en cada reseed. No es un
+# problema de este script en particular: cualquier id hardcodeado en otro lado (test, doc, bookmark)
+# tiene el mismo riesgo. Se resuelve el id actual en runtime en vez de hardcodearlo de nuevo.
+LECCION_PREVIEW=$(docker exec supabase_db_webApp psql -U postgres -d postgres -tAc \
+  "select l.id from public.lessons l join public.courses c on c.id=l.course_id where c.slug='tarot-iniciatico' and l.is_preview=true limit 1;" 2>/dev/null | tr -d '[:space:]')
+
 RUTAS=(/ /cursos /cursos/tarot-iniciatico /cursos/reiki-nivel-1 /cursos/carta-natal-esencial
-       /guias /guias/sol-mayor /guias/luna-arce /guias/luz-marini /guias/mara-iturri
-       /guias/ines-volpe /diario /circulo /entrar /panel /leccion/f4668666-c070-45d6-8504-aeb7ee471927 /inscribirme/tarot-iniciatico)
+       /guias /guias/sol-mayor /guias/luna-arce /guias/aurora-violeta
+       /diario /circulo /entrar /panel /inscribirme/tarot-iniciatico)
+[ -n "$LECCION_PREVIEW" ] && RUTAS+=("/leccion/$LECCION_PREVIEW")
 
 # El invariante, no una lista de lugares. Cada patrón con su motivo.
 PATRONES=(

@@ -78,6 +78,11 @@ export interface TeacherCourseFields {
   romanNum: string | null;
   moonGlyph: string | null;
   includes: string[];
+  learningObjectives: string[];
+  prerequisites: string[];
+  description: string | null;
+  language: string;
+  promoVideoId: string | null;
   status: "draft" | "published" | "archived";
   teacherId: string;
 }
@@ -118,6 +123,11 @@ interface CourseFieldsRow {
   roman_num: string | null;
   moon_glyph: string | null;
   includes: string[] | null;
+  learning_objectives: string[] | null;
+  prerequisites: string[] | null;
+  description: string | null;
+  language: string;
+  promo_video_id: string | null;
   status: "draft" | "published" | "archived";
   teacher_id: string;
 }
@@ -136,6 +146,11 @@ function mapCourseFields(row: CourseFieldsRow): TeacherCourseFields {
     currency: row.currency,
     romanNum: row.roman_num,
     moonGlyph: row.moon_glyph,
+    learningObjectives: row.learning_objectives ?? [],
+    prerequisites: row.prerequisites ?? [],
+    description: row.description,
+    language: row.language,
+    promoVideoId: row.promo_video_id,
     includes: row.includes ?? [],
     status: row.status,
     teacherId: row.teacher_id,
@@ -157,6 +172,7 @@ export async function getTeacherCourseDetail(
     .select(
       `id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency,
        roman_num, moon_glyph, includes, status, teacher_id,
+       learning_objectives, prerequisites, description, language, promo_video_id,
        course_modules(id, position, title, description,
          lessons(id, position, title, is_preview, is_published, duration_seconds))`
     )
