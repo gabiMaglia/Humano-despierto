@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatDurationSeconds } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
 import { readRate, writeRate } from "@/lib/player/prefs";
+import { anonymousClosingHref } from "@/lib/player/navigation";
 import { useYouTubePlayer } from "@/components/player/useYouTubePlayer";
 import { useLessonProgress } from "@/components/player/useLessonProgress";
 import { useLessonNotes } from "@/components/player/useLessonNotes";
@@ -74,7 +75,9 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
       if (nextHref) {
         if (autoplay) setCountdown(AUTOPLAY_SECONDS);
       } else {
-        const href = data.isAuthenticated ? await resolveClosingHref(data.courseId) : "/panel";
+        const href = data.isAuthenticated
+          ? await resolveClosingHref(data.courseId)
+          : anonymousClosingHref(data.courseSlug);
         if (live) setClosing(href);
       }
     })();

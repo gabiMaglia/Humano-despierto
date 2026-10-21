@@ -33,6 +33,11 @@ export function closingHref(certificateCode: string | null): string {
   return certificateCode ? `/certificado/${certificateCode}` : "/panel";
 }
 
+/** Cierre de una anónima (lección preview): no tiene panel, vuelve a la ficha del curso. */
+export function anonymousClosingHref(courseSlug: string): string {
+  return `/cursos/${courseSlug}`;
+}
+
 /**
  * `?t=` de la URL: entero >= 0 o nada. Todo lo demás (negativo, decimal, texto, repetido) se
  * ignora en vez de adivinar. Se recorta a la duración cuando se conoce (> 0).
