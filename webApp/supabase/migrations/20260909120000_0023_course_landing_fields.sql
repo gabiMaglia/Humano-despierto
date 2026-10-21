@@ -25,6 +25,14 @@ alter table public.courses
   add column language            char(2) not null default 'es',
   add column promo_video_id      text;
 
+-- Riesgo de la spec T-027: `intro` venia haciendo de descripcion. Los cursos existentes copian
+-- `intro` a `description` e `intro` queda como esta: nadie pierde texto. Idempotente (solo toca
+-- `description is null`). Sin triggers: la copia no es una edicion de la docente, asi que no debe
+-- mover `updated_at` ("Ultima actualizacion", criterio 4).
+alter table public.courses disable trigger user;
+update public.courses set description = intro where description is null and intro is not null;
+alter table public.courses enable trigger user;
+
 -- `language`: dos letras minusculas. Cerrado por dominio, no por texto libre.
 alter table public.courses
   add constraint courses_language_format check (language ~ '^[a-z]{2}$');

@@ -188,3 +188,57 @@ describe('T-027 · campos de ficha de curso + S-05', () => {
     });
   });
 });
+
+// ------------------------------------------------------- D-2 · intro -> description
+// Riesgo de la spec T-027: `intro` venia haciendo de descripcion. Al partirse en dos campos, los
+// cursos que ya existian no pueden quedar con la descripcion larga vacia. Se siembra ANTES de
+// 0023 porque es la unica forma de probar lo que una migracion hace con filas existentes.
+describe('0023 · copia intro a description en los cursos que ya existian', () => {
+  const ANTES_DE_0023 = '20260811210000_0022_mail_log_attempts.sql';
+  const DOCENTE = '20000000-0000-4000-8000-0000000000d2';
+  let db;
+
+  before(async () => {
+    let applyRemaining;
+    ({ db, applyRemaining } = await bootDatabase({ until: ANTES_DE_0023 }));
+    await db.exec(`
+      insert into auth.users (id, email) values ('${DOCENTE}', 'previa@humano.test');
+      update public.profiles set role = 'teacher', full_name = 'Previa' where id = '${DOCENTE}';
+      insert into public.courses (slug, title, discipline, level, teacher_id, status, intro) values
+        ('previo-con-intro', 'Previo', 'tarot', 'inicial', '${DOCENTE}', 'published', 'Texto de portada'),
+        ('previo-sin-intro', 'Previo 2', 'tarot', 'inicial', '${DOCENTE}', 'draft', null);
+    `);
+    // `updated_at` lo pisa el trigger en el insert; se fija despues, sin triggers, a un valor conocido.
+    await db.exec(`
+      alter table public.courses disable trigger user;
+      update public.courses set updated_at = '2026-01-01T00:00:00Z' where teacher_id = '${DOCENTE}';
+      alter table public.courses enable trigger user;
+    `);
+    await applyRemaining();
+  });
+
+  after(async () => db?.close());
+
+  test('un curso con intro queda con la misma description', async () => {
+    const { rows } = await db.query(`select intro, description from public.courses where slug = 'previo-con-intro'`);
+    assert.equal(rows[0].description, 'Texto de portada', 'el curso existente perdio su descripcion');
+    assert.equal(rows[0].intro, 'Texto de portada', 'intro tiene que quedar como estaba');
+  });
+
+  test('un curso sin intro sigue sin description', async () => {
+    const { rows } = await db.query(`select description from public.courses where slug = 'previo-sin-intro'`);
+    assert.equal(rows[0].description, null);
+  });
+
+  // La copia la hace la migracion, no la docente: "Ultima actualizacion" (criterio 4) no se mueve.
+  test('la copia no toca updated_at', async () => {
+    const { rows } = await db.query(
+      `select updated_at = '2026-01-01T00:00:00Z'::timestamptz as igual from public.courses where slug = 'previo-con-intro'`,
+    );
+    assert.equal(rows[0].igual, true, 'la migracion movio la fecha de ultima actualizacion');
+  });
+
+  test('el harness rechaza un until que no existe', async () => {
+    await assert.rejects(bootDatabase({ until: '0022_no_existe.sql' }), /no coincide con ninguna migracion/);
+  });
+});
