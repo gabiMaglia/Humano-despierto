@@ -1,21 +1,13 @@
 "use server";
 
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/auth/safe-next";
 import { getSiteUrl } from "@/lib/server/site-url";
 import { emailSchema } from "@/lib/validation/auth";
 import { firstIssueMessage } from "@/lib/validation/teacher";
 import { AUTH_COPY } from "@/lib/auth/messages";
 import { RECOVERY_NEXT, callbackUrl } from "@/lib/auth/paths";
 import type { ResetRequestState } from "@/lib/auth/action-state";
-
-// El verificador PKCE queda en una cookie del origen que hizo el pedido; el link tiene que volver
-// a ese mismo origen o el canje falla. Next ya rechaza Server Actions cuyo Origin no coincide con
-// el Host, y GoTrue solo redirige a URLs de `additional_redirect_urls`.
-async function requestOrigin(): Promise<string> {
-  const origin = (await headers()).get("origin");
-  return origin && /^https?:\/\/[^/\s]+$/.test(origin) ? origin : getSiteUrl();
-}
 
 export async function requestPasswordResetAction(
   _prev: ResetRequestState,
@@ -28,8 +20,11 @@ export async function requestPasswordResetAction(
   // de código delatan si la cuenta existe (c.5). Un 429 tampoco.
   try {
     const supabase = await createClient();
+    // Origen confiable + safeNext (regla de la ronda 2): nunca el header Origin, que un POST
+    // directo controla. Si el navegador usa otro host que SITE_URL, el canje falla cerrado
+    // en /entrar?error=link porque la cookie del verificador PKCE no viaja.
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-      redirectTo: callbackUrl(await requestOrigin(), RECOVERY_NEXT),
+      redirectTo: callbackUrl(getSiteUrl(), safeNext(RECOVERY_NEXT)),
     });
     if (error) console.error(`[auth] resetPasswordForEmail: ${error.code ?? error.status}`);
   } catch (err) {

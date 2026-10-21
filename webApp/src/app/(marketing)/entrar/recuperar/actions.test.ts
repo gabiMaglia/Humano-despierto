@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
-vi.mock("@/lib/server/site-url", () => ({ getSiteUrl: () => "http://127.0.0.1:3000" }));
+vi.mock("@/lib/server/site-url", () => ({ getSiteUrl: () => "https://humano.example" }));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers(mocks.origin.value ? { origin: mocks.origin.value } : {}),
 }));
@@ -55,18 +55,19 @@ describe("requestPasswordResetAction", () => {
     expect(mocks.resetPasswordForEmail).toHaveBeenCalledTimes(4);
   });
 
-  it("el link vuelve al callback del mismo origen con next a nueva clave", async () => {
+  // D-2 (QA ronda 1): con Host y Origin controlados en un POST directo, el link de la víctima
+  // (con su `code`) viajaba al host del atacante. El destino sale solo de SITE_URL.
+  it.each([
+    ["el mismo origen de la app", "http://localhost:3000"],
+    ["un Origin con userinfo", "http://localhost:1@0x01020304"],
+    ["un host ajeno", "https://evil.tld"],
+    ["ningún Origin", null],
+  ])("con %s el link va al callback de SITE_URL con next a nueva clave", async (_caso, origin) => {
+    mocks.origin.value = origin;
     mocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     await submit("  alumna@test.local ");
     expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith("alumna@test.local", {
-      redirectTo: "http://localhost:3000/auth/callback?next=%2Fentrar%2Fnueva-clave",
+      redirectTo: "https://humano.example/auth/callback?next=%2Fentrar%2Fnueva-clave",
     });
-  });
-
-  it("sin Origin válido usa SITE_URL", async () => {
-    mocks.origin.value = null;
-    mocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
-    await submit("alumna@test.local");
-    expect(mocks.resetPasswordForEmail.mock.calls[0][1].redirectTo).toMatch(/^http:\/\/127\.0\.0\.1:3000\/auth\/callback/);
   });
 });
