@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 32 migrations (last `0033`; `0032` applies before `0031` by timestamp, independent), 19 tables, RLS + per-column grants + guard triggers, 708 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 33 migrations (last `0034`; `0032` applies before `0031` by timestamp, independent), 20 tables, RLS + per-column grants + guard triggers, 708 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -84,7 +84,9 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
                                                                               answer and moderate]
 /circulo  ·  /circulo/[curso]       Campus threads                            [auth]
 /panel/docente/**                   Teacher panel: courses, modules, lessons, [teacher]
-                                    chapters, resources, diario posts
+                                    chapters, resources, diario posts,
+                                    announcements (`/panel/docente/anuncios`,
+                                    T-031: drafts, publish + mail, withdraw)
 /panel/admin                        Roles, manual enrollments, publish        [admin]
 /panel/admin/resenas                Review moderation: report queue, hide     [admin]
 ```
@@ -172,6 +174,10 @@ covered by mutation tests that fail loudly if you regress them.
    (`columnasConSesion`, `tests/locator-session-class.test.mjs`), not in the anon one. The
    owner teacher (`teacher_id` **and** `profiles.role = 'teacher'`) and the admin open the player
    to answer and moderate, but never write progress or notes (ADR-003 as extended by T-030).
+8. **A published announcement is frozen, even for `service_role`.** It already went out by mail:
+   `course_announcements_freeze_published` rejects any change to `title`, `body`, `status` or
+   `published_at` once published. Publishing is a Server Action with `service_role` after
+   `assertOwnsCourse`; the mail runs in `after()` and never blocks or breaks the publish.
 
 **Review moderation** (T-037, ADR-012): only the course's teacher or an admin can report a review
 (`course_review_reports`, RLS via `can_report_review`, which reads `profiles.role`). Hiding,

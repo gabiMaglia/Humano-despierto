@@ -14,6 +14,8 @@ export interface CourseRoster {
     completed: number;
     ratingAverage: number;
     ratingTotal: number;
+    /** D-38 · preguntas vivas sin resolver y sin respuesta de docente (`course_open_questions`, 0031). */
+    openQuestions: number;
   };
   rows: RosterRow[];
 }
@@ -24,7 +26,7 @@ export interface CourseRoster {
  * nombres por service_role recién tras `assertOwnsCourse`, porque sus policies son "solo propias".
  * Columnas recortadas a mano: un `select *` acá filtraría datos de alumnas (T-034 c.5).
  * No se lee `decided_reason`: es del admin hacia la alumna, no de la docente.
- * Sin bloque de preguntas: `lesson_questions` (T-030) todavía no existe.
+ * Preguntas abiertas por la sesión: `course_open_questions` exige `owns_course` en la base.
  */
 export async function getCourseRoster(courseId: string, teacherId: string): Promise<CourseRoster | null> {
   try {
@@ -34,16 +36,18 @@ export async function getCourseRoster(courseId: string, teacherId: string): Prom
   }
 
   const supabase = await createClient();
-  const [courseRes, enrollRes] = await Promise.all([
+  const [courseRes, enrollRes, openRes] = await Promise.all([
     supabase.from("courses").select("title").eq("id", courseId).single(),
     supabase
       .from("enrollments")
       .select("user_id, status, enrolled_at")
       .eq("course_id", courseId)
       .order("enrolled_at", { ascending: false }),
+    supabase.rpc("course_open_questions", { p_course_id: courseId }),
   ]);
   if (courseRes.error) throw new Error(`No se pudo leer el curso: ${courseRes.error.message}`);
   if (enrollRes.error) throw new Error(`No se pudieron leer las inscripciones: ${enrollRes.error.message}`);
+  if (openRes.error) throw new Error(`No se pudieron contar las preguntas abiertas: ${openRes.error.message}`);
 
   const all = enrollRes.data ?? [];
   const active = all.filter((e) => e.status === "active");
@@ -86,6 +90,7 @@ export async function getCourseRoster(courseId: string, teacherId: string): Prom
       completed: rows.filter((r) => r.certificateCode !== null).length,
       ratingAverage: reviews.summary.average,
       ratingTotal: reviews.summary.total,
+      openQuestions: (openRes.data ?? []).length,
     },
     rows,
   };

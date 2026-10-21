@@ -23,6 +23,13 @@ export async function messagesTo(request: APIRequestContext, email: string): Pro
   return ((await res.json()) as MailpitList).messages ?? [];
 }
 
+// T-031 · todos los mensajes cuyo asunto contiene `text` (el título del anuncio lleva marca de tiempo).
+export async function messagesWithSubject(request: APIRequestContext, text: string): Promise<MailpitSummary[]> {
+  const res = await request.get(`${MAILPIT}/api/v1/search`, { params: { query: `subject:"${text}"`, limit: "200" } });
+  if (!res.ok()) throw new Error(`Mailpit respondió ${res.status()} en /api/v1/search. ¿Está levantado en ${MAILPIT}?`);
+  return ((await res.json()) as MailpitList).messages ?? [];
+}
+
 export function extractVerifyLink(body: string, type: "signup" | "recovery"): string | null {
   const links = [...body.matchAll(/https?:\/\/[^\s"'<>]+\/auth\/v1\/verify\?[^\s"'<>]+/g)].map((m) =>
     m[0].replaceAll("&amp;", "&"),
