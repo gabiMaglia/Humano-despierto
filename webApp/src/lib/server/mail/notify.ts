@@ -8,6 +8,8 @@ import { renderWelcomeMail } from "@/lib/server/mail/templates/welcome";
 import { renderTeacherNewStudentMail } from "@/lib/server/mail/templates/teacher-new-student";
 import { renderEnrollmentRejectedMail } from "@/lib/server/mail/templates/enrollment-rejected";
 import { getSiteUrl } from "@/lib/server/site-url";
+import { renderTeacherInvitationMail } from "@/lib/server/mail/templates/teacher-invitation";
+import { formatCertificateDate } from "@/lib/utils/format";
 
 // T-020 · capa de orquestación: junta los datos (nombre, curso, docente, email) y llama a
 // `sendMail`. Cada función atrapa TODO internamente — DB incluida, no solo el transporte — así
@@ -372,5 +374,32 @@ export async function notifyEnrollmentRejected(input: {
     if (result.ok) await confirmMailSent(claim);
   } catch (err) {
     console.error("[mail] notifyEnrollmentRejected falló:", err);
+  }
+}
+
+/**
+ * T-049 · Excepción declarada a R-12: la invitada puede no tener cuenta y `mail_log` exige
+ * `recipient_user_id`. La idempotencia vive en `teacher_invitations` (una fila, un envío; el
+ * índice parcial impide dos pendientes por mail; reenviar crea otra fila y mata el token viejo).
+ * Devuelve si el envío se confirmó para que el admin sepa si tiene que reenviar; nunca tira.
+ */
+export async function notifyTeacherInvitation(input: {
+  email: string;
+  inviterName: string;
+  acceptUrl: string;
+  expiresAt: string;
+}): Promise<boolean> {
+  try {
+    const { subject, html, text } = renderTeacherInvitationMail({
+      inviterName: input.inviterName,
+      acceptUrl: input.acceptUrl,
+      expiresOn: formatCertificateDate(input.expiresAt),
+    });
+    const result = await sendMail({ to: { email: input.email }, subject, html, text });
+    return result.ok;
+  } catch (err) {
+    // Sin `input`: lleva el token en claro.
+    console.error("[mail] notifyTeacherInvitation falló:", err instanceof Error ? err.message : err);
+    return false;
   }
 }
