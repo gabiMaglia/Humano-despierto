@@ -8,6 +8,9 @@ import { ENROLLMENT_COPY, NO_ROWS, REASON_MAX, translateEnrollmentError } from "
 import { getCurrentUser } from "@/lib/server/auth";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import type { AdminActionState } from "@/lib/admin/action-state";
+import { createClient } from "@/lib/supabase/server";
+import { idSchema, reasonSchema as announcementReasonSchema } from "@/lib/announcements/validation";
+import { retirar, traducirErrorAnuncio } from "@/lib/announcements/write.mjs";
 import type { AppRole } from "@/lib/stores/useAuthStore";
 
 const ROLES: AppRole[] = ["student", "teacher", "admin"];
@@ -260,4 +263,31 @@ export async function rejectEnrollmentRequestAction(
   revalidatePath("/panel/admin");
   revalidatePath("/cursos/[slug]", "page");
   return { error: null, success: ENROLLMENT_COPY.rejected };
+}
+
+/**
+ * T-031 · moderar un anuncio. Con el cliente de SESIÓN, no con service_role: así el guard exige y
+ * firma `deleted_by = auth.uid()` y RLS decide por `profiles.role` (ADR-012, R-2), igual que Campus.
+ */
+export async function moderateAnnouncement(
+  _prevState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  const announcementId = String(formData.get("announcementId") ?? "");
+  if (!idSchema.safeParse(announcementId).success) return { error: "Datos inválidos.", success: null };
+  const parsed = announcementReasonSchema.safeParse({ reason: String(formData.get("reason") ?? "") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Retirar exige un motivo.", success: null };
+
+  const supabase = await createClient();
+  const { error } = await retirar(supabase, { id: announcementId, moderatorId: admin.id, reason: parsed.data.reason });
+  if (error) {
+    console.error("[anuncios] moderación rechazada:", error.code, error.message);
+    return { error: traducirErrorAnuncio(error, "No se pudo retirar el anuncio."), success: null };
+  }
+
+  revalidatePath("/panel/admin");
+  revalidatePath("/panel");
+  revalidatePath("/cursos/[slug]", "page");
+  return { error: null, success: "Anuncio retirado." };
 }

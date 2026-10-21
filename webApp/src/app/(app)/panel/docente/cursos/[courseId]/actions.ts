@@ -18,6 +18,18 @@ import {
 import type { TeacherActionState } from "@/lib/teacher/action-state";
 import { UPLOADS_BUCKET, uploadAsServer } from "@/lib/server/uploads";
 import { buildCoverPath, checkCoverBytes, IMAGE_MIME, isUuid } from "@/lib/validation/image";
+import { after } from "next/server";
+import { announcementSchema, idSchema, reasonSchema } from "@/lib/announcements/validation";
+// La escritura vive en un .mjs para que la suite de la base la ejecute tal cual (T-031).
+import {
+  crearBorrador,
+  editarBorrador,
+  publicar,
+  retirar,
+  traducirErrorAnuncio,
+  SIN_FILAS,
+} from "@/lib/announcements/write.mjs";
+import { notifyAnnouncementPublished } from "@/lib/server/mail/notify";
 
 const TEMP_POSITION = 999999;
 
@@ -805,4 +817,116 @@ export async function removeCourseCoverAction(
 
   revalidateCover(courseId);
   return { error: null, success: "Portada quitada." };
+}
+
+// ==================================================================== T-031 · anuncios
+// Finos (patrón de circulo/actions.ts): validan forma, verifican titularidad, escriben y traducen.
+// Quién puede qué lo deciden RLS, grants y los triggers de 0034.
+
+const GENERIC_ANNOUNCEMENT_ERROR = "No se pudo guardar el anuncio. Probá de nuevo.";
+
+function announcementFail(error: string): TeacherActionState {
+  return { error, success: null };
+}
+
+function validIds(...values: string[]): boolean {
+  return values.every((v) => idSchema.safeParse(v).success);
+}
+
+function revalidateAnnouncements(courseId: string): void {
+  revalidatePath("/panel/docente/anuncios");
+  revalidatePath(`/panel/docente/cursos/${courseId}`);
+}
+
+export async function saveAnnouncementDraft(
+  _prevState: TeacherActionState,
+  formData: FormData
+): Promise<TeacherActionState> {
+  const courseId = String(formData.get("courseId") ?? "");
+  const announcementId = String(formData.get("announcementId") ?? "");
+  if (!validIds(courseId) || (announcementId && !validIds(announcementId))) return announcementFail("Datos inválidos.");
+  const parsed = announcementSchema.safeParse({
+    title: String(formData.get("title") ?? ""),
+    body: String(formData.get("body") ?? ""),
+  });
+  if (!parsed.success) return announcementFail(parsed.error.issues[0]?.message ?? "Revisá el anuncio.");
+
+  const teacher = await requireTeacher();
+  try {
+    await assertOwnsCourse(courseId, teacher.id);
+    const supabase = await createClient();
+    const { error } = announcementId
+      ? await editarBorrador(supabase, { id: announcementId, courseId, ...parsed.data })
+      : await crearBorrador(supabase, { courseId, authorId: teacher.id, ...parsed.data });
+    if (error) {
+      console.error("[anuncios] escritura rechazada:", error.code, error.message);
+      return announcementFail(traducirErrorAnuncio(error, GENERIC_ANNOUNCEMENT_ERROR));
+    }
+  } catch (err) {
+    return announcementFail(err instanceof Error ? err.message : GENERIC_ANNOUNCEMENT_ERROR);
+  }
+
+  revalidateAnnouncements(courseId);
+  return { error: null, success: "Borrador guardado." };
+}
+
+export async function publishAnnouncement(
+  _prevState: TeacherActionState,
+  formData: FormData
+): Promise<TeacherActionState> {
+  const courseId = String(formData.get("courseId") ?? "");
+  const announcementId = String(formData.get("announcementId") ?? "");
+  if (!validIds(courseId, announcementId)) return announcementFail("Datos inválidos.");
+
+  const teacher = await requireTeacher();
+  let publishedId: string;
+  try {
+    // R-4: la titularidad se verifica con la SESIÓN; recién después se usa service_role.
+    await assertOwnsCourse(courseId, teacher.id);
+    const { error, id } = await publicar(createServiceRoleClient(), { id: announcementId, courseId });
+    if (error || !id) {
+      if (error && error.code !== SIN_FILAS) console.error("[anuncios] publicar falló:", error.code, error.message);
+      return announcementFail(traducirErrorAnuncio(error, GENERIC_ANNOUNCEMENT_ERROR));
+    }
+    publishedId = id;
+  } catch (err) {
+    return announcementFail(err instanceof Error ? err.message : GENERIC_ANNOUNCEMENT_ERROR);
+  }
+
+  // `after` y no `await`: contra un SMTP mudo cada envío cuesta hasta 15 s y el botón no espera
+  // (decisión 2). El id es el que devolvió la base: es el scope de mail_log.
+  after(() => notifyAnnouncementPublished({ announcementId: publishedId }));
+
+  revalidateAnnouncements(courseId);
+  revalidatePath("/panel");
+  revalidatePath("/cursos/[slug]", "page");
+  return { error: null, success: "Anuncio publicado. El mail sale a cada inscripta activa." };
+}
+
+export async function withdrawAnnouncement(
+  _prevState: TeacherActionState,
+  formData: FormData
+): Promise<TeacherActionState> {
+  const courseId = String(formData.get("courseId") ?? "");
+  const announcementId = String(formData.get("announcementId") ?? "");
+  if (!validIds(courseId, announcementId)) return announcementFail("Datos inválidos.");
+  const parsed = reasonSchema.safeParse({ reason: String(formData.get("reason") ?? "") });
+  if (!parsed.success) return announcementFail(parsed.error.issues[0]?.message ?? "Retirar exige un motivo.");
+
+  const teacher = await requireTeacher();
+  try {
+    const supabase = await createClient();
+    const { error } = await retirar(supabase, { id: announcementId, moderatorId: teacher.id, reason: parsed.data.reason });
+    if (error) {
+      console.error("[anuncios] retiro rechazado:", error.code, error.message);
+      return announcementFail(traducirErrorAnuncio(error, "No se pudo retirar el anuncio."));
+    }
+  } catch (err) {
+    return announcementFail(err instanceof Error ? err.message : "No se pudo retirar el anuncio.");
+  }
+
+  revalidateAnnouncements(courseId);
+  revalidatePath("/panel");
+  revalidatePath("/cursos/[slug]", "page");
+  return { error: null, success: "Anuncio retirado." };
 }
