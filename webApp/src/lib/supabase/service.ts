@@ -7,7 +7,10 @@ import { createClient } from "@supabase/supabase-js";
  * (`lessons.video_id`, `lesson_resources.drive_file_id`/`.url`) y otros campos de servidor
  * (`courses.status`, `lessons.is_published`/`duration_seconds`, `enrollments`,
  * `profiles.role`) — ADR-003 regla A. También firma el avatar de la ficha pública
- * (`/guias/[slug]`, T-042), nunca lee datos de `profiles`. Cualquier otro uso de este cliente anula RLS sin que
+ * (`/guias/[slug]`, T-042), nunca lee datos de `profiles`; firma las portadas de cursos
+ * PUBLICADOS (`signPublicUploadUrls`, T-047); y es el único que sube a `uploads` (D-34: avatar y
+ * portada, después de validar bytes y titularidad) y el que borra la portada de un curso recién
+ * borrado (`deleteCourseAction`). Cualquier otro uso de este cliente anula RLS sin que
  * nadie lo note; el llamador es responsable de verificar el permiso ANTES de invocarlo (este
  * cliente no verifica nada por sí mismo, sólo bypassa).
  */

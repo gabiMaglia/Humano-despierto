@@ -1,6 +1,7 @@
 import "server-only";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 import { aggregateRatings } from "@/lib/reviews/rating";
+import { signPublicUploadUrls } from "@/lib/server/uploads";
 
 export interface PublishedCourseSummary {
   slug: string;
@@ -20,6 +21,8 @@ export interface PublishedCourseSummary {
   // `lessons.duration_seconds` publicadas del curso. Usado por T-019 para el filtro de duración.
   totalDurationSeconds: number;
   publishedAt: string | null;
+  /** El path, no la URL: `sitemap.ts` tambien lee el catalogo y no tiene por que firmar nada. */
+  coverPath: string | null;
   /** Derivados de `course_reviews` (ocultas ya filtradas por RLS); ausentes sin reseñas. */
   rating?: number;
   reviewCount?: number;
@@ -66,6 +69,8 @@ export interface CourseDetail {
    *  Sale de `course_student_count()`, que devuelve el numero y nada mas — `anon` no puede leer
    *  `enrollments` y no debe poder. */
   studentCount: number;
+  /** URL firmada de 1 h; null sin portada o si el objeto no se pudo firmar. */
+  coverUrl: string | null;
   modules: CourseDetailModule[];
   lessonCount: number;
   totalDurationSeconds: number;
@@ -101,6 +106,7 @@ interface PublishedCourseRow {
   roman_num: string | null;
   moon_glyph: string | null;
   featured: boolean;
+  cover_path: string | null;
   teacher: TeacherRow | TeacherRow[] | null;
   course_modules: PublishedCourseModuleRow[] | null;
 }
@@ -139,6 +145,7 @@ interface CourseDetailRow {
   language: string;
   promo_video_id: string | null;
   updated_at: string;
+  cover_path: string | null;
   teacher: TeacherRow | TeacherRow[] | null;
   course_modules: CourseDetailModuleRow[] | null;
 }
@@ -154,7 +161,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
     .from("courses")
     .select(
       `id, published_at, slug, title, title_em, subtitle, intro, discipline, level, price_cents,
-       currency, roman_num, moon_glyph, featured,
+       currency, roman_num, moon_glyph, featured, cover_path,
        teacher:profiles!courses_teacher_id_fkey(full_name, bio),
        course_modules(lessons(duration_seconds, is_published))`
     )
@@ -205,6 +212,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       teacherName: teacher?.full_name ?? "—",
       totalDurationSeconds,
       publishedAt: row.published_at,
+      coverPath: row.cover_path ?? null,
       ...(agg ? { rating: agg.average, reviewCount: agg.total } : {}),
     };
   });
@@ -217,6 +225,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
     .select(
       `id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency, includes,
        learning_objectives, prerequisites, description, language, promo_video_id, updated_at,
+       cover_path,
        teacher:profiles!courses_teacher_id_fkey(full_name, bio, slug),
        course_modules(position, title, description,
          lessons(id, position, title, duration_seconds, is_preview, is_published))`
@@ -265,6 +274,11 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
   const { data: countData } = await supabase.rpc("course_student_count", { p_course_id: row.id });
   const studentCount = typeof countData === "number" ? countData : 0;
 
+  // La fila ya paso `.eq("status", "published")`: un borrador nunca llega hasta aca (c.6).
+  const coverUrl = row.cover_path
+    ? ((await signPublicUploadUrls([row.cover_path])).get(row.cover_path) ?? null)
+    : null;
+
   return {
     id: row.id,
     slug: row.slug,
@@ -287,8 +301,18 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
     promoVideoId: row.promo_video_id,
     updatedAt: row.updated_at,
     studentCount,
+    coverUrl,
     modules,
     lessonCount: allLessons.length,
     totalDurationSeconds: allLessons.reduce((sum, l) => sum + l.durationSeconds, 0),
   };
+}
+
+/**
+ * Firma las portadas de las cards que se van a dibujar (el catalogo pagina de a 9). Se llama aunque
+ * ninguna tenga portada: `connection()` vuelve dinamica la pagina y una portada nueva no espera un
+ * rebuild. Sin paths, `signUploadUrls` no toca Storage.
+ */
+export async function signCatalogCovers(courses: { coverPath: string | null }[]): Promise<Map<string, string>> {
+  return signPublicUploadUrls(courses.map((c) => c.coverPath));
 }
