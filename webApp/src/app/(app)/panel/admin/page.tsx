@@ -1,4 +1,5 @@
 import Nav from "@/components/layout/Nav";
+import AdminTabs from "@/components/admin/AdminTabs";
 import UserRoleRow from "@/components/admin/UserRoleRow";
 import CourseStatusRow from "@/components/admin/CourseStatusRow";
 import EnrollmentGrantForm from "@/components/admin/EnrollmentGrantForm";
@@ -23,6 +24,7 @@ export default async function AdminPanelPage() {
     <div className="min-h-screen bg-cosmos-0 text-ink">
       <Nav />
       <div className="pt-16">
+        <AdminTabs active="general" />
         <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
           <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">
             — Panel de administración —

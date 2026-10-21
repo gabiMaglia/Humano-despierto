@@ -386,4 +386,100 @@ describe('T-028 · resenas y rating', () => {
       assert.equal(r.rows[0].responded_by, ID.teacherA);
     });
   });
+
+  // ---------------------------------------------------------------- D-20 (T-037)
+  describe('D-20 · la guia no resena su propio curso', () => {
+    const asTeacherB = (db, fn) => asUser(db, { sub: ID.teacherB, userRole: 'teacher' }, fn);
+
+    test('inscripta en su propio curso, la guia no puede resenarlo', async () => {
+      await owner(db, `insert into public.enrollments (user_id, course_id, status, granted_by) values ($1, $2, 'active', $3)
+                        on conflict (user_id, course_id) do update set status = 'active'`, [ID.teacherA, ID.courseA, ID.admin]);
+      try {
+        const r = await review(db, asOwnerTeacher, ID.courseA, ID.teacherA, 5, 'Mi curso es excelente.');
+        assert.equal(r.ok, false, 'la guia se reseno a si misma');
+        assert.equal(r.code, PRIV_DENIED);
+        assert.match(r.message, /propio curso/);
+      } finally {
+        await owner(db, `delete from public.enrollments where user_id = $1 and course_id = $2`, [ID.teacherA, ID.courseA]);
+      }
+    });
+
+    test('tampoco por servidor: es un invariante del dato, no un permiso', async () => {
+      const r = await owner(db, `select 1`).then(() =>
+        attempt(db, `insert into public.course_reviews (course_id, user_id, rating) values ($1, $2, 5)`, [ID.courseA, ID.teacherA]),
+      );
+      assert.equal(r.ok, false, 'service_role inserto una resena de la guia sobre su curso');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    // Control: sin el, un guard que rechace toda resena de una docente tambien daria verde arriba.
+    test('control: una guia inscripta en un curso AJENO si lo resena', async () => {
+      await owner(db, `insert into public.enrollments (user_id, course_id, status, granted_by) values ($1, $2, 'active', $3)
+                        on conflict (user_id, course_id) do update set status = 'active'`, [ID.teacherB, ID.courseA, ID.admin]);
+      try {
+        const r = await review(db, asTeacherB, ID.courseA, ID.teacherB, 4, 'Muy buena la parte de arcanos.');
+        assert.equal(r.ok, true, `una guia no pudo resenar un curso ajeno: ${r.message}`);
+      } finally {
+        await owner(db, `delete from public.course_reviews where user_id = $1 and course_id = $2`, [ID.teacherB, ID.courseA]);
+        await owner(db, `delete from public.enrollments where user_id = $1 and course_id = $2`, [ID.teacherB, ID.courseA]);
+      }
+    });
+  });
+
+  // ---------------------------------------------------------------- T-037 · ocultar lo que filtra
+  // El orden de D-12: el texto se escribe limpio y DESPUES un video_id pasa a coincidir. Esa es
+  // justo la resena que hay que ocultar, y el guard viejo rechazaba todo UPDATE sobre ella.
+  test('service_role oculta una resena cuyo texto paso a coincidir con un video_id', async () => {
+    const token = 'ZZtoken9876';
+    const [antes] = await owner(db, `select body from public.course_reviews where user_id = $1 and course_id = $2`, [ID.student, ID.courseA]);
+    await owner(db, `update public.course_reviews set body = $1 where user_id = $2 and course_id = $3`, [`Clave ${token}`, ID.student, ID.courseA]);
+    await owner(db, `update public.lessons set video_id = $1 where id = $2`, [token, ID.lessonPreviewB]);
+    try {
+      await db.exec('set role service_role;');
+      const r = await attempt(
+        db,
+        `update public.course_reviews set hidden_at = now(), hidden_by = $1, hidden_reason = 'filtra un video'
+          where user_id = $2 and course_id = $3 returning id`,
+        [ID.admin, ID.student, ID.courseA],
+      );
+      assert.equal(r.ok, true, `la moderacion no alcanza a la resena que filtra: ${r.message}`);
+      assert.equal(r.rows.length, 1);
+    } finally {
+      await db.exec('reset role;');
+      await db.query(`update public.lessons set video_id = 'aQw4w9WgXcQ' where id = $1`, [ID.lessonPreviewB]);
+      await db.query(
+        `update public.course_reviews set hidden_at = null, hidden_by = null, hidden_reason = null, body = $1
+          where user_id = $2 and course_id = $3`,
+        [antes.body, ID.student, ID.courseA],
+      );
+    }
+  });
+
+  // Control de que el arreglo de arriba no afloja la escritura: editar el texto con el id sigue cortado.
+  test('la autora sigue sin poder ESCRIBIR un video_id real (mitad exacta intacta)', async () => {
+    const r = await asStudent(db, () =>
+      attempt(db, `update public.course_reviews set body = $1 where user_id = $2 and course_id = $3`, [
+        `Otra vez ${SECRET.videoId}`, ID.student, ID.courseA,
+      ]),
+    );
+    assert.equal(r.ok, false);
+    assert.equal(r.code, PRIV_DENIED);
+  });
+
+  // Mismo control sobre INSERT: la suite no tenia un caso de resena NUEVA con un video_id, y sin el
+  // un guard que solo mirara UPDATE pasaba verde (mutacion 4 de T-037).
+  test('una resena nueva con un video_id real se rechaza en el INSERT', async () => {
+    await owner(db, `insert into public.enrollments (user_id, course_id, status, granted_by) values ($1, $2, 'active', $3)`, [
+      ID.otro, ID.courseA, ID.admin,
+    ]);
+    try {
+      const r = await review(db, asOutsider, ID.courseA, ID.otro, 3, `Miren ${SECRET.videoId}`);
+      assert.equal(r.ok, false, 'entro una resena nueva con un video_id');
+      assert.equal(r.code, PRIV_DENIED);
+      assert.match(r.message, /localizador de contenido pago/);
+    } finally {
+      await owner(db, `delete from public.course_reviews where user_id = $1 and course_id = $2`, [ID.otro, ID.courseA]);
+      await owner(db, `delete from public.enrollments where user_id = $1 and course_id = $2`, [ID.otro, ID.courseA]);
+    }
+  });
 });

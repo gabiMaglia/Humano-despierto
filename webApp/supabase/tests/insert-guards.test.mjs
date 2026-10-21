@@ -166,6 +166,11 @@ const INSERT_ESPERADO = {
   // guia) ni `hidden_*` (del admin, y fuera de todo grant de cliente).
   course_reviews: ['course_id', 'user_id', 'rating', 'body'],
 
+  // T-037 · la guia duena (o el admin) reporta: resena, quien reporta y motivo. `resolved_*` y
+  // `resolution` fuera a proposito (ADR-012 c.5): resolver es de service_role via moderate_*.
+  // `reporter_id` viaja pero el WITH CHECK exige `reporter_id = auth.uid()`.
+  course_review_reports: ['review_id', 'reporter_id', 'reason'],
+
   enrollments: ['user_id', 'course_id'],
 
   // T-033 · guardados. SIN guard, decidido: sin texto libre ni estado; `user_id` lo compuerta

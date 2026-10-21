@@ -86,6 +86,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /panel/docente/**                   Teacher panel: courses, modules, lessons, [teacher]
                                     chapters, resources, diario posts
 /panel/admin                        Roles, manual enrollments, publish        [admin]
+/panel/admin/resenas                Review moderation: report queue, hide     [admin]
 ```
 `/guias/[slug]` **is** the "Maestra" screen from the original 9-screen plan, renamed.
 Auth is enforced twice: `src/proxy.ts` (session + JWT role for routing) and the server layouts
@@ -171,6 +172,13 @@ covered by mutation tests that fail loudly if you regress them.
    (`columnasConSesion`, `tests/locator-session-class.test.mjs`), not in the anon one. The
    owner teacher (`teacher_id` **and** `profiles.role = 'teacher'`) and the admin open the player
    to answer and moderate, but never write progress or notes (ADR-003 as extended by T-030).
+
+**Review moderation** (T-037, ADR-012): only the course's teacher or an admin can report a review
+(`course_review_reports`, RLS via `can_report_review`, which reads `profiles.role`). Hiding,
+unhiding and dismissing go ONLY through the `moderate_*` SQL functions (execute for
+`service_role` only), called from `panel/admin/actions.ts` after `requireAdmin()`
+(`src/lib/server/admin.ts`). They are the only writers of `hidden_*` and `resolved_*`. A teacher
+cannot review her own course (D-20, enforced by the `course_reviews` guard with no bypass).
 
 ## Design language (hard constraints)
 - Dark theme `Cosmos`: bg `#0a0418` · ink `#ede4ff` · lila `#c4b5fd` · gold `#f5d76e`.
