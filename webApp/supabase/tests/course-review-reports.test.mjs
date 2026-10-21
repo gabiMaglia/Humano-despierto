@@ -208,3 +208,121 @@ describe('T-037 · course_review_reports', () => {
     });
   });
 });
+
+describe('T-037 · moderate_* es el unico camino y es de service_role', () => {
+  let db;
+  let review;
+
+  const comoServidor = async (fn) => {
+    await db.exec('set role service_role;');
+    try {
+      return await fn();
+    } finally {
+      await db.exec('reset role;');
+    }
+  };
+  const ocultar = (reviewId, adminId, reason) =>
+    comoServidor(() => attempt(db, `select public.moderate_hide_review($1, $2, $3) as n`, [reviewId, adminId, reason]));
+
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+    review = await resenaDeLaAlumna(db);
+    await reportar(db, GUIA_DUENA, review, ID.teacherA, 'Expone a una tercera persona.');
+  });
+  after(async () => db?.close());
+
+  test('el admin con su JWT no ejecuta la funcion', async () => {
+    const r = await asUser(db, ADMIN, () => attempt(db, `select public.moderate_hide_review($1, $2, 'spam')`, [review, ID.admin]));
+    assert.equal(r.ok, false, 'un cliente ejecuto la moderacion');
+    assert.equal(r.code, PRIV_DENIED);
+    // El 42501 tiene que ser el de EXECUTE. Con execute otorgado, el mismo codigo llega desde el
+    // grant de columna de hidden_* o desde el re-chequeo de rol, y el caso pasaria por otra razon.
+    assert.match(r.message, /permission denied for function/);
+  });
+
+  test('la guia tampoco', async () => {
+    const r = await asUser(db, GUIA_DUENA, () => attempt(db, `select public.moderate_hide_review($1, $2, 'spam')`, [review, ID.teacherA]));
+    assert.equal(r.ok, false);
+    assert.equal(r.code, PRIV_DENIED);
+    assert.match(r.message, /permission denied for function/);
+  });
+
+  test('servidor con un p_admin_id que no es admin: 42501 (R-2, segunda capa)', async () => {
+    const r = await ocultar(review, ID.teacherA, 'spam');
+    assert.equal(r.ok, false);
+    assert.equal(r.code, PRIV_DENIED);
+  });
+
+  test('motivo en blanco: 22023 y nada cambia (SP-4 c.3)', async () => {
+    const r = await ocultar(review, ID.admin, '   ');
+    assert.equal(r.ok, false);
+    assert.equal(r.code, '22023');
+    const [f] = await owner(db, `select hidden_at from public.course_reviews where id = $1`, [review]);
+    assert.equal(f.hidden_at, null);
+  });
+
+  test('resena inexistente: P0002', async () => {
+    const r = await ocultar('00000000-0000-4000-8000-000000000000', ID.admin, 'spam');
+    assert.equal(r.ok, false);
+    assert.equal(r.code, 'P0002');
+  });
+
+  test('ocultar: trio escrito, reportes pendientes resueltos como oculta, y sale del publico (SP-4 c.1)', async () => {
+    const r = await ocultar(review, ID.admin, '  Datos personales de un tercero  ');
+    assert.equal(r.ok, true, r.message);
+    assert.equal(r.rows[0].n, 1, 'no resolvio el reporte pendiente');
+
+    const [f] = await owner(db, `select hidden_at, hidden_by, hidden_reason from public.course_reviews where id = $1`, [review]);
+    assert.notEqual(f.hidden_at, null);
+    assert.equal(f.hidden_by, ID.admin);
+    assert.equal(f.hidden_reason, 'Datos personales de un tercero');
+
+    const [rep] = await owner(db, `select resolution, resolved_by, resolved_at from public.course_review_reports where review_id = $1`, [review]);
+    assert.equal(rep.resolution, 'oculta');
+    assert.equal(rep.resolved_by, ID.admin);
+    assert.notEqual(rep.resolved_at, null);
+
+    // Lo que lee getCourseReviews: cliente anon, filtrado por course_reviews_read.
+    const publico = await asAnon(db, () => attempt(db, `select id, rating from public.course_reviews where course_id = $1`, [ID.courseA]));
+    assert.equal(publico.ok, true, publico.message);
+    assert.equal(publico.rows.length, 0, 'la resena oculta sigue saliendo al publico y al promedio');
+  });
+
+  test('ocultar dos veces no reescribe el motivo ni resuelve nada', async () => {
+    const r = await ocultar(review, ID.admin, 'Otro motivo');
+    assert.equal(r.ok, true, r.message);
+    assert.equal(r.rows[0].n, 0);
+    const [f] = await owner(db, `select hidden_reason from public.course_reviews where id = $1`, [review]);
+    assert.equal(f.hidden_reason, 'Datos personales de un tercero');
+  });
+
+  test('desocultar: vuelve al publico y los reportes resueltos no cambian (SP-4 c.2)', async () => {
+    const r = await comoServidor(() => attempt(db, `select public.moderate_unhide_review($1, $2) as ok`, [review, ID.admin]));
+    assert.equal(r.ok, true, r.message);
+    assert.equal(r.rows[0].ok, true);
+    const publico = await asAnon(db, () => attempt(db, `select id from public.course_reviews where id = $1`, [review]));
+    assert.equal(publico.rows.length, 1, 'no volvio a la ficha');
+    const [rep] = await owner(db, `select resolution from public.course_review_reports where review_id = $1`, [review]);
+    assert.equal(rep.resolution, 'oculta', 'desocultar toco un reporte resuelto');
+
+    const otra = await comoServidor(() => attempt(db, `select public.moderate_unhide_review($1, $2) as ok`, [review, ID.admin]));
+    assert.equal(otra.rows[0].ok, false, 'desocultar una visible deberia avisar que no habia nada');
+  });
+
+  test('desestimar: resuelve con desestimada, una sola vez, sin tocar la resena', async () => {
+    await reportar(db, ADMIN, review, ID.admin, 'Revisar el tono.');
+    const [{ id: rep }] = await owner(db, `select id from public.course_review_reports where reporter_id = $1`, [ID.admin]);
+    const r = await comoServidor(() => attempt(db, `select public.moderate_dismiss_report($1, $2) as ok`, [rep, ID.admin]));
+    assert.equal(r.ok, true, r.message);
+    assert.equal(r.rows[0].ok, true);
+    const [f] = await owner(db, `select resolution, resolved_by from public.course_review_reports where id = $1`, [rep]);
+    assert.equal(f.resolution, 'desestimada');
+    assert.equal(f.resolved_by, ID.admin);
+    const [res] = await owner(db, `select hidden_at from public.course_reviews where id = $1`, [review]);
+    assert.equal(res.hidden_at, null);
+
+    const otra = await comoServidor(() => attempt(db, `select public.moderate_dismiss_report($1, $2) as ok`, [rep, ID.admin]));
+    assert.equal(otra.rows[0].ok, false);
+  });
+});

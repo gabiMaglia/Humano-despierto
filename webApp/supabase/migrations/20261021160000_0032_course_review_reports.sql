@@ -202,4 +202,76 @@ grant all on public.course_review_reports to service_role;
 
 grant execute on function public.can_report_review(uuid) to authenticated, service_role;
 
+-- ---------------------------------------------------------------- 3 · moderacion
+-- El unico codigo que escribe hidden_* y resolved_* (ADR-012 c.6). Una funcion y no dos UPDATE
+-- desde el Server Action porque ocultar y resolver los reportes tiene que ser una transaccion.
+-- security invoker: corre como service_role (unico con execute), que ya bypassa RLS; el guard de
+-- course_reviews lo reconoce como servidor. `p_admin_id` lo pone el Server Action desde la sesion
+-- (`requireAdmin`); con service_role `auth.uid()` es nulo y no hay otra forma de saber quien fue.
+-- Se re-verifica el rol contra profiles (R-2) por si un Server Action futuro se olvida.
+
+create or replace function public.moderate_hide_review(p_review_id uuid, p_admin_id uuid, p_reason text)
+returns integer language plpgsql security invoker set search_path = '' as $$
+declare
+  v_reason    text := btrim(coalesce(p_reason, ''));
+  v_resueltos integer;
+begin
+  if not exists (select 1 from public.profiles p where p.id = p_admin_id and p.role = 'admin') then
+    raise exception 'quien modera no es admin' using errcode = '42501';
+  end if;
+  if char_length(v_reason) = 0 or char_length(v_reason) > 1000 then
+    raise exception 'el motivo va de 1 a 1000 caracteres' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.course_reviews r where r.id = p_review_id) then
+    raise exception 'la resena no existe' using errcode = 'P0002';
+  end if;
+
+  -- Ya oculta: se respeta el motivo original; ocultar de nuevo solo cierra reportes colgados.
+  update public.course_reviews
+     set hidden_at = now(), hidden_by = p_admin_id, hidden_reason = v_reason
+   where id = p_review_id and hidden_at is null;
+
+  update public.course_review_reports
+     set resolved_at = now(), resolved_by = p_admin_id, resolution = 'oculta'
+   where review_id = p_review_id and resolved_at is null;
+  get diagnostics v_resueltos = row_count;
+  return v_resueltos;
+end;
+$$;
+
+create or replace function public.moderate_unhide_review(p_review_id uuid, p_admin_id uuid)
+returns boolean language plpgsql security invoker set search_path = '' as $$
+begin
+  if not exists (select 1 from public.profiles p where p.id = p_admin_id and p.role = 'admin') then
+    raise exception 'quien modera no es admin' using errcode = '42501';
+  end if;
+  -- Los reportes resueltos no se reabren: fueron una decision tomada con lo que habia (SP-4 c.2).
+  update public.course_reviews
+     set hidden_at = null, hidden_by = null, hidden_reason = null
+   where id = p_review_id and hidden_at is not null;
+  return found;
+end;
+$$;
+
+create or replace function public.moderate_dismiss_report(p_report_id uuid, p_admin_id uuid)
+returns boolean language plpgsql security invoker set search_path = '' as $$
+begin
+  if not exists (select 1 from public.profiles p where p.id = p_admin_id and p.role = 'admin') then
+    raise exception 'quien modera no es admin' using errcode = '42501';
+  end if;
+  update public.course_review_reports
+     set resolved_at = now(), resolved_by = p_admin_id, resolution = 'desestimada'
+   where id = p_report_id and resolved_at is null;
+  return found;
+end;
+$$;
+
+-- ---------------------------------------------------------------- 4 · privilegios de funciones
+revoke execute on function public.moderate_hide_review(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.moderate_unhide_review(uuid, uuid)     from public, anon, authenticated;
+revoke execute on function public.moderate_dismiss_report(uuid, uuid)    from public, anon, authenticated;
+grant  execute on function public.moderate_hide_review(uuid, uuid, text) to service_role;
+grant  execute on function public.moderate_unhide_review(uuid, uuid)     to service_role;
+grant  execute on function public.moderate_dismiss_report(uuid, uuid)    to service_role;
+
 revoke execute on all functions in schema public from public;
