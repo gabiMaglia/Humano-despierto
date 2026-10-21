@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
+const { createClient, revalidatePath } = vi.hoisted(() => ({ createClient: vi.fn(), revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
+vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/lib/server/certificates", () => ({ ensureCertificate: vi.fn() }));
 vi.mock("@/lib/server/mail/notify", () => ({ notifyCourseCompleted: vi.fn() }));
 
 import { ensureCertificate } from "@/lib/server/certificates";
-import { deleteLessonNote, resolveClosingHref, updateLessonNote } from "./actions";
+import {
+  askQuestion,
+  deleteLessonNote,
+  moderateQuestion,
+  resolveClosingHref,
+  updateLessonNote,
+  voteQuestion,
+} from "./actions";
+import { QA_ACTION_INITIAL_STATE } from "@/lib/lesson-qa/action-state";
 
 describe("resolveClosingHref", () => {
   it("con certificado emitido linkea a /certificado/<code>", async () => {
@@ -109,5 +118,87 @@ describe("deleteLessonNote", () => {
   it("0 filas (nota ajena o ya borrada) falla", async () => {
     fakeSession({ user: USER, rows: [] });
     await expect(deleteLessonNote("ajena")).rejects.toThrow(/No se encontró la nota/);
+  });
+});
+
+// ---------------------------------------------------------------- T-030 · Q&A
+const LESSON = "60000000-0000-4000-8000-00000000000a";
+const QUESTION = "b1000000-0000-4000-8000-00000000000a";
+
+function form(fields: Record<string, string>): FormData {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+  return fd;
+}
+
+// Fake con la forma justa que usa write.mjs: insert().select() resuelve al resultado dado.
+function clientWith(user: { id: string } | null, insertResult: { data: unknown; error: unknown } = { data: [], error: null }) {
+  const from = vi.fn(() => ({ insert: () => ({ select: async () => insertResult }) }));
+  return { auth: { getUser: async () => ({ data: { user } }) }, from };
+}
+
+describe("askQuestion", () => {
+  beforeEach(() => {
+    createClient.mockReset();
+    revalidatePath.mockReset();
+  });
+
+  it("un lessonId que no es uuid se rechaza sin crear el cliente", async () => {
+    const r = await askQuestion("../otra", QA_ACTION_INITIAL_STATE, form({ title: "Una duda", body: "Cuerpo" }));
+    expect(r.error).toBeTruthy();
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("un título corto se rechaza sin crear el cliente", async () => {
+    const r = await askQuestion(LESSON, QA_ACTION_INITIAL_STATE, form({ title: "ab", body: "Cuerpo" }));
+    expect(r.error).toMatch(/al menos 3/);
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("un link en el cuerpo se rechaza antes de tocar la base", async () => {
+    const r = await askQuestion(LESSON, QA_ACTION_INITIAL_STATE, form({ title: "Una duda", body: "mirá https://x.com" }));
+    expect(r.error).toMatch(/no puede contener un link/);
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("sin sesión pide iniciar sesión y no consulta tablas", async () => {
+    const client = clientWith(null);
+    createClient.mockResolvedValue(client);
+    const r = await askQuestion(LESSON, QA_ACTION_INITIAL_STATE, form({ title: "Una duda", body: "Cuerpo" }));
+    expect(r.error).toMatch(/iniciar sesión/);
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("el 42501 de RLS vuelve como mensaje de permiso, sin texto técnico y sin revalidar", async () => {
+    createClient.mockResolvedValue(
+      clientWith({ id: "u1" }, { data: null, error: { code: "42501", message: "new row violates row-level security policy" } }),
+    );
+    const r = await askQuestion(LESSON, QA_ACTION_INITIAL_STATE, form({ title: "Una duda", body: "Cuerpo" }));
+    expect(r.error).toMatch(/permiso/);
+    expect(r.error).not.toMatch(/row-level/);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("el camino feliz revalida la lección", async () => {
+    createClient.mockResolvedValue(clientWith({ id: "u1" }, { data: [{ id: QUESTION }], error: null }));
+    const r = await askQuestion(LESSON, QA_ACTION_INITIAL_STATE, form({ title: "Una duda", body: "Cuerpo" }));
+    expect(r).toEqual({ error: null, success: "Pregunta publicada." });
+    expect(revalidatePath).toHaveBeenCalledWith(`/leccion/${LESSON}`);
+  });
+});
+
+describe("moderateQuestion y voteQuestion", () => {
+  beforeEach(() => createClient.mockReset());
+
+  it("borrar sin motivo se rechaza sin crear el cliente", async () => {
+    const r = await moderateQuestion(LESSON, QUESTION, QA_ACTION_INITIAL_STATE, form({ reason: "   " }));
+    expect(r.error).toMatch(/motivo/);
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("votar con un id inválido se rechaza sin crear el cliente", async () => {
+    const r = await voteQuestion(LESSON, "no-es-uuid", true);
+    expect(r.error).toBeTruthy();
+    expect(createClient).not.toHaveBeenCalled();
   });
 });

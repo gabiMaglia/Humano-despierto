@@ -196,6 +196,14 @@ const INSERT_ESPERADO = {
   // `campus_posts_insert` exige `author_id = auth.uid()` y el guard trigger lo revalida.
   campus_posts: ['course_id', 'author_id', 'body'],
 
+  // T-030 · Q&A por leccion. `course_id`/`lesson_id` de la respuesta e `is_instructor_answer` NO
+  // viajan: los deriva `*_derive_scope` (invariante sin bypass). Nadie nace resuelta, destacada ni
+  // borrada, asi que `resolved_*`/`featured_*`/`deleted_*` quedan fuera. `author_id`/`user_id`
+  // los compuerta el WITH CHECK (= auth.uid()) y los guards los revalidan.
+  lesson_questions: ['lesson_id', 'author_id', 'title', 'body'],
+  lesson_answers: ['question_id', 'author_id', 'body'],
+  lesson_question_votes: ['question_id', 'user_id'],
+
   // T-022 · Diario. `status`/`published_at` fuera del grant a proposito (ADR-008, criterio 3):
   // publicar es privilegio de service_role, mismo patron que `courses`. `body` SI viaja en el
   // INSERT — es contenido, no metadata de servidor — y lo protege `guard_diario_posts`

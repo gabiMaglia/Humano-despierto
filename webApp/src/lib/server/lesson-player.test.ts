@@ -33,12 +33,17 @@ function lessonRow(over: Partial<{ is_preview: boolean; is_published: boolean }>
 function fakeSession(opts: {
   user: { id: string } | null;
   lesson: ReturnType<typeof lessonRow> | null;
-  course?: { slug: string; title: string } | null;
+  course?: { slug: string; title: string; teacher_id?: string } | null;
   lessonError?: { message: string } | null;
+  role?: "student" | "teacher" | "admin";
 }) {
   const results: Record<string, { data: unknown; error: unknown }> = {
     lessons: { data: opts.lesson, error: opts.lessonError ?? null },
-    courses: { data: opts.course === undefined ? { slug: "tarot-iniciatico", title: "Tarot" } : opts.course, error: null },
+    courses: {
+      data: opts.course === undefined ? { slug: "tarot-iniciatico", title: "Tarot", teacher_id: "duena" } : opts.course,
+      error: null,
+    },
+    profiles: { data: opts.role ? { role: opts.role } : null, error: null },
   };
   return {
     auth: { getUser: async () => ({ data: { user: opts.user } }) },
@@ -105,6 +110,36 @@ describe("getLessonAccess", () => {
     expect(access!.hasAccess).toBe(true);
     expect(access!.isPreview).toBe(true);
     expect(access!.userId).toBeNull();
+  });
+
+  // T-030 · ampliacion de ADR-003: la duena (teacher_id Y rol teacher, E3) y el admin abren la
+  // leccion para responder y moderar, sin cursarla.
+  it("docente duena sin inscripcion: hasAccess true, modera y no guarda progreso", async () => {
+    createClient.mockResolvedValue(fakeSession({ user: { id: "duena" }, lesson: lessonRow(), role: "teacher" }));
+    getStudentCourseAccess.mockResolvedValue(NO_ACCESS);
+    const access = await getLessonAccess(LESSON);
+    expect(access!.hasAccess).toBe(true);
+    expect(access!.player).toMatchObject({ fullCurriculum: true, canTrackProgress: false, canModerate: true, canAsk: true });
+  });
+
+  it("E3 · duena por teacher_id pero con rol que ya no es teacher: sin acceso", async () => {
+    createClient.mockResolvedValue(fakeSession({ user: { id: "duena" }, lesson: lessonRow(), role: "student" }));
+    getStudentCourseAccess.mockResolvedValue(NO_ACCESS);
+    expect((await getLessonAccess(LESSON))!.hasAccess).toBe(false);
+  });
+
+  it("docente de otro curso: sin acceso", async () => {
+    createClient.mockResolvedValue(fakeSession({ user: { id: "otra" }, lesson: lessonRow(), role: "teacher" }));
+    getStudentCourseAccess.mockResolvedValue(NO_ACCESS);
+    expect((await getLessonAccess(LESSON))!.hasAccess).toBe(false);
+  });
+
+  it("admin sin inscripcion: hasAccess true, modera y no pregunta", async () => {
+    createClient.mockResolvedValue(fakeSession({ user: { id: "adm" }, lesson: lessonRow(), role: "admin" }));
+    getStudentCourseAccess.mockResolvedValue(NO_ACCESS);
+    const access = await getLessonAccess(LESSON);
+    expect(access!.hasAccess).toBe(true);
+    expect(access!.player).toMatchObject({ canModerate: true, canAsk: false, canTrackProgress: false });
   });
 
   it("error de lectura de la leccion: lanza, no decide acceso", async () => {

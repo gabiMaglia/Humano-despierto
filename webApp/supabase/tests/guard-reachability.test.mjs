@@ -27,6 +27,8 @@ import { seed, ID } from './seed.mjs';
 // Un trigger que no puede levantar no puede hacer inalcanzable nada.
 const EXENTOS_NO_BLOQUEAN = [
   'campus_posts_set_updated_at',
+  'lesson_answers_set_updated_at',
+  'lesson_questions_set_updated_at',
   'course_modules_set_updated_at',
   'courses_set_updated_at',
   'diario_posts_set_updated_at',
@@ -65,6 +67,15 @@ const CASOS = {
 
   // --- moderacion
   campus_posts_guard: 'la moderadora hace soft delete con autor y motivo',
+  // --- q&a por leccion (T-030)
+  lesson_questions_derive_scope: 'la alumna pregunta sin mandar course_id y el curso sale de la leccion',
+  lesson_questions_guard: 'la autora marca resuelta y la docente duena modera con motivo',
+  lesson_questions_locator_guard: 'la alumna pregunta con prosa normal',
+  lesson_answers_derive_scope: 'la docente responde y la respuesta nace de docente',
+  lesson_answers_guard: 'la docente duena destaca su respuesta',
+  lesson_answers_locator_guard: 'una alumna responde con prosa normal',
+  // T-030 E1 (D-26): la mitad exacta de R-3 sobre el motivo de moderacion del Campus.
+  campus_posts_locator_guard: 'la moderadora borra un mensaje del Campus con un motivo en prosa normal',
 
   // --- localizadores (T-035). De estos seis, TRES nunca se verificaron por el lado legitimo:
   //     course_modules, lesson_chapters y lesson_resources. Este ticket existe en parte por eso.
@@ -317,6 +328,61 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
     });
 
+    test(`campus_posts_locator_guard · ${CASOS.campus_posts_locator_guard}`, async () => {
+      await db.exec(`reset role;`);
+      const post = (
+        await db.query(
+          `insert into public.campus_posts (course_id, author_id, body) values ($1, $2, 'Otro mensaje') returning id`,
+          [ID.courseA, ID.student],
+        )
+      ).rows[0];
+      const r = await asUser(db, { sub: ID.teacherA, userRole: 'teacher' }, () =>
+        attempt(
+          db,
+          `update public.campus_posts
+              set deleted_at = now(), deleted_by = $1, deleted_reason = 'Repite el video de la clase 2'
+            where id = $2 returning id`,
+          [ID.teacherA, post.id],
+        ),
+      );
+      assert.equal(r.ok, true, `un motivo en prosa quedo bloqueado: ${r.message}`);
+      assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+    });
+
+    // T-030 E2 · el bug de 0017 en el Campus: `deleted_by` es `on delete set null` y el trio
+    // estricto de 0014 hacia que la cuenta de una moderadora no se pudiera borrar.
+    test('campus_posts_guard · la baja de una moderadora deja su firma en null y no queda bloqueada', async () => {
+      const MOD = 'c4000000-0000-4000-8000-000000000001';
+      await db.exec(`reset role;`);
+      await db.query(`insert into auth.users (id, email) values ($1, 'moderadora-campus@humano.test')`, [MOD]);
+      await db.query(`update public.profiles set role = 'admin' where id = $1`, [MOD]);
+      const post = (
+        await db.query(
+          `insert into public.campus_posts (course_id, author_id, body) values ($1, $2, 'Para moderar') returning id`,
+          [ID.courseA, ID.student],
+        )
+      ).rows[0];
+      const moderar = await asUser(db, { sub: MOD, userRole: 'admin' }, () =>
+        attempt(
+          db,
+          `update public.campus_posts set deleted_at = now(), deleted_by = $1, deleted_reason = 'spam'
+            where id = $2 returning id`,
+          [MOD, post.id],
+        ),
+      );
+      assert.equal(moderar.ok, true, `la moderadora no pudo moderar: ${moderar.message}`);
+
+      await db.exec(`reset role;`);
+      const baja = await attempt(db, `delete from auth.users where id = $1`, [MOD]);
+      assert.equal(baja.ok, true, `la baja de la moderadora quedo bloqueada (bug de 0017): ${baja.message}`);
+      const [fila] = (
+        await db.query(`select deleted_at, deleted_by, deleted_reason from public.campus_posts where id = $1`, [post.id])
+      ).rows;
+      assert.notEqual(fila.deleted_at, null);
+      assert.equal(fila.deleted_by, null);
+      assert.equal(fila.deleted_reason, 'spam');
+    });
+
     test(`course_reviews_guard · ${CASOS.course_reviews_guard}`, async () => {
       await db.exec(`reset role;`);
       const r = await attempt(
@@ -468,6 +534,107 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       );
       assert.equal(sacar.ok, true, `la alumna no pudo sacar su avatar: ${sacar.message}`);
       assert.equal(sacar.rows.length, 1);
+    });
+  });
+
+  // ---------------------------------------------------------------- q&a (T-030)
+  // Antes de certificados: el ultimo caso de alla borra a la alumna, autora de la pregunta del seed.
+  describe('q&a por leccion (T-030) · lo legitimo pasa', () => {
+    const ALUMNA = { sub: ID.student, userRole: 'student' };
+    const DUENA = { sub: ID.teacherA, userRole: 'teacher' };
+    let preguntaId;
+    let respuestaId;
+
+    test(`lesson_questions_derive_scope · ${CASOS.lesson_questions_derive_scope}`, async () => {
+      const r = await asUser(db, ALUMNA, () =>
+        attempt(
+          db,
+          `insert into public.lesson_questions (lesson_id, author_id, title, body)
+           values ($1, $2, 'Una duda', 'Sobre el minuto 3') returning id, course_id`,
+          [ID.lessonA, ID.student],
+        ),
+      );
+      assert.equal(r.ok, true, `la alumna no pudo preguntar: ${r.message}`);
+      assert.equal(r.rows[0].course_id, ID.courseA, 'el curso no salio de la leccion');
+      preguntaId = r.rows[0].id;
+    });
+
+    test(`lesson_questions_locator_guard · ${CASOS.lesson_questions_locator_guard}`, async () => {
+      const r = await asUser(db, ALUMNA, () =>
+        attempt(
+          db,
+          `insert into public.lesson_questions (lesson_id, author_id, title, body)
+           values ($1, $2, 'Sobre el video', 'Cada leccion es un video corto y hay material para bajar.') returning id`,
+          [ID.lessonA, ID.student],
+        ),
+      );
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows.length, 1);
+    });
+
+    test(`lesson_questions_guard · ${CASOS.lesson_questions_guard}`, async () => {
+      const resolver = await asUser(db, ALUMNA, () =>
+        attempt(db, `update public.lesson_questions set resolved_at = now() where id = $1 returning resolved_by`, [preguntaId]),
+      );
+      assert.equal(resolver.ok, true, `la autora no pudo resolver: ${resolver.message}`);
+      assert.equal(resolver.rows[0].resolved_by, ID.student);
+
+      await db.exec(`reset role;`);
+      const otra = (
+        await db.query(
+          `insert into public.lesson_questions (lesson_id, course_id, author_id, title, body)
+           values ($1, $2, $3, 'Para moderar', 'Fuera de tema') returning id`,
+          [ID.lessonA, ID.courseA, ID.student],
+        )
+      ).rows[0];
+      const moderar = await asUser(db, DUENA, () =>
+        attempt(
+          db,
+          `update public.lesson_questions set deleted_at = now(), deleted_by = $1, deleted_reason = 'fuera de tema'
+            where id = $2 returning id`,
+          [ID.teacherA, otra.id],
+        ),
+      );
+      assert.equal(moderar.ok, true, `la duena no pudo moderar: ${moderar.message}`);
+      assert.equal(moderar.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+    });
+
+    test(`lesson_answers_derive_scope · ${CASOS.lesson_answers_derive_scope}`, async () => {
+      const r = await asUser(db, DUENA, () =>
+        attempt(
+          db,
+          `insert into public.lesson_answers (question_id, author_id, body)
+           values ($1, $2, 'Es una pausa, no una caida.') returning id, lesson_id, is_instructor_answer`,
+          [ID.questionA, ID.teacherA],
+        ),
+      );
+      assert.equal(r.ok, true, `la docente no pudo responder: ${r.message}`);
+      assert.equal(r.rows[0].is_instructor_answer, true);
+      assert.equal(r.rows[0].lesson_id, ID.lessonA);
+      respuestaId = r.rows[0].id;
+    });
+
+    test(`lesson_answers_guard · ${CASOS.lesson_answers_guard}`, async () => {
+      const r = await asUser(db, DUENA, () =>
+        attempt(db, `update public.lesson_answers set featured_at = now() where id = $1 returning featured_by`, [respuestaId]),
+      );
+      assert.equal(r.ok, true, `la duena no pudo destacar: ${r.message}`);
+      assert.equal(r.rows[0].featured_by, ID.teacherA);
+      await db.exec(`reset role;`);
+      await db.query(`update public.lesson_answers set featured_at = null, featured_by = null where id = $1`, [respuestaId]);
+    });
+
+    test(`lesson_answers_locator_guard · ${CASOS.lesson_answers_locator_guard}`, async () => {
+      const r = await asUser(db, ALUMNA, () =>
+        attempt(
+          db,
+          `insert into public.lesson_answers (question_id, author_id, body)
+           values ($1, $2, 'Yo lo vi en el video de la clase 2.') returning id`,
+          [ID.questionA, ID.student],
+        ),
+      );
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows.length, 1);
     });
   });
 

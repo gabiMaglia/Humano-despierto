@@ -9,14 +9,7 @@
 // conjuncion es la clase de riesgo de ADR-009: si `anon` no la lee, no hay fuga; si el cliente no
 // la escribe, no hay vector.
 
-/**
- * @param {import('@electric-sql/pglite').PGlite} db
- * @returns {Promise<Array<{columna: string, cubierta: boolean}>>}
- *   `columna` con formato "tabla.col". `cubierta` indica si un CHECK `%_no_locator` la incluye
- *   -- es la mitad de FORMA. La mitad EXACTA no se puede leer del catalogo (vive en un trigger
- *   plpgsql), y por eso su invariante la PRUEBA en vez de consultarla.
- */
-export const columnasDeLaClase = async (db) =>
+const consultarClase = async (db, filtro) =>
   (
     await db.query(`
       with cols as (
@@ -36,9 +29,30 @@ export const columnasDeLaClase = async (db) =>
                  and cols.attnum = any (k.conkey)
              ) as cubierta
       from cols
-      where has_column_privilege('anon', reloid, attnum, 'SELECT')
+      where ${filtro}
         and (has_column_privilege('authenticated', reloid, attnum, 'UPDATE')
           or has_column_privilege('authenticated', reloid, attnum, 'INSERT'))
       order by 1
     `)
   ).rows;
+
+/**
+ * @param {import('@electric-sql/pglite').PGlite} db
+ * @returns {Promise<Array<{columna: string, cubierta: boolean}>>}
+ *   `columna` con formato "tabla.col". `cubierta` indica si un CHECK `%_no_locator` la incluye
+ *   -- es la mitad de FORMA. La mitad EXACTA no se puede leer del catalogo (vive en un trigger
+ *   plpgsql), y por eso su invariante la PRUEBA en vez de consultarla.
+ */
+export const columnasDeLaClase = (db) => consultarClase(db, `has_column_privilege('anon', reloid, attnum, 'SELECT')`);
+
+/**
+ * T-030 · Columnas que `anon` NO lee pero otra persona con sesion si (Campus, Q&A). La condicion de
+ * ADR-009 es "sin inscripcion", no "sin sesion": una cohorte leyendo lo que escribe otra es la
+ * misma fuga, y sin este recorte esas columnas no estaban en ningun invariante.
+ */
+export const columnasConSesion = (db) =>
+  consultarClase(
+    db,
+    `not has_column_privilege('anon', reloid, attnum, 'SELECT')
+       and has_column_privilege('authenticated', reloid, attnum, 'SELECT')`,
+  );
