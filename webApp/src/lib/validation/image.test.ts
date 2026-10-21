@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   AVATAR_PATH_RE,
+  COVER_PATH_RE,
   MAX_AVATAR_BYTES,
+  MAX_COVER_BYTES,
   buildAvatarPath,
+  buildCoverPath,
   checkAvatarBytes,
+  checkCoverBytes,
   detectImageKind,
+  isUuid,
 } from "./image";
 
 const JPG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -67,5 +72,51 @@ describe("buildAvatarPath", () => {
     expect(AVATAR_PATH_RE.test(`avatars/${UID}/foto.jpg`)).toBe(false);
     expect(AVATAR_PATH_RE.test(`avatars/${UID}/${FILE_ID}.gif`)).toBe(false);
     expect(AVATAR_PATH_RE.test(`covers/${UID}/${FILE_ID}.jpg`)).toBe(false);
+  });
+});
+
+const COURSE = "40000000-0000-4000-8000-00000000000a";
+
+describe("checkCoverBytes", () => {
+  it("3 MB exactos con cabecera PNG pasan; un byte mas no, con el tope en el mensaje (c.2)", () => {
+    expect(checkCoverBytes(withHeader(MAX_COVER_BYTES, PNG))).toEqual({ ok: true, kind: "png" });
+    const big = checkCoverBytes(withHeader(MAX_COVER_BYTES + 1, PNG));
+    expect(big.ok).toBe(false);
+    if (!big.ok) expect(big.error).toMatch(/3 MB/);
+  });
+
+  it("un PDF renombrado .png se rechaza por sus bytes (c.2)", () => {
+    const r = checkCoverBytes(PDF);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/JPG, PNG o WEBP/);
+  });
+
+  it("el avatar conserva su tope de 2 MB y su mensaje (la generalizacion no lo movio)", () => {
+    const avatar = checkAvatarBytes(withHeader(MAX_AVATAR_BYTES + 1, JPG));
+    expect(avatar).toEqual({ ok: false, error: "La imagen pesa más de 2 MB." });
+    expect(checkCoverBytes(withHeader(MAX_AVATAR_BYTES + 1, JPG)).ok).toBe(true);
+  });
+});
+
+describe("buildCoverPath / COVER_PATH_RE", () => {
+  it("arma covers/<course_id>/<uuid>.<ext> y cumple el regex del CHECK", () => {
+    const path = buildCoverPath(COURSE, FILE_ID, "jpg");
+    expect(path).toBe(`covers/${COURSE}/${FILE_ID}.jpg`);
+    expect(COVER_PATH_RE.test(path)).toBe(true);
+  });
+
+  it("rechaza nombre libre, extension fuera de lista y la carpeta de avatares", () => {
+    expect(COVER_PATH_RE.test(`covers/${COURSE}/portada.jpg`)).toBe(false);
+    expect(COVER_PATH_RE.test(`covers/${COURSE}/${FILE_ID}.svg`)).toBe(false);
+    expect(COVER_PATH_RE.test(`avatars/${COURSE}/${FILE_ID}.jpg`)).toBe(false);
+  });
+});
+
+describe("isUuid", () => {
+  it("acepta uuid en minuscula y rechaza lo demas", () => {
+    expect(isUuid(COURSE)).toBe(true);
+    expect(isUuid("tarot-iniciatico")).toBe(false);
+    expect(isUuid("")).toBe(false);
+    expect(isUuid(`${COURSE}/../x`)).toBe(false);
   });
 });

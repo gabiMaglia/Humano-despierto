@@ -85,6 +85,7 @@ export interface TeacherCourseFields {
   promoVideoId: string | null;
   status: "draft" | "published" | "archived";
   teacherId: string;
+  coverPath: string | null;
 }
 
 export interface TeacherLessonSummary {
@@ -130,6 +131,7 @@ interface CourseFieldsRow {
   promo_video_id: string | null;
   status: "draft" | "published" | "archived";
   teacher_id: string;
+  cover_path: string | null;
 }
 
 function mapCourseFields(row: CourseFieldsRow): TeacherCourseFields {
@@ -154,6 +156,7 @@ function mapCourseFields(row: CourseFieldsRow): TeacherCourseFields {
     includes: row.includes ?? [],
     status: row.status,
     teacherId: row.teacher_id,
+    coverPath: row.cover_path ?? null,
   };
 }
 
@@ -171,7 +174,7 @@ export async function getTeacherCourseDetail(
     .from("courses")
     .select(
       `id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency,
-       roman_num, moon_glyph, includes, status, teacher_id,
+       roman_num, moon_glyph, includes, status, teacher_id, cover_path,
        learning_objectives, prerequisites, description, language, promo_video_id,
        course_modules(id, position, title, description,
          lessons(id, position, title, is_preview, is_published, duration_seconds))`

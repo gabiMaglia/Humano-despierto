@@ -1,12 +1,13 @@
 import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
 import SectionHeader from "@/components/atoms/SectionHeader";
-import { getPublishedCourses } from "@/lib/server/courses";
+import { getPublishedCourses, signCatalogCovers } from "@/lib/server/courses";
 import { formatPriceCents } from "@/lib/utils/format";
 
 export default async function FeaturedCourses() {
   const courses = await getPublishedCourses();
   const featured = courses.filter((c) => c.featured).slice(0, 3);
+  const covers = await signCatalogCovers(featured);
 
   return (
     <section className="px-6 py-24 md:px-12">
@@ -32,6 +33,7 @@ export default async function FeaturedCourses() {
               moon={course.moonGlyph ?? undefined}
               featured={course.featured}
               slug={course.slug}
+              coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}
             />
           ))}
         </div>

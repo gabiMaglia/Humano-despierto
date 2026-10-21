@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import Avatar from "@/components/atoms/Avatar";
+import SignedImage from "@/components/atoms/SignedImage";
 import Stars from "@/components/reviews/Stars";
 import { formatRating } from "@/lib/reviews/rating";
 
@@ -20,6 +21,8 @@ export interface CourseCardData {
   /** Promedio 1..5 y total de reseñas visibles; sin ellos la tarjeta no dibuja señal alguna. */
   rating?: number;
   reviewCount?: number;
+  /** URL firmada de la portada (T-047); sin ella, el degradado de siempre. */
+  coverUrl?: string;
 }
 
 interface Props extends CourseCardData {
@@ -28,7 +31,7 @@ interface Props extends CourseCardData {
 
 export default function CourseCard({
   num, tag, title, titleEm, desc, teacher, price,
-  weeks, level, moon, featured, slug, rating, reviewCount, className,
+  weeks, level, moon, featured, slug, rating, reviewCount, coverUrl, className,
 }: Props) {
   const ratingText = rating !== undefined && reviewCount ? formatRating(rating, reviewCount) : null;
   return (
@@ -51,13 +54,18 @@ export default function CourseCard({
     >
       {/* Image placeholder */}
       <div className="relative shrink-0 overflow-hidden bg-linear-to-br from-lila-700 to-cosmos-2 aspect-[4/3]">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(circle at 30% 40%, rgba(245,215,110,0.3), transparent 50%), radial-gradient(circle at 70% 60%, rgba(236,72,153,0.25), transparent 50%)",
-          }}
-        />
+        {coverUrl ? (
+          // alt vacio: la card ya nombra el curso en su h3; leerlo dos veces es ruido.
+          <SignedImage src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 30% 40%, rgba(245,215,110,0.3), transparent 50%), radial-gradient(circle at 70% 60%, rgba(236,72,153,0.25), transparent 50%)",
+            }}
+          />
+        )}
         {/* Moon phase badge */}
         {moon && (
           <span className="absolute top-3 left-3 font-display text-base text-gold-400">

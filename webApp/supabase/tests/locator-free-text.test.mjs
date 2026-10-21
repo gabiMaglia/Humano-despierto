@@ -108,6 +108,10 @@ const COLUMNAS = [
   ['course_reviews.response',      (v) => [`update public.course_reviews set response = $1 where course_id = $2`, [v, ID.courseA]], 'teacher'],
   ['courses.learning_objectives',  (v) => [`update public.courses set learning_objectives = array['Leer el tarot', $1] where id = $2`, [v, ID.courseA]]],
   ['courses.prerequisites',        (v) => [`update public.courses set prerequisites = array['Ninguno', $1] where id = $2`, [v, ID.courseA]]],
+  // T-047 · `cover_path` lo lee `anon` (la ficha firma la URL desde ahi) y lo escribe la duena. El
+  // ataque conserva el prefijo `covers/<id propio>/` para que lo que se pruebe sea el regex de
+  // dominio cerrado del CHECK `_no_locator` y no la pertenencia (que tambien da 23514).
+  ['courses.cover_path',           (v) => [`update public.courses set cover_path = 'covers/' || id::text || '/' || $1 where id = $2`, [v, ID.courseA]]],
   ['profiles.full_name',           (v) => [`update public.profiles set full_name = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.slug',                (v) => [`update public.profiles set slug = $1 where id = $2`, [v, ID.teacherA]]],
   ['profiles.glyph',               (v) => [`update public.profiles set glyph = $1 where id = $2`, [v, ID.teacherA]]],
