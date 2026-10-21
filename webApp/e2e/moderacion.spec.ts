@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ADMIN, ALUMNA, SOL, assertStackUp, loginAs } from "./fixtures";
+import { expect, test, ADMIN, ALUMNA, SOL, assertStackUp, loginAs } from "./fixtures";
 import { psql } from "./db";
 
 // T-037 · la guía reporta, el admin oculta, la ficha deja de mostrarla y al desocultar vuelve.

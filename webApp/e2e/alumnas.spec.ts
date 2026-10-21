@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { assertStackUp, loginAs } from "./fixtures";
+import { expect, test, assertStackUp, loginAs } from "./fixtures";
 import { psql } from "./db";
 
 const SOL = { email: "sol.mayor@seed.humano.local", password: "seed-teacher-1234" };

@@ -1,5 +1,7 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, login } from "./fixtures";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import type { Page } from "@playwright/test";
+import { expect, test, ALUMNA, login } from "./fixtures";
 
 const CSP_HEADER = /^content-security-policy(-report-only)?$/;
 
@@ -43,3 +45,75 @@ test("c.1 · una ruta protegida (proxy con updateSession) tambien sale con nonce
   const nonce = nonceOf(res.headers());
   expect(new Set(scriptNonces(await res.text()))).toEqual(new Set([nonce]));
 });
+
+// ---------------------------------------------------------------- guard de violaciones (c.2)
+test("guard: ningun spec importa `test` de @playwright/test (saltearia cspGuard)", () => {
+  const dir = __dirname;
+  const culpables = readdirSync(dir)
+    .filter((f) => f.endsWith(".spec.ts"))
+    .filter((f) =>
+      /import\s*\{[^}]*\btest\b[^}]*\}\s*from\s*["']@playwright\/test["']/.test(readFileSync(join(dir, f), "utf8")),
+    );
+  expect(culpables).toEqual([]);
+});
+
+// Inyecta un <script> inline SIN nonce en el HTML real de /cursos: en Report-Only corre, pero
+// el navegador emite la violacion. Los dos tests de abajo pasan solo si el guard los hace fallar.
+async function injectInline(target: Page): Promise<void> {
+  await target.route("**/cursos", async (route) => {
+    const res = await route.fetch();
+    const html = (await res.text()).replace("</body>", "<script>window.__x=1</script></body>");
+    await route.fulfill({ response: res, body: html });
+  });
+  await target.goto("/cursos");
+  await expect.poll(() => target.evaluate(() => (window as unknown as { __x?: number }).__x)).toBe(1);
+}
+
+test("guard muerde: una violacion en `page` hace fallar el test", async ({ page }) => {
+  test.fail();
+  await injectInline(page);
+});
+
+// ---------------------------------------------------------------- c.3 · enforce
+// Sin segundo servidor: se toma la respuesta REAL de /cursos y se le cambia solo el nombre de la
+// cabecera (lo mismo que hace CSP_ENFORCE=true, probado en csp.test.ts). Se ejercita la politica
+// tal cual la emite el servidor.
+async function cursosWithInjected(page: Page, enforce: boolean): Promise<number | undefined> {
+  await page.route("**/cursos", async (route) => {
+    const res = await route.fetch();
+    const headers = { ...res.headers() };
+    const value = headers["content-security-policy-report-only"];
+    expect(value, "el servidor no emitio la politica").toBeTruthy();
+    if (enforce) {
+      delete headers["content-security-policy-report-only"];
+      headers["content-security-policy"] = value;
+    }
+    const html = (await res.text()).replace("</body>", "<script>window.__inyectado=1</script></body>");
+    await route.fulfill({ response: res, headers, body: html });
+  });
+  await page.goto("/cursos");
+  // Y la pagina sigue viva: los scripts de Next (con nonce) si corrieron y la hidratacion pinta.
+  await expect(page.locator("h1").first()).toBeVisible();
+  return page.evaluate(() => (window as unknown as { __inyectado?: number }).__inyectado);
+}
+
+test("c.3 · con la politica en enforce, un <script> inline sin nonce no ejecuta", async ({ page, allowCsp }) => {
+  allowCsp.allowed = true; // este test provoca la violacion a proposito
+  expect(await cursosWithInjected(page, true)).toBeUndefined();
+});
+
+test("c.3 · control: la misma inyeccion en Report-Only SI ejecuta (el test ve la diferencia)", async ({
+  page,
+  allowCsp,
+}) => {
+  allowCsp.allowed = true;
+  expect(await cursosWithInjected(page, false)).toBe(1);
+});
+
+test("guard muerde: tambien en una pagina abierta con browser.newPage()", async ({ browser }) => {
+  test.fail();
+  const other = await browser.newPage();
+  await injectInline(other);
+  await other.close();
+});
+

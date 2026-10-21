@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, REVOCADA, lessonHrefs, login } from "./fixtures";
+import { expect, test, ALUMNA, REVOCADA, lessonHrefs, login } from "./fixtures";
 
 // T-046 · /panel/notas contra el stack real. El seed no trae notas: se crean desde la UI del
 // player (la misma vía que usa la alumna) y se borran al final, pase o falle el test.

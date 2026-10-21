@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, DELFINA } from "./fixtures";
+import { expect, test, ALUMNA, DELFINA } from "./fixtures";
 
 // El seed no trae reseñas: se siembran con service_role (única vía que no exige UI de alumna) y
 // se limpian al terminar. Curso con reseñas: tarot-iniciatico; sin reseñas: cualquier otro.

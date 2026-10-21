@@ -1,8 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // T-045 c.1-c.3 + D-32 · fin de video simulado: se engancha el YT.Player real y se dispara
 // onStateChange(ENDED), porque el navegador de test no reproduce el video hasta el final.
-import { ALUMNA, DELFINA, lessonHrefs, login } from "./fixtures";
+import { expect, test, ALUMNA, DELFINA, lessonHrefs, login } from "./fixtures";
 
 const HOOK = `(() => {
   let appCb;
