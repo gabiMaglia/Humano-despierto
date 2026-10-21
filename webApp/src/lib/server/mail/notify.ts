@@ -18,7 +18,7 @@ import { formatCertificateDate } from "@/lib/utils/format";
 // UNA vez, no repetido en cada call site donde alguien se podría olvidar de envolverlo.
 //
 // `getAdminSupabaseClient` (service_role) es necesario para leer el email real: vive en
-// `auth.users`, no en `profiles` — mismo patrón que `admin.ts::listAllUsers`. Quien llama a
+// `auth.users`, no en `profiles` (por eso los listados del admin lo cruzan en la base, `admin_list_users`). Quien llama a
 // estas funciones ya verificó el permiso que corresponda (admin activando inscripción, sesión
 // propia registrándose): esta capa no vuelve a autorizar nada, solo notifica.
 
