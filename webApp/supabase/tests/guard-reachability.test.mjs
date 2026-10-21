@@ -89,6 +89,8 @@ const CASOS = {
   profiles_locator_guard: 'el hook de alta crea el perfil y la docente edita su bio',
   // --- perfil (T-042)
   profiles_avatar_path_guard: 'el alta crea el perfil sin avatar y la duena apunta el suyo a su carpeta y lo saca',
+  // --- T-049 · invitaciones
+  teacher_invitations_guard: 'service_role crea, revoca y acepta; borrar la cuenta de quien invito o acepto',
 };
 
 const triggersDeLaDb = async (db) =>
@@ -661,6 +663,49 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
   // VAN AL FINAL A PROPOSITO: el caso de inmutabilidad BORRA `ID.student`, que es la autora de la
   // resena del seed, la duena del progreso y la inscripta de courseA. Corriendolo antes, todos los
   // casos de arriba se quedan sin fila y darian `ok: true` sobre cero registros.
+  describe('T-049 · invitaciones', () => {
+    test(`teacher_invitations_guard · ${CASOS.teacher_invitations_guard}`, async () => {
+      const ADMIN_T049 = '30490000-0000-4000-8000-000000000001';
+      const INVITADA_T049 = '10490000-0000-4000-8000-0000000000aa';
+      await db.exec(`reset role;
+        insert into auth.users (id, email, email_confirmed_at) values
+          ('${ADMIN_T049}', 'admin-t049@humano.test', now()),
+          ('${INVITADA_T049}', 'invitada-t049@humano.test', now());
+        update public.profiles set role = 'admin' where id = '${ADMIN_T049}';`);
+
+      const crear = (email, hash) =>
+        attempt(db, `insert into public.teacher_invitations (email, token_hash, invited_by) values ($1, $2, $3) returning id`, [
+          email,
+          hash,
+          ADMIN_T049,
+        ]);
+      const a = await crear('invitada-t049@humano.test', 'a'.repeat(64));
+      assert.equal(a.ok, true, `service_role no pudo invitar: ${a.message}`);
+      const b = await crear('otra-t049@humano.test', 'b'.repeat(64));
+      assert.equal(b.ok, true, b.message);
+
+      const revocar = await attempt(db, `update public.teacher_invitations set revoked_at = now(), revoked_by = $1 where id = $2`, [
+        ADMIN_T049,
+        b.rows[0].id,
+      ]);
+      assert.equal(revocar.ok, true, `service_role no pudo revocar: ${revocar.message}`);
+
+      const aceptar = await attempt(db, `select public.accept_teacher_invitation($1, $2) as ok`, ['a'.repeat(64), INVITADA_T049]);
+      assert.equal(aceptar.ok, true, `la aceptacion no corrio: ${aceptar.message}`);
+      assert.equal(aceptar.rows[0].ok, true, 'la aceptacion legitima devolvio false');
+
+      // El bug de 0017 en esta tabla: on delete set null contra un CHECK simetrico.
+      const borrar = await attempt(db, `delete from auth.users where id in ($1, $2)`, [ADMIN_T049, INVITADA_T049]);
+      assert.equal(borrar.ok, true, `borrar las cuentas quedo bloqueado: ${borrar.message}`);
+      const [fila] = (
+        await db.query(`select invited_by, accepted_by, accepted_at from public.teacher_invitations where id = $1`, [a.rows[0].id])
+      ).rows;
+      assert.equal(fila.invited_by, null);
+      assert.equal(fila.accepted_by, null);
+      assert.notEqual(fila.accepted_at, null, 'perder la cuenta borro el hecho de que se acepto');
+    });
+  });
+
   describe('certificados · van ultimos porque el segundo borra al alumno del seed', () => {
     test(`certificates_guard_insert · ${CASOS.certificates_guard_insert}`, async () => {
       await db.exec(`reset role;`);
