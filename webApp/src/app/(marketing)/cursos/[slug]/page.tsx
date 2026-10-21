@@ -12,6 +12,8 @@ import { visibleDescription } from "@/lib/catalog/description";
 import { getCourseBySlug } from "@/lib/server/courses";
 import EnrollmentCta from "@/components/course/EnrollmentCta";
 import { getStudentCourseAccess, getStudentEnrollmentState } from "@/lib/server/enrollment";
+import { getWishlistIds } from "@/lib/server/wishlist";
+import WishlistButton from "@/components/course/WishlistButton";
 import { getCourseReviews } from "@/lib/server/reviews";
 import { formatCertificateDate, formatPriceCents, formatTotalDuration } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
@@ -56,10 +58,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   if (!course) notFound();
   const longDescription = visibleDescription(course.intro, course.description);
 
-  const [access, reviews, enrollment] = await Promise.all([
+  const [access, reviews, enrollment, savedIds] = await Promise.all([
     getStudentCourseAccess(course.id),
     getCourseReviews(course.id),
     getStudentEnrollmentState(course.id),
+    getWishlistIds(),
   ]);
 
   return (
@@ -306,6 +309,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           {/* "Hablar con una guía antes" se quitó (T-043): no hay canal definido y un mailto
               expondría el mail de la docente, que nunca es público. La ficha ya linkea a /guias. */}
           <EnrollmentCta slug={course.slug} state={enrollment} />
+          {enrollment.status !== "active" && (
+            <div className="mt-4 flex items-center justify-center gap-3 border-t border-lila-300/18 pt-4">
+              <WishlistButton
+                courseId={course.id}
+                saved={savedIds?.has(course.id) ?? false}
+                loginHref={savedIds ? null : `/entrar?next=${encodeURIComponent(`/cursos/${course.slug}`)}`}
+              />
+              <span className="font-body text-sm text-ink-soft">Guardar para después</span>
+            </div>
+          )}
         </div>
       </section>
     </div>

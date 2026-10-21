@@ -24,6 +24,8 @@ export interface DashboardCourse {
   /** Lección donde continuar: la última vista, o la primera del curso si nunca entró (c.3). `null` solo si el curso no tiene lecciones publicadas. */
   continueLessonId: string | null;
   lastSeenAt: string | null;
+  /** T-033 · para ordenar los cursos sin progreso (el orden por último acceso lo arma `lib/learning/tabs`). */
+  enrolledAt: string;
 }
 
 export interface StudentRequest {
@@ -87,6 +89,7 @@ interface DashboardCourseRow {
 
 interface EnrollmentRow {
   course_id: string;
+  enrolled_at: string;
   course: DashboardCourseRow | DashboardCourseRow[] | null;
 }
 
@@ -233,7 +236,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
   const { data: enrollmentRows, error: enrollmentError } = await supabase
     .from("enrollments")
     .select(
-      `course_id,
+      `course_id, enrolled_at,
        course:courses(
          id, slug, title, title_em, discipline, level, roman_num, moon_glyph,
          teacher:profiles!courses_teacher_id_fkey(full_name),
@@ -322,6 +325,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
         progressPercent,
         continueLessonId,
         lastSeenAt,
+        enrolledAt: row.enrolled_at,
       };
       return dashboardCourse;
     })
