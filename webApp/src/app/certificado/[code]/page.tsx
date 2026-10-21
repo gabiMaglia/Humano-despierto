@@ -77,6 +77,10 @@ export default async function CertificadoPage({ params }: PageProps) {
             {certificate.courseTitle}
           </h2>
 
+          <p className="max-w-md font-body text-xs text-ink-soft print:text-[#5a4570]">
+            Este certificado acredita el recorrido completo del curso, no una evaluación.
+          </p>
+
           <div className="flex flex-col items-center gap-1 font-body text-sm text-ink-soft print:text-[#5a4570]">
             <p>
               Guiado por{" "}
