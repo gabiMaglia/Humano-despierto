@@ -7,31 +7,31 @@ solicitudes). **Paralelizable con:** SP-5 sólo si los archivos son disjuntos (P
 
 No se vuelve a decidir: portada raster (S-A), un solo bucket privado (S-D), pagos fuera (D1), quién
 modera qué (ADR-012). Cada ticket cita la policy o el guard que lo defiende; una afirmación de
-seguridad sin ataque en `b1-postgrest-attacks.sh` no está probada (R-6).
+seguridad sin ataque en `b1-postgrest-attacks.sh` no está probada (R-6). El `NNNN` de cada migración
+se asigna al arrancar el ticket contra `schema_migrations` (maestro); el timestamp es el reservado.
 
 ---
 
 ## T-047 · Portada de curso
 
 **Agente:** `nerv-web` + `nerv-arquitecto` · **Nivel:** Strong (migración, Storage, permisos) ·
-**Depende de:** T-042 · **Migración:** `20261021150000_0026_course_cover.sql`
+**Depende de:** T-042 · **Migración:** `20261021150000_NNNN_course_cover.sql`
 
 ### Por qué
 El catálogo y la ficha son la página de venta y hoy todas las cards son el mismo degradé. S-A ya
-decidió que lo subido por usuarias puede ser raster. Junto con el avatar de T-042 es la única
-excepción al "sin raster" de CLAUDE.md; no habilita ningún otro `<img>`.
+decidió el raster subido por usuarias; con el avatar de T-042 es la única excepción, sin otro `<img>`.
 
 ### Migración
 - `courses.cover_path text` con CHECK de forma y pertenencia:
-  `cover_path is null or cover_path ~ ('^covers/' || id::text || '/[A-Za-z0-9_-]{1,64}\.(jpg|jpeg|png|webp)$')`.
-  El id del curso va en el path y el CHECK lo ata a la fila. La forma cerrada hace innecesario
-  ADR-009 sobre esta columna.
+  `cover_path is null or cover_path ~ ('^covers/' || id::text || '/[a-z0-9-]+\.(jpg|png|webp)$')`.
+  Mismo alfabeto que `avatar_path` de T-042. CHECK y no guard: un CHECK lee `id` de la misma fila,
+  así que no hay trigger nuevo ni caso de alcanzabilidad. La forma cerrada hace innecesario ADR-009.
 - Grants (R-1): `select (cover_path)` a `anon, authenticated`; `update (cover_path)` a
   `authenticated` (la fila la decide `courses_update_own`). Sin `insert`: el path necesita el id.
-- Policies en `storage.objects`, bucket `uploads`, prefijo `covers/`: `insert`, `update`, `delete`
-  sólo si `public.owns_course((storage.foldername(name))[2]::uuid)`. **Sin `select` para
-  clientes**: el bucket es privado (S-D) y `<img>` no manda `apikey`; la lectura pública sale del
-  route handler de abajo, que es la "transformación pública según el caso" de S-D.
+- Policies en `storage.objects`, bucket `uploads` (lo crea T-042), en el mismo bloque
+  `to_regclass('storage.objects')` que T-042 para que PGlite aplique la migración: `insert`, `update`,
+  `delete` y `select` para `authenticated` sólo si `(storage.foldername(name))[1] = 'covers'` y
+  `public.owns_course((storage.foldername(name))[2]::uuid)`. La lectura pública no pasa por acá.
 
 ### Qué se toca
 - `panel/docente/cursos/[courseId]/actions.ts`: `uploadCourseCoverAction` y
@@ -39,13 +39,15 @@ excepción al "sin raster" de CLAUDE.md; no habilita ningún otro `<img>`.
   `file.type`), tope 3 MB, jpeg/png/webp. Sube con el cliente de sesión a
   `covers/<course_id>/<uuid>.<ext>`, luego `update cover_path`, luego borra el objeto anterior. Si
   el `update` falla, borra lo recién subido. Recorte y resize no son obligatorios.
-- Route handler `GET /cursos/[slug]/portada`: si el curso está publicado, o quien pide es la dueña o
-  admin, descarga por `service_role` y responde con `Content-Type` real, `Cache-Control: public,
-  max-age=3600, stale-while-revalidate=86400` y `ETag` derivado de `cover_path`. Si no: 404. Nunca
-  acepta un path del request: resuelve `slug → id → cover_path` en el servidor.
+- Servir: igual que el avatar de T-042. URL firmada (`createSignedUrl`, 1 h) generada en el Server
+  Component que ya lee el curso, con `service_role`, sólo si `status = 'published'` o quien mira es
+  la dueña o admin. Nunca se firma un path del request: se resuelve `slug → cover_path` en servidor.
+  Al reemplazar, el objeto anterior se borra (criterio 1 lo cubre con B-1).
 - `CourseCard` gana `coverUrl?: string`: `<img src alt="" loading="lazy">` con `object-cover` en el
   contenedor `aspect-[4/3]`; sin valor, el degradé actual. La ficha igual en su cabecera.
-  `generateMetadata` agrega `openGraph.images` sólo si hay portada; el OG sin portada es de T-052.
+- OG: una URL firmada vence y los crawlers la cachean, así que no va en `openGraph.images`. Se crea
+  `cursos/[slug]/opengraph-image.tsx` que devuelve la portada por `service_role` (sin firma, sin
+  vencimiento) y 404 sin portada; T-052 la completa con el OG generado para el resto.
 
 ### Criterios
 1. Dado un curso propio, cuando la docente sube un jpeg de 2 MB, entonces card, ficha y OG muestran
@@ -56,18 +58,17 @@ excepción al "sin raster" de CLAUDE.md; no habilita ningún otro `<img>`.
 4. Dada una docente que no es la dueña, una alumna o `anon`, cuando suben a `covers/<curso_ajeno>/`
    por HTTP, entonces 403 (R-6).
 5. Dado un `update cover_path = 'covers/<otro_id>/x.png'`, entonces el CHECK lo rechaza.
-6. Dado un curso en borrador con portada, cuando `anon` pide `/cursos/<slug>/portada`, entonces 404;
-   la dueña logueada, 200.
-7. Dado que reemplaza la portada, entonces el objeto anterior desaparece del bucket.
+6. Dado un curso en borrador con portada, entonces ningún render para `anon` genera URL firmada y
+   `/cursos/<slug>/opengraph-image` responde 404; la dueña logueada la ve en su panel.
 
 ### Cómo se verifica
-`npm test`: CHECK y grants por columna; el baseline de PGlite no trae `storage`, así que las
-policies del bucket se prueban sólo en B-1: criterios 4 y 6. Playwright (R-14): subir, ver en card, reemplazar, quitar. `check-seo.sh` sobre la ficha con
-portada: `og:image` presente y resoluble.
+`npm test`: CHECK y grants por columna; el baseline de PGlite no trae `storage`, así que las policies
+del bucket se prueban sólo en B-1 (criterios 4 y 6). Playwright (R-14): subir, ver en card,
+reemplazar, quitar. `check-seo.sh` sobre la ficha con portada: `og:image` presente y resoluble.
 
 ### Riesgo
-Una lectura por `service_role` en ruta pública, acotada a un objeto cuyo path salió de una fila que
-`courses_read` ya mostraría. Si T-052 trae CSP, `img-src 'self'` alcanza.
+Firma por `service_role` desde una ruta pública, acotada a un path que salió de una fila que
+`courses_read` ya mostraría. La CSP de T-052 ya incluye `<SUPABASE_URL>` en `img-src`.
 
 ---
 
@@ -77,9 +78,8 @@ Una lectura por `service_role` en ruta pública, acotada a un objeto cuyo path s
 **Sin migración** · **Absorbe T-025 y T-034** (paridad §T-034)
 
 ### Por qué
-El panel docente es "tus cursos" (`panel/docente/page.tsx`). T-025 pidió "toda la info pertinente"
-y T-034 la acotó a lo que convierte un panel en herramienta: quién está, cómo avanza, qué falta
-responder. Con D1 vigente no hay ingresos y no se dibuja el lugar (T-025 c.4, T-034 c.6).
+El panel docente es "tus cursos" (`panel/docente/page.tsx`). T-025 pidió "toda la info pertinente" y
+T-034 la acotó a quién está, cómo avanza, qué falta responder. Sin ingresos (D1, T-025 c.4, T-034 c.6).
 
 ### Qué se toca
 - Ruta nueva `/panel/docente/cursos/[courseId]/alumnas` (Server Component, `noindex`, R-11).
@@ -92,13 +92,13 @@ responder. Con D1 vigente no hay ingresos y no se dibuja el lugar (T-025 c.4, T-
 - Progreso % = lecciones publicadas con `lesson_progress.completed = true` / lecciones publicadas
   (`lessons.is_published`). `completed` es derivada (ADR-007). Es la fórmula de
   `enrollment.ts::progressPercent`: se extrae a `lib/utils/progress.ts` con test Vitest y la usan los dos.
-- Cabecera, todo derivado por consulta (T-025 c.1): inscriptas activas · solicitudes pendientes
-  (tabla de T-043, con link a la cola) · completadas (certificado emitido) · rating promedio y
-  cantidad (reusa `getCourseReviews`, que ya excluye ocultas) · preguntas sin responder: consulta
-  `lesson_questions` (T-030) y si el error es `42P01` el bloque entero se omite, no muestra 0.
-- Filas: nombre, fecha de inscripción, progreso %, certificado sí/no con link. **No** se muestra
-  qué lección vio ni cuándo (T-034 c.5); el detalle por lección es agregado, "x de y completaron la
-  lección n", en una segunda tabla.
+- Cabecera, todo derivado por consulta (T-025 c.1): inscriptas activas (`status = 'active'`) ·
+  solicitudes pendientes (`status = 'requested'`, T-043; misma policy, link a la cola del admin) ·
+  completadas (certificado emitido) · rating promedio y cantidad (`getCourseReviews`, que ya excluye
+  ocultas) · preguntas sin responder: `lesson_questions` sin `lesson_answers.is_instructor_answer`
+  (T-030, SP-5); si el error es `42P01` el bloque entero se omite, no muestra 0.
+- Filas: nombre, fecha de inscripción, progreso %, certificado sí/no con link. **No** se muestra qué
+  lección vio ni cuándo (T-034 c.5); el detalle por lección es agregado ("x de y completaron la n").
 - `cursos/[courseId]/page.tsx` enlaza a `alumnas` con los dos números principales. Sección "Datos
   básicos" del panel docente (nombre, bio, avatar): link a `/panel/perfil` de T-042, no otro formulario.
 
@@ -114,16 +114,14 @@ responder. Con D1 vigente no hay ingresos y no se dibuja el lugar (T-025 c.4, T-
 5. Dado que T-030 no corrió, entonces no hay bloque de preguntas; dado que corrió y hay 3 sin
    respuesta, entonces "3 preguntas sin responder" con link.
 6. Dado el panel, entonces no aparece ninguna cifra de dinero ni un lugar reservado para ella.
-7. Dado que una inscripción pasa a `revoked`, entonces sale de activas y deja de contar.
 
 ### Cómo se verifica
-Vitest sobre el helper (0/0, borrador excluido, redondeo). `npm test` y B-1: criterio 4.
-Playwright: `sol.mayor` ve a `delfina.curso-completo` al 100 % con certificado. `check-seo.sh`:
-la ruta es `noindex`.
+Vitest sobre el helper (0/0, borrador excluido, redondeo). `npm test` y B-1: criterio 4. Playwright:
+`sol.mayor` ve a `delfina.curso-completo` al 100 % con certificado. `check-seo.sh`: ruta `noindex`.
 
 ### Riesgo
 Primera lectura por `service_role` de datos de alumnas hacia una docente. Un `select *` acá es la
-fuga lenta que T-034 c.5 avisó; el recorte de columnas es parte del criterio, no una sugerencia.
+fuga lenta que T-034 c.5 avisó; el recorte de columnas es criterio, no sugerencia.
 
 ---
 
@@ -131,7 +129,7 @@ fuga lenta que T-034 c.5 avisó; el recorte de columnas es parte del criterio, n
 
 **Agente:** `nerv-web` + `nerv-arquitecto` · **Nivel:** Strong · **ADR-012** ·
 **Spec de base:** `2026-09-10-adr-012-quien-modera-que.md` (tabla, RLS, criterios 1 a 10) y ficha
-`### T-037` del backlog · **Migración:** `20261021160000_0027_course_review_reports.sql`
+`### T-037` del backlog · **Migración:** `20261021160000_NNNN_course_review_reports.sql`
 
 ### Por qué
 La migración `course_review_reports` de ADR-012 se escribió y nunca corrió (no hay archivo en
@@ -151,28 +149,27 @@ oculta sólo el admin por `service_role` (guard 3 de 0024 ~150); sin mail al adm
   sólo si `owns_course` o admin.
 - Ruta `/panel/admin/resenas` (`noindex`): cola de reportes pendientes con la reseña completa, curso,
   quién reportó y motivo; debajo, las 50 reseñas más recientes, con las ocultas marcadas. Cola vacía
-  se ve deliberada (ADR-012 c.9). Si T-043 ya creó sub-navegación en el admin, se reusa; si no, se
-  crea `AdminTabs` con el patrón de `PanelTabs` y T-049 la extiende.
-- Panel docente: en `alumnas` (T-048) un bloque con el estado de cada reporte propio: pendiente,
-  oculta o desestimada. Sin `resolved_by` ni motivo interno.
+  se ve deliberada (ADR-012 c.9). T-043 no crea sub-navegación en el admin (SP-2 agrega una
+  sección): acá nace `AdminTabs` con el patrón de `PanelTabs` y T-049 la extiende.
+- Panel docente: en `alumnas` (T-048) el estado de cada reporte propio: pendiente, oculta o
+  desestimada. Sin `resolved_by` ni motivo interno.
 
 ### Criterios
 1. Dado un reporte pendiente, cuando el admin oculta con motivo, entonces la reseña deja de salir en
    la ficha (`course_reviews_read` filtra `hidden_at is null`), deja de contar en `getCourseReviews`
    y por lo tanto en R-01, y el reporte queda `'oculta'`.
 2. Dado que el admin desoculta, entonces vuelve a la ficha y al rating; los reportes resueltos no cambian.
-3. Dado un `hide` con motivo en blanco, entonces se rechaza en el Server Action y, si lo esquivara,
-   en `course_reviews_hidden_consistency`.
+3. Dado un `hide` con motivo en blanco, entonces lo rechaza el Server Action y, si lo esquivara,
+   `course_reviews_hidden_reason_not_blank` (0024).
 4. Dada la guía dueña, cuando hace `PATCH hidden_at` por PostgREST, entonces 42501 (guard 3 de 0024).
    Dada una alumna que reporta, 42501. Los cuatro ataques de ADR-012 c.8 entran al harness bajo T-037.
 5. Dado un reporte sobre una reseña que la alumna borra, entonces el reporte desaparece y el borrado
    no queda bloqueado (ADR-012 c.7).
-6. Dados `hide` y `unhide` concurrentes, entonces el trío va junto o no va (R-5), sin estado intermedio.
 
 ### Cómo se verifica
-`npm test`: tabla, RLS, cascada, un caso por trigger nuevo (`guard-reachability.test.mjs` lo
-exige). B-1: ADR-012 c.8. Playwright: reportar como docente, ocultar como admin, comprobar que la
-ficha y `/cursos` ya no la muestran.
+`npm test`: tabla, RLS, cascada, un caso por trigger nuevo (`guard-reachability.test.mjs` lo exige).
+B-1: ADR-012 c.8. Playwright: reportar como docente, ocultar como admin, ver que ficha y `/cursos`
+ya no la muestran.
 
 ### Riesgo
 Ocultar desde un reporte y ocultar directo desde la lista son el mismo Server Action con `reportId`
@@ -183,11 +180,11 @@ opcional. Un segundo código que escriba `hidden_*` es un segundo lugar donde eq
 ## T-049 · Invitación de docentes, búsqueda y paginación en admin
 
 **Agente:** `nerv-web` + `nerv-arquitecto` · **Nivel:** Strong (auth, PII, roles, migración) ·
-**Depende de:** T-040 (`?next=`), T-042 · **Migración:** `20261021170000_0028_teacher_invitations.sql`
+**Depende de:** T-040 (`?next=`), T-042 · **Migración:** `20261021170000_NNNN_teacher_invitations.sql`
 
 ### Por qué
-Hoy una docente nueva se registra como alumna y avisa para que el admin le cambie el rol desde
-`updateUserRoleAction` (`panel/admin/actions.ts` 28-83). Y el admin carga las tres listas enteras
+Hoy una docente nueva se registra como alumna y avisa para que el admin le cambie el rol
+(`updateUserRoleAction`, `panel/admin/actions.ts` 28-83). Y el admin carga las tres listas enteras
 (`page.tsx` 9-13) sin búsqueda: con cien alumnas es inusable.
 
 ### Migración
@@ -225,7 +222,7 @@ create unique index teacher_invitations_pending_email
   `(created_at desc, id desc)`, `limit` 25: `admin_list_users(q, after_at, after_id)` (join
   `profiles` + `auth.users.email`, `ilike` sobre nombre y mail: el mail no está en `profiles` y
   `listAllUsers` hoy lo junta en memoria), `admin_list_courses` (título, slug, docente),
-  `admin_list_enrollments` (alumna por nombre o mail, título del curso).
+  `admin_list_enrollments` (alumna por nombre o mail, título del curso, los 4 estados de T-043).
 
 ### Qué se toca
 - `panel/admin/actions.ts`: `inviteTeacherAction(email)` genera el token, inserta por `service_role`,
@@ -245,11 +242,10 @@ create unique index teacher_invitations_pending_email
   `service_role` y redirige a `/panel/docente` si aceptó, o muestra "esta invitación no es válida o
   venció". Nada corre desde el cliente (R-2, ADR-006).
 - Admin: `/panel/admin` se parte en pestañas (`AdminTabs` de T-037): usuarios, cursos,
-  inscripciones, reseñas, invitaciones. Cada lista lee `?q=&after=` de `searchParams`, llama a su
-  función y renderiza "siguiente" con el cursor de la última fila (`created_at|id` en base64url).
-  Sin "anterior": el botón de atrás alcanza. `listAllUsers`, `listAllCourses` y
-  `listAllEnrollments` se reemplazan; `EnrollmentGrantForm` deja de recibir listas enteras.
-- `/panel/admin/invitaciones`: pendientes con vencimiento, aceptadas, revocadas; botón de revocar.
+  inscripciones, reseñas, invitaciones (pendientes con vencimiento, aceptadas, revocadas, botón de
+  revocar). Cada lista lee `?q=&after=` de `searchParams`, llama a su función y renderiza "siguiente"
+  con el cursor de la última fila (`created_at|id` en base64url); sin "anterior". `listAllUsers`,
+  `listAllCourses` y `listAllEnrollments` se reemplazan; `EnrollmentGrantForm` deja de recibir listas.
 
 ### Criterios
 1. Dado un admin que invita a `nueva@mail`, entonces hay una fila pendiente, sale el mail y la
@@ -268,17 +264,16 @@ create unique index teacher_invitations_pending_email
 8. Dado `?q=delf` en usuarios, entonces sólo coincidencias por nombre o mail, 25 por página, y el
    cursor sigue sin repetir ni saltear filas aunque dos compartan `created_at`.
 9. Dado un `after` manipulado o malformado, entonces la lista arranca desde el principio, sin 500.
-10. Dado el guard del último admin (`actions.ts` 53-72), entonces aceptar una invitación nunca quita
-    un admin ni abre otro camino para cambiar roles fuera de `service_role`.
+10. Dado el guard del último admin (`actions.ts` 53-72), entonces aceptar nunca quita un admin ni
+    abre otro camino de cambio de rol fuera de `service_role`.
 
 ### Cómo se verifica
-`npm test`: tabla, guard (con su caso en `guard-reachability`), `accept_teacher_invitation` en los
-cuatro desenlaces (ok, ajeno, vencido, revocado), `execute` cerrado, keyset estable con `created_at`
-repetido. B-1: criterios 3, 5 y 6. Vitest: hash del token y parseo del cursor. Playwright: invitar,
-registrarse, confirmar, aceptar, ver `/panel/docente`.
+`npm test`: tabla, guard (caso en `guard-reachability`), `accept_teacher_invitation` en los cuatro
+desenlaces (ok, ajeno, vencido, revocado), `execute` cerrado, keyset estable con `created_at` repetido.
+B-1: criterios 3, 5 y 6. Vitest: hash del token y cursor. Playwright: invitar, registrarse, confirmar,
+aceptar, ver `/panel/docente`.
 
 ### Riesgo
-Primer cambio de rol que no inicia un admin con un click. Tres defensas, cada una con ataque: el
-token vive sólo en el mail de esa persona, el mail del token debe coincidir con el de la sesión
-confirmada, y la escritura ocurre sólo en una función que `authenticated` no puede ejecutar. Si el
-mail llega a una casilla equivocada, el peor caso es un `teacher` que el admin revierte: nunca `admin`.
+Primer cambio de rol que no inicia un admin con un click. Tres defensas con ataque cada una: el token
+vive sólo en el mail de esa persona, debe coincidir con el mail de la sesión confirmada, y escribe
+sólo una función que `authenticated` no ejecuta. Peor caso: un `teacher` que el admin revierte.
