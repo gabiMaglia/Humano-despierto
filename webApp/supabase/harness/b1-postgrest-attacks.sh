@@ -70,6 +70,9 @@ esperar() {
   # Con la anon key como bearer, el gateway responde 401 donde PostgREST daría 403;
   # el cuerpo trae el mismo 42501. Ambos son "denegado", que es lo que se afirma.
   [ "$esp" = "403" ] && [ "$code" = "401" ] && grep -q '42501' <<<"$out" && code=403
+  # $7 opcional: SQLSTATE que tiene que venir en el cuerpo. Un 400 por columna inexistente no es
+  # un 400 por CHECK, y sin esto los dos se leen igual.
+  [ -n "${7:-}" ] && ! grep -q "\"$7\"" <<<"$out" && code="$code sin $7"
   if [ "$code" = "$esp" ]; then
     printf '  ok    %-52s HTTP %s\n' "$rot" "$code"
   else
@@ -258,10 +261,71 @@ borrar_avatar() {  # $1 path · $2 jwt -> imprime el HTTP code
 borrar_avatar "avatars/$ALUMNA/$AVATAR_F.png" "$ALUMNA_JWT" >/dev/null
 subir "(p6) subir a la carpeta de otra"   4xx "avatars/$DOCENTE/$AVATAR_F.png" "$ALUMNA_JWT"
 subir "(p6b) subir fuera de avatars/"     4xx "covers/$AVATAR_F.png"           "$ALUMNA_JWT"
-subir "(p6+) subir a la carpeta propia"   2xx "avatars/$ALUMNA/$AVATAR_F.png"  "$ALUMNA_JWT"
+# D-34 (T-047): ninguna sesion sube a `uploads`, ni a su propia carpeta. Por HTTP directo se salteaba
+# el tope de 2 MB y los magic bytes que valida el servidor. Sube solo la Server Action, con service_role.
+subir "(p6c) la duena sube a su carpeta (D-34)" 4xx "avatars/$ALUMNA/$AVATAR_F.png" "$ALUMNA_JWT"
+subir "(p6+) service_role sube a avatars/<uid>" 2xx "avatars/$ALUMNA/$AVATAR_F.png" "$SRV"
 COD=$(borrar_avatar "avatars/$ALUMNA/$AVATAR_F.png" "$ALUMNA_JWT")
 if [ "$COD" = "200" ]; then printf '  ok    %-52s HTTP %s\n' "(p6+) la duena borra su avatar" "$COD"
 else printf '  FALLA %-52s HTTP %s (esperaba 200)\n' "(p6+) la duena borra su avatar" "$COD"; fallos=$((fallos+1)); fi
+
+echo ""
+echo "── T-047 · portada de curso (y cierre de D-34 en covers/)"
+alta "b1-docente2@test.local" '' teacher
+DOCENTE2_JWT=$(tok "b1-docente2@test.local")
+PORTADA="covers/$CURSO/$AVATAR_F.png"
+OTRO_ID=$(q "select gen_random_uuid();")
+# PostgREST: pertenencia por CHECK (400 = 23514) y fila por RLS (204 silencioso, se afirma la DB).
+esperar "(k1) cover_path de otro curso"           400 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT"  "{\"cover_path\":\"covers/$OTRO_ID/$AVATAR_F.png\"}" 23514
+esperar "(k2) docente no duena escribe cover_path" 204 PATCH "courses?id=eq.$CURSO" "$DOCENTE2_JWT" "{\"cover_path\":\"$PORTADA\"}"
+esperar "(k3) alumna escribe cover_path"          204 PATCH "courses?id=eq.$CURSO" "$ALUMNA_JWT"   "{\"cover_path\":\"$PORTADA\"}"
+COV=$(q "select coalesce(cover_path,'null') from public.courses where id='$CURSO';")
+if [ "$COV" = "null" ]; then printf '  ok    %-52s cover_path=%s\n' "nadie ajeno cambio cover_path" "$COV"
+else printf '  FALLA %-52s cover_path=%s\n' "un ajeno escribio cover_path" "$COV"; fallos=$((fallos+1)); fi
+
+# Storage. Mismo criterio que (p6): se afirma la clase 2xx/4xx, no el codigo exacto.
+borrar_avatar "$PORTADA" "$SRV" >/dev/null   # corrida cortada a la mitad deja el objeto
+subir "(k4) docente no duena sube a covers/<curso>"  4xx "$PORTADA" "$DOCENTE2_JWT"
+subir "(k5) alumna sube a covers/<curso>"            4xx "$PORTADA" "$ALUMNA_JWT"
+subir "(k6) anon sube a covers/<curso>"              4xx "$PORTADA" "$ANON"
+subir "(k6b) carpeta que no es uuid"                 4xx "covers/no-es-uuid/$AVATAR_F.png" "$DOCENTE_JWT"
+# D-34: ni la duena sube por HTTP directo; sus bytes los valida la action antes de subir.
+subir "(k6c) la duena sube a su carpeta (D-34)"      4xx "$PORTADA" "$DOCENTE_JWT"
+subir "(k+) service_role sube (la action)"           2xx "$PORTADA" "$SRV"
+esperar "(k+) la duena apunta cover_path"            204 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" "{\"cover_path\":\"$PORTADA\"}"
+
+# (k7) Listar: segun la version, storage-api contesta 4xx o `200 []` a quien no tiene SELECT. Lo
+# que se afirma es lo que importa: ningun nombre bajo covers/ sale en la respuesta.
+listar() {  # $1 rotulo · $2 jwt
+  local out; out=$(curl -s -X POST "$API/storage/v1/object/list/uploads" -H "apikey: $ANON" \
+    -H "Authorization: Bearer $2" -H "Content-Type: application/json" -d "{\"prefix\":\"covers/$CURSO\"}")
+  if grep -q "$AVATAR_F" <<<"$out"; then printf '  FALLA %-52s %s\n' "$1" "$(head -c 120 <<<"$out")"; fallos=$((fallos+1))
+  else printf '  ok    %-52s %s\n' "$1" "sin nombres"; fi
+}
+listar "(k7) anon lista covers/<curso>"              "$ANON"
+listar "(k7b) docente no duena lista covers/<curso>" "$DOCENTE2_JWT"
+# (k8) Firmar: solo service_role (la ficha) o la duena (el editor). anon y ajenos no.
+firmar() {  # $1 rotulo · $2 clase esperada · $3 jwt
+  local code; code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/storage/v1/object/sign/uploads/$PORTADA" \
+    -H "apikey: $ANON" -H "Authorization: Bearer $3" -H "Content-Type: application/json" -d '{"expiresIn":60}')
+  if [ "${code:0:1}xx" = "$2" ]; then printf '  ok    %-52s HTTP %s\n' "$1" "$code"
+  else printf '  FALLA %-52s HTTP %s (esperaba %s)\n' "$1" "$code" "$2"; fallos=$((fallos+1)); fi
+}
+firmar "(k8) anon firma la portada"            4xx "$ANON"
+firmar "(k8b) docente no duena firma"          4xx "$DOCENTE2_JWT"
+firmar "(k8+) la duena firma la suya"          2xx "$DOCENTE_JWT"
+firmar "(k8+) service_role firma (ficha)"      2xx "$SRV"
+# (k9) Borrar: el ajeno no; la duena si. Se afirma sobre storage.objects y no sobre el codigo:
+# storage-api puede contestar 200 con lista vacia a un DELETE que RLS filtro.
+COD=$(borrar_avatar "$PORTADA" "$DOCENTE2_JWT")
+EXISTE=$(q "select count(*) from storage.objects where bucket_id='uploads' and name='$PORTADA';")
+if [ "$EXISTE" = "1" ]; then printf '  ok    %-52s HTTP %s, objeto intacto\n' "(k9) docente no duena borra la portada" "$COD"
+else printf '  FALLA %-52s objeto borrado\n' "(k9) docente no duena borra la portada"; fallos=$((fallos+1)); fi
+x "update public.courses set cover_path=null where id='$CURSO';"
+COD=$(borrar_avatar "$PORTADA" "$DOCENTE_JWT")
+EXISTE=$(q "select count(*) from storage.objects where bucket_id='uploads' and name='$PORTADA';")
+if [ "$COD" = "200" ] && [ "$EXISTE" = "0" ]; then printf '  ok    %-52s HTTP %s\n' "(k9+) la duena borra su portada" "$COD"
+else printf '  FALLA %-52s HTTP %s, quedan %s (esperaba 200 y 0)\n' "(k9+) la duena borra su portada" "$COD" "$EXISTE"; fallos=$((fallos+1)); fi
 
 echo ""
 echo "── el camino legitimo de service_role POR HTTP (punto ciego que tenia esta suite)"
