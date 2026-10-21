@@ -1,11 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { safeNext } from "@/lib/auth/safe-next";
-import { LINK_ERROR_PATH, RECOVERY_NEXT } from "@/lib/auth/paths";
+import { internalNext } from "@/lib/auth/safe-next";
+import { DEFAULT_NEXT, LINK_ERROR_PATH, RECOVERY_NEXT, homeForRole } from "@/lib/auth/paths";
 
-// Solo el método que se usa: el test pasa un fake con este único método.
+// Solo lo que se usa: el test pasa un fake con el canje y la lectura de `profiles`.
 export interface ExchangeClient {
   auth: Pick<SupabaseClient["auth"], "exchangeCodeForSession">;
+  from: SupabaseClient["from"];
 }
 
 export type CallbackOutcome =
@@ -13,6 +14,23 @@ export type CallbackOutcome =
   | { kind: "error"; destination: string };
 
 const LINK_ERROR: CallbackOutcome = { kind: "error", destination: LINK_ERROR_PATH };
+
+// c.9 de T-040 para todo login que pasa por acá (Google, confirmación de mail). El rol sale de
+// `profiles` (R-2), no del claim del JWT recién emitido. La sesión ya existe, así que un fallo de
+// lectura no es un error de link: cae en el panel que sirve a cualquier rol.
+async function homeFromProfile(supabase: ExchangeClient, userId: string): Promise<string> {
+  try {
+    const { data, error } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+    if (error) {
+      console.error(`[auth] callback sin rol: ${error.code ?? "desconocido"}`);
+      return DEFAULT_NEXT;
+    }
+    return homeForRole(data?.role);
+  } catch (err) {
+    console.error("[auth] callback sin rol:", err instanceof Error ? err.message : err);
+    return DEFAULT_NEXT;
+  }
+}
 
 export async function resolveAuthCallback(
   supabase: ExchangeClient,
@@ -25,18 +43,22 @@ export async function resolveAuthCallback(
   // verificador. Reenviarlo cuando viene evita quemar el code con el verificador de otro flujo.
   const flowId = params.get("sb_flow_id");
 
+  let userId: string;
   try {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
     if (error || !data.user) {
       console.error(`[auth] callback rechazado: ${error?.code ?? "sin usuario"}`);
       return LINK_ERROR;
     }
-    const destination = safeNext(params.get("next"));
-    // Pedir un reset no es darse de alta: una cuenta anterior a T-020 sin fila `welcome` no
-    // tiene que recibir "Bienvenida" por olvidarse la clave.
-    return { kind: "session", destination, userId: data.user.id, sendWelcome: destination !== RECOVERY_NEXT };
+    userId = data.user.id;
   } catch (err) {
     console.error("[auth] callback lanzó:", err instanceof Error ? err.message : err);
     return LINK_ERROR;
   }
+
+  const next = internalNext(params.get("next"));
+  const destination = next ?? (await homeFromProfile(supabase, userId));
+  // Pedir un reset no es darse de alta: una cuenta anterior a T-020 sin fila `welcome` no tiene
+  // que recibir "Bienvenida" por olvidarse la clave. Se decide sobre el `next` pedido.
+  return { kind: "session", destination, userId, sendWelcome: next !== RECOVERY_NEXT };
 }

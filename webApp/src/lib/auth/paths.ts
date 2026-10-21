@@ -4,8 +4,11 @@ export const RECOVER_PATH = "/entrar/recuperar";
 export const RECOVERY_NEXT = "/entrar/nueva-clave";
 export const LINK_ERROR_PATH = "/entrar?error=link";
 
-export function callbackUrl(origin: string, next: string): string {
-  return `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+// `null` deja el callback sin `next` para que elija por `profiles.role` (c.9); `**` en
+// `additional_redirect_urls` también acepta la URL sin query.
+export function callbackUrl(origin: string, next: string | null): string {
+  const base = `${origin}/auth/callback`;
+  return next === null ? base : `${base}?next=${encodeURIComponent(next)}`;
 }
 
 // c.9: destino tras login sin `next`. El rol tiene que venir de `profiles` (R-2), no del claim.
