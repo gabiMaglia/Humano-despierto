@@ -39,6 +39,9 @@ npm run dev      # dev server at localhost:3000
 npm run lint     # ESLint
 npx tsc --noEmit # typecheck
 npm run build    # production build (don't run unless asked)
+npm test         # Vitest, unit layer only (src/lib/**, Server Actions); no stack, no network
+npm run test:unit # same as npm test
+npm run test:e2e # Playwright; needs `npx supabase start` first (starts `next dev` itself, or reuses :3000)
 ```
 
 ### Database (Postgres/Supabase schema + security tests)
@@ -53,7 +56,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 
 | Area | State |
 |------|-------|
-| `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, 1 mock module left (`lib/mocks/landing.ts`, scheduled for removal in T-053), `tokens.css`. Real Supabase queries everywhere else. No test runner yet (T-039 in progress). |
+| `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, 1 mock module left (`lib/mocks/landing.ts`, scheduled for removal in T-053), `tokens.css`. Real Supabase queries everywhere else. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
 | `webApp/supabase` | **Schema live.** 25 migrations (last `0026`), 14 tables, RLS + per-column grants + guard triggers, 477 mutation tests (PGlite). Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
