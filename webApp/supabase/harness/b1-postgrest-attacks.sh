@@ -649,6 +649,33 @@ x "delete from public.campus_posts where author_id in ('$PREG','$CUR');"
 x "delete from public.enrollments where user_id in ('$PREG','$CUR') and course_id='$CURSO';"
 
 echo ""
+echo "── T-048 · la docente DUENA del curso no lee progreso ni certificados de sus alumnas por PostgREST"
+# Van por service_role tras assertOwnsCourse en el servidor; por HTTP la RLS devuelve 200 con [].
+# replica: los guards derivan `completed` y limitan el ritmo; aca solo hace falta que la fila exista.
+x "set session_replication_role = replica;
+   insert into public.lesson_progress (user_id,course_id,lesson_id,seconds_watched,completed,completed_at)
+   values ('$ALUMNA','$CURSO','$LEC',3138,true,now())
+   on conflict (user_id,lesson_id) do update set seconds_watched = 3138, completed = true;
+   insert into public.enrollments (user_id,course_id,status) values ('$ALUMNA','$CURSO','active')
+   on conflict (user_id,course_id) do update set status='active';
+   insert into public.certificates (user_id,course_id,student_name,course_title,teacher_name,completed_at)
+   select '$ALUMNA','$CURSO','x','x','x',now()
+   where not exists (select 1 from public.certificates where user_id='$ALUMNA' and course_id='$CURSO');"
+filas_ajenas() {  # $1 rotulo · $2 tabla · $3 filas reales sembradas
+  local n
+  n=$(curl -s "$API/rest/v1/$2?course_id=eq.$CURSO&select=user_id" -H "apikey: $ANON" -H "Authorization: Bearer $DOCENTE_JWT" |
+      python3 -c "import sys,json;print(len(json.load(sys.stdin)))" 2>/dev/null || echo "?")
+  if [ "$n" = "0" ] && [ "$3" -ge 1 ]; then printf '  ok    %-52s %s fila(s) visibles, %s existen\n' "$1" "$n" "$3"
+  else printf '  FALLA %-52s visibles=%s existentes=%s\n' "$1" "$n" "$3"; fallos=$((fallos+1)); fi
+}
+filas_ajenas "(t48a) docente duena lee lesson_progress ajeno" lesson_progress "$(q "select count(*) from public.lesson_progress where course_id='$CURSO' and user_id='$ALUMNA';")"
+filas_ajenas "(t48b) docente duena lee certificates ajenos"   certificates   "$(q "select count(*) from public.certificates where course_id='$CURSO' and user_id='$ALUMNA';")"
+x "set session_replication_role = replica;
+   delete from public.certificates where user_id='$ALUMNA' and course_id='$CURSO';
+   delete from public.lesson_progress where user_id='$ALUMNA' and course_id='$CURSO';
+   delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
+
+echo ""
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"
