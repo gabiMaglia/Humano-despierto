@@ -23,11 +23,6 @@ export interface SavedCourse {
   title: string;
 }
 
-export interface SavedCourseItem extends SavedCourse {
-  /** Si ya cursa este curso: a dónde seguir. `null` = todavía no está inscripta. */
-  enrolled: { continueLessonId: string | null } | null;
-}
-
 const ms = (iso: string) => new Date(iso).getTime();
 
 /** Con progreso primero (último acceso desc); sin progreso después, por alta desc. */
@@ -48,11 +43,10 @@ export function buildLearningTabs<C extends LearningCourse>(input: {
   const sorted = byLastAccess(input.courses);
   const enCurso = sorted.filter((c) => c.progressPercent < 100);
   const completados = sorted.filter((c) => c.progressPercent >= 100);
-  const byId = new Map(input.courses.map((c) => [c.courseId, c]));
-  const guardados: SavedCourseItem[] = input.saved.map((s) => {
-    const mine = byId.get(s.courseId);
-    return { ...s, enrolled: mine ? { continueLessonId: mine.continueLessonId } : null };
-  });
+  // Un curso se muestra en una sola pestaña: con inscripción vive en En curso/Completados y sale
+  // de Guardados (la fila de la wishlist puede quedar; solo la pestaña no la muestra).
+  const enrolledIds = new Set(input.courses.map((c) => c.courseId));
+  const guardados: SavedCourse[] = input.saved.filter((s) => !enrolledIds.has(s.courseId));
   return {
     enCurso,
     completados,

@@ -47,22 +47,21 @@ describe("buildLearningTabs", () => {
     expect(tabs.enCurso.map((c) => c.courseId)).toEqual(["b"]);
   });
 
-  it("c.4 · un guardado ya inscripto trae el link a continuar; el resto no", () => {
+  it("c.4 · un guardado con inscripción (en curso o completado) no aparece en Guardados", () => {
     const tabs = buildLearningTabs({
-      courses: [course({ courseId: "a" })],
-      saved: [saved("a"), saved("z")],
+      courses: [course({ courseId: "a" }), course({ courseId: "b", progressPercent: 100 })],
+      saved: [saved("a"), saved("b"), saved("z")],
       requestCount: 0,
     });
-    expect(tabs.guardados).toEqual([
-      { ...saved("a"), enrolled: { continueLessonId: "les-a" } },
-      { ...saved("z"), enrolled: null },
-    ]);
+    expect(tabs.guardados).toEqual([saved("z")]);
+    expect(tabs.enCurso.map((c) => c.courseId)).toEqual(["a"]);
+    expect(tabs.completados.map((c) => c.courseId)).toEqual(["b"]);
   });
 
   it("cuenta cada pestaña para el rótulo", () => {
     const tabs = buildLearningTabs({
       courses: [course({ courseId: "a" }), course({ courseId: "b", progressPercent: 100 })],
-      saved: [saved("q")],
+      saved: [saved("q"), saved("a")],
       requestCount: 3,
     });
     expect(tabs.counts).toEqual({ "en-curso": 1, completados: 1, guardados: 1, solicitados: 3 });
