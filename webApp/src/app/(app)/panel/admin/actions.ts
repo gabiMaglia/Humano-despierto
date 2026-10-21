@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { notifyEnrollmentActivated, notifyEnrollmentRejected } from "@/lib/server/mail/notify";
+import { hasLocator } from "@/lib/validation/locator.mjs";
+import { ENROLLMENT_COPY, NO_ROWS, REASON_MAX, translateEnrollmentError } from "@/lib/enrollment/messages";
 import { getCurrentUser } from "@/lib/server/auth";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
-import { notifyEnrollmentActivated } from "@/lib/server/mail/notify";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import type { AppRole } from "@/lib/stores/useAuthStore";
 
@@ -110,7 +113,17 @@ export async function setEnrollmentAction(
   const { error } = await db
     .from("enrollments")
     .upsert(
-      { user_id: userId, course_id: courseId, status, granted_by: admin.id },
+      // `decided_reason: null`: el upsert a `active` sobre una fila `rejected` con motivo violaría
+      // `enrollments_decided_reason_consistency` (0029). Activar o dar de baja acá es una decisión
+      // sin motivo escrito.
+      {
+        user_id: userId,
+        course_id: courseId,
+        status,
+        granted_by: admin.id,
+        decided_at: new Date().toISOString(),
+        decided_reason: null,
+      },
       { onConflict: "user_id,course_id" }
     );
 
@@ -168,4 +181,83 @@ export async function setCourseStatusAction(
   revalidatePath("/panel/admin");
   revalidatePath("/cursos");
   return { error: null, success: "Estado del curso actualizado." };
+}
+
+const enrollmentIdSchema = z.uuid();
+
+const reasonSchema = z
+  .string()
+  .trim()
+  .max(REASON_MAX, ENROLLMENT_COPY.reasonTooLong)
+  .refine((v) => !hasLocator(v), ENROLLMENT_COPY.reasonHasLink);
+
+/**
+ * T-043 · aprobar. El estado de ORIGEN va en el WHERE: si otra admin ya resolvió la fila, el
+ * UPDATE no la encuentra, no hay mail desde acá y se avisa (c.6). `rejected` también es origen
+ * válido: el admin puede reconsiderar un rechazo (c.9). El mail lo deduplica igual `mail_log`.
+ */
+export async function approveEnrollmentRequestAction(
+  _prevState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+
+  const id = enrollmentIdSchema.safeParse(formData.get("enrollmentId"));
+  if (!id.success) return { error: ENROLLMENT_COPY.invalidData, success: null };
+
+  const db = getAdminSupabaseClient();
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("enrollments")
+    .update({ status: "active", granted_by: admin.id, enrolled_at: now, decided_at: now, decided_reason: null })
+    .eq("id", id.data)
+    .in("status", ["requested", "rejected"])
+    .select("user_id, course_id");
+
+  if (error) return { error: translateEnrollmentError(error), success: null };
+  const row = data?.[0];
+  if (!row) return { error: translateEnrollmentError({ code: NO_ROWS, message: "" }), success: null };
+
+  // Después de guardar y sin try/catch: `notify*` atrapa todo (T-020), un SMTP caído no deshace
+  // la aprobación ni cambia esta respuesta (c.11).
+  await notifyEnrollmentActivated({ studentId: row.user_id, courseId: row.course_id });
+
+  revalidatePath("/panel/admin");
+  revalidatePath("/cursos/[slug]", "page");
+  return { error: null, success: ENROLLMENT_COPY.approved };
+}
+
+/** T-043 · rechazar, con motivo opcional que lee la alumna (R-3 en las dos mitades). */
+export async function rejectEnrollmentRequestAction(
+  _prevState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdmin();
+
+  const id = enrollmentIdSchema.safeParse(formData.get("enrollmentId"));
+  if (!id.success) return { error: ENROLLMENT_COPY.invalidData, success: null };
+
+  const reason = reasonSchema.safeParse(String(formData.get("reason") ?? ""));
+  if (!reason.success) {
+    return { error: reason.error.issues[0]?.message ?? ENROLLMENT_COPY.invalidData, success: null };
+  }
+  const decidedReason = reason.data === "" ? null : reason.data;
+
+  const db = getAdminSupabaseClient();
+  const { data, error } = await db
+    .from("enrollments")
+    .update({ status: "rejected", decided_at: new Date().toISOString(), decided_reason: decidedReason })
+    .eq("id", id.data)
+    .eq("status", "requested")
+    .select("user_id, course_id");
+
+  if (error) return { error: translateEnrollmentError(error), success: null };
+  const row = data?.[0];
+  if (!row) return { error: translateEnrollmentError({ code: NO_ROWS, message: "" }), success: null };
+
+  await notifyEnrollmentRejected({ studentId: row.user_id, courseId: row.course_id, reason: decidedReason });
+
+  revalidatePath("/panel/admin");
+  revalidatePath("/cursos/[slug]", "page");
+  return { error: null, success: ENROLLMENT_COPY.rejected };
 }
