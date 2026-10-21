@@ -19,6 +19,10 @@ interface YouTubePlayerStateChangeEvent extends YouTubePlayerEvent {
   data: number;
 }
 
+interface YouTubePlaybackRateChangeEvent extends YouTubePlayerEvent {
+  data: number;
+}
+
 interface YouTubePlayer {
   playVideo(): void;
   pauseVideo(): void;
@@ -27,6 +31,12 @@ interface YouTubePlayer {
   getDuration(): number;
   getPlayerState(): number;
   getIframe(): HTMLIFrameElement;
+  // Fuente: https://developers.google.com/youtube/iframe_api_reference (setPlaybackRate es una
+  // sugerencia: el valor real llega por onPlaybackRateChange; las opciones válidas, por
+  // getAvailablePlaybackRates, que siempre incluye 1).
+  setPlaybackRate(rate: number): void;
+  getPlaybackRate(): number;
+  getAvailablePlaybackRates(): number[];
   destroy(): void;
 }
 
@@ -38,6 +48,7 @@ interface YouTubePlayerOptions {
   events?: {
     onReady?: (event: YouTubePlayerEvent) => void;
     onStateChange?: (event: YouTubePlayerStateChangeEvent) => void;
+    onPlaybackRateChange?: (event: YouTubePlaybackRateChangeEvent) => void;
   };
 }
 
@@ -88,6 +99,12 @@ export interface UseYouTubePlayerResult {
   duration: number;
   isPlaying: boolean;
   seekTo: (seconds: number) => void;
+  /** Velocidad REAL, tomada de onPlaybackRateChange; nunca el valor pedido. */
+  playbackRate: number;
+  availableRates: number[];
+  setPlaybackRate: (rate: number) => void;
+  /** El video llegó a PlayerState.ENDED y no se reanudó. */
+  ended: boolean;
 }
 
 /**
@@ -102,7 +119,9 @@ export function useYouTubePlayer(
   initialStartSeconds: number,
   initialDurationSeconds: number,
   onProgressTick: (seconds: number, isPlaying: boolean) => void,
-  iframeTitle: string
+  iframeTitle: string,
+  // Se lee en onReady: cue/load resetean la tasa a 1, así que la guardada se reaplica ahí.
+  getPreferredRate: () => number | null = () => null
 ): UseYouTubePlayerResult {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const onProgressTickRef = useRef(onProgressTick);
@@ -114,6 +133,13 @@ export function useYouTubePlayer(
   const [currentTime, setCurrentTime] = useState(initialStartSeconds);
   const [duration, setDuration] = useState(initialDurationSeconds);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const [playbackRate, setPlaybackRateState] = useState(1);
+  const [availableRates, setAvailableRates] = useState<number[]>([1]);
+  const getPreferredRateRef = useRef(getPreferredRate);
+  useEffect(() => {
+    getPreferredRateRef.current = getPreferredRate;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -141,11 +167,21 @@ export function useYouTubePlayer(
             event.target.getIframe().setAttribute("title", iframeTitle);
             const d = event.target.getDuration();
             if (d > 0) setDuration(d);
+            const rates = event.target.getAvailablePlaybackRates();
+            setAvailableRates(rates.length > 0 ? rates : [1]);
+            setPlaybackRateState(event.target.getPlaybackRate());
+            const preferred = getPreferredRateRef.current();
+            if (preferred !== null && rates.includes(preferred)) event.target.setPlaybackRate(preferred);
+          },
+          onPlaybackRateChange: (event) => {
+            if (cancelled) return;
+            setPlaybackRateState(event.data);
           },
           onStateChange: (event) => {
             if (cancelled) return;
             const playing = event.data === YT.PlayerState.PLAYING;
             setIsPlaying(playing);
+            setEnded(event.data === YT.PlayerState.ENDED);
             if (!playing) {
               const t = event.target.getCurrentTime();
               setCurrentTime(t);
@@ -182,5 +218,9 @@ export function useYouTubePlayer(
     playerRef.current?.playVideo();
   }, []);
 
-  return { ready, currentTime, duration, isPlaying, seekTo };
+  const setPlaybackRate = useCallback((rate: number) => {
+    playerRef.current?.setPlaybackRate(rate);
+  }, []);
+
+  return { ready, currentTime, duration, isPlaying, seekTo, playbackRate, availableRates, setPlaybackRate, ended };
 }

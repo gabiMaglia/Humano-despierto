@@ -1,144 +1,102 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { formatDurationSeconds } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
+import { readRate, writeRate } from "@/lib/player/prefs";
 import { useYouTubePlayer } from "@/components/player/useYouTubePlayer";
-import { saveLessonProgress, saveLessonNote } from "@/app/leccion/[id]/actions";
-import type { LessonPlayerData, PlayerLessonState, PlayerNote } from "@/lib/server/lesson-player";
+import { useLessonProgress } from "@/components/player/useLessonProgress";
+import { useLessonNotes } from "@/components/player/useLessonNotes";
+import { useAutoplayPref } from "@/components/player/useAutoplayPref";
+import { formatClock } from "@/components/player/formatClock";
+import PlayerTabs from "@/components/player/PlayerTabs";
+import CurriculumTab from "@/components/player/CurriculumTab";
+import NotesTab from "@/components/player/NotesTab";
+import ResourcesTab from "@/components/player/ResourcesTab";
+import EndCard from "@/components/player/EndCard";
+import { resolveClosingHref } from "@/app/leccion/[id]/actions";
+import type { LessonPlayerData } from "@/lib/server/lesson-player";
 
-const STATE_ICON: Record<PlayerLessonState, string> = {
-  done: "✓",
-  current: "▶",
-  pending: "○",
-  preview: "✦",
-  locked: "⌗",
-};
-
-const STATE_ICON_CLASS: Record<PlayerLessonState, string> = {
-  done: "text-lila-300",
-  current: "text-gold-400",
-  pending: "text-ink-faint",
-  preview: "text-gold-400",
-  locked: "text-ink-faint",
-};
-
-// Throttle de persistencia de progreso (T-006 c.5): el player tickea cada 1s, pero sólo se
-// escribe a `lesson_progress` como máximo cada THROTTLE_MS — salvo al pausar/terminar/ocultar
-// la pestaña, donde se fuerza el flush para no perder el último tramo visto.
-const THROTTLE_MS = 5000;
-
-// Una sola fuente para el orden de las pestañas: el `.map` que las dibuja y las flechas que
-// navegan entre ellas tienen que recorrer lo mismo o divergen.
-const TABS = ["modulos", "notas", "recursos"] as const;
-type TabId = (typeof TABS)[number];
-
-function formatClock(seconds: number): string {
-  const total = Math.max(0, Math.round(seconds));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
+const AUTOPLAY_SECONDS = 5;
 
 interface Props {
   data: LessonPlayerData;
+  /** `?t=` ya validado por la página; gana sobre el progreso guardado. */
+  startSeconds?: number | null;
 }
 
-export default function LessonPlayer({ data }: Props) {
-  const [tab, setTab] = useState<TabId>("notas");
-  const [completed, setCompleted] = useState(data.completed);
-  const [notes, setNotes] = useState<PlayerNote[]>(data.notes);
-  const [noteDraft, setNoteDraft] = useState("");
-  const [savingNote, setSavingNote] = useState(false);
-  const [noteError, setNoteError] = useState<string | null>(null);
-
+export default function LessonPlayer({ data, startSeconds = null }: Props) {
+  const router = useRouter();
   const containerId = `yt-player-${data.lessonId}`;
 
-  // Patron ARIA de tablist: el grupo es UNA sola parada de Tab y adentro se navega con flechas.
-  function handleTabKeys(e: React.KeyboardEvent) {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    e.preventDefault();
-    const i = TABS.indexOf(tab);
-    const next = e.key === "ArrowRight" ? TABS[(i + 1) % TABS.length] : TABS[(i - 1 + TABS.length) % TABS.length];
-    setTab(next);
-    document.getElementById(`tab-${next}`)?.focus();
+  const progress = useLessonProgress({
+    lessonId: data.lessonId,
+    isAuthenticated: data.isAuthenticated,
+    initialSecondsWatched: data.initialSecondsWatched,
+    initialCompleted: data.completed,
+  });
+  const { completed } = progress;
+
+  const notesApi = useLessonNotes(data.lessonId, data.notes);
+  const [autoplay, setAutoplay] = useAutoplayPref();
+
+  const { ready, currentTime, duration, seekTo, playbackRate, availableRates, setPlaybackRate, ended } =
+    useYouTubePlayer(
+      containerId,
+      data.videoId,
+      startSeconds ?? (completed ? 0 : data.initialSecondsWatched),
+      data.durationSeconds,
+      progress.onTick,
+      data.title,
+      readRate
+    );
+
+  const next = data.nextLesson;
+  const nextHref = next ? `/leccion/${next.id}` : null;
+
+  async function goTo(href: string) {
+    await progress.settle();
+    router.push(href);
   }
 
-  // Estado de progreso vive en refs: se lee/actualiza desde el tick del player (cada 1s) sin
-  // recrear el callback ni disparar renders extra — sólo `completed` importa para la UI.
-  const completedRef = useRef(completed);
+  // Al terminar: primero se espera el flush del último tramo (el que cruza el 90 %), recién
+  // después se decide el destino. Navegar antes pierde ese tramo y el certificado no aparece.
+  const [closing, setClosing] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   useEffect(() => {
-    completedRef.current = completed;
-  }, [completed]);
-  const maxSecondsRef = useRef(data.initialSecondsWatched);
-  const lastSavedRef = useRef(data.initialSecondsWatched);
-  const lastSaveAtRef = useRef(0);
-  const savingRef = useRef(false);
-
-  const flushProgress = useCallback(
-    async (force: boolean) => {
-      // T-006 (rechazo 1): un anónimo puede estar acá viendo una lección `is_preview`
-      // (ADR-003). `lesson_progress` exige sesión — sin esto, cada tick intenta persistir y
-      // falla contra el server action, en vez de simplemente no aplicar (no hay progreso propio
-      // que guardar sin usuario).
-      if (!data.isAuthenticated) return;
-      if (completedRef.current) return;
-      const seconds = Math.floor(maxSecondsRef.current);
-      if (seconds <= lastSavedRef.current) return;
-      const now = Date.now();
-      if (!force && now - lastSaveAtRef.current < THROTTLE_MS) return;
-      if (savingRef.current) return;
-
-      savingRef.current = true;
-      lastSaveAtRef.current = now;
-      try {
-        const result = await saveLessonProgress(data.lessonId, seconds);
-        lastSavedRef.current = result.secondsWatched;
-        if (result.completed && !completedRef.current) {
-          completedRef.current = true;
-          setCompleted(true);
-        }
-      } catch (error) {
-        console.error("No se pudo guardar el progreso de la lección:", error);
-      } finally {
-        savingRef.current = false;
+    if (!ended) return;
+    let live = true;
+    (async () => {
+      await progress.settle();
+      if (!live) return;
+      if (nextHref) {
+        if (autoplay) setCountdown(AUTOPLAY_SECONDS);
+      } else {
+        const href = data.isAuthenticated ? await resolveClosingHref(data.courseId) : "/panel";
+        if (live) setClosing(href);
       }
-    },
-    [data.lessonId, data.isAuthenticated]
-  );
-
-  const handleProgressTick = useCallback(
-    (seconds: number, isPlaying: boolean) => {
-      if (seconds > maxSecondsRef.current) maxSecondsRef.current = seconds;
-      void flushProgress(!isPlaying);
-    },
-    [flushProgress]
-  );
-
-  const { ready, currentTime, duration, seekTo } = useYouTubePlayer(
-    containerId,
-    data.videoId,
-    completed ? 0 : data.initialSecondsWatched,
-    data.durationSeconds,
-    handleProgressTick,
-    data.title
-  );
-
-  // Flush al ocultar la pestaña / desmontar — el intervalo de 1s no corre confiablemente en
-  // background y el cierre de pestaña no espera al próximo tick.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === "hidden") void flushProgress(true);
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
+    })();
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      void flushProgress(true);
+      live = false;
+      setCountdown(null);
+      setClosing(null);
     };
-  }, [flushProgress]);
+    // Sólo reacciona al fin del video; autoplay se lee al momento de terminar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ended]);
+
+  useEffect(() => {
+    if (countdown === null || !nextHref) return;
+    if (countdown === 0) {
+      void goTo(nextHref);
+      return;
+    }
+    const id = window.setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown, nextHref]);
 
   const effectiveDuration = duration > 0 ? duration : data.durationSeconds;
   const progressFraction = effectiveDuration > 0 ? Math.min(1, currentTime / effectiveDuration) : 0;
@@ -155,21 +113,9 @@ export default function LessonPlayer({ data }: Props) {
     return active;
   }, [sortedChapters, currentTime]);
 
-  async function handleSaveNote() {
-    const body = noteDraft.trim();
-    if (!body) return;
-    setSavingNote(true);
-    setNoteError(null);
-    try {
-      const note = await saveLessonNote(data.lessonId, currentTime, body);
-      setNotes((prev) => [...prev, note].sort((a, b) => a.atSeconds - b.atSeconds));
-      setNoteDraft("");
-    } catch (error) {
-      setNoteError(error instanceof Error ? error.message : "No se pudo guardar la nota.");
-    } finally {
-      setSavingNote(false);
-    }
-  }
+  const rates = availableRates.includes(playbackRate)
+    ? availableRates
+    : [...availableRates, playbackRate].sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col min-h-screen bg-cosmos-0 text-ink">
@@ -194,7 +140,7 @@ export default function LessonPlayer({ data }: Props) {
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row">
         {/* MAIN */}
         <main className="flex-1 flex flex-col min-w-0 overflow-auto">
           {/* Video stage — embed real de la IFrame Player API (T-006 c.1) */}
@@ -207,6 +153,15 @@ export default function LessonPlayer({ data }: Props) {
                 </span>
               </div>
             )}
+            {ended && (
+              <EndCard
+                next={next}
+                closingHref={closing}
+                countdown={countdown}
+                onCancel={() => setCountdown(null)}
+                onGo={goTo}
+              />
+            )}
           </div>
 
           <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-4">
@@ -217,12 +172,12 @@ export default function LessonPlayer({ data }: Props) {
           </div>
 
           {/* Controls */}
-          <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-3 flex items-center gap-4">
+          <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="font-display text-sm text-ink whitespace-nowrap">
               {formatClock(currentTime)} <span className="text-ink-faint">/ {formatClock(effectiveDuration)}</span>
             </span>
             {/* Scrubber */}
-            <div className="relative flex-1 h-1.5 rounded-full bg-lila-300/18">
+            <div className="relative flex-1 min-w-24 h-1.5 rounded-full bg-lila-300/18">
               <div
                 className="absolute left-0 top-0 h-full rounded-full bg-gold-400"
                 style={{ width: `${progressFraction * 100}%` }}
@@ -244,7 +199,41 @@ export default function LessonPlayer({ data }: Props) {
                   />
                 ))}
             </div>
-            <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">1.0×</span>
+            {/* Se muestra la velocidad REAL (onPlaybackRateChange), no la pedida. */}
+            <select
+              aria-label="Velocidad de reproducción"
+              value={playbackRate}
+              onChange={(e) => {
+                const rate = Number(e.target.value);
+                setPlaybackRate(rate);
+                writeRate(rate);
+              }}
+              className="bg-cosmos-surface border border-lila-300/20 rounded px-1 py-0.5 font-display text-eyebrow tracking-cosmic text-ink-faint"
+            >
+              {rates.map((r) => (
+                <option key={r} value={r}>
+                  {r}×
+                </option>
+              ))}
+            </select>
+            {nextHref && (
+              <label className="flex items-center gap-1.5 font-display text-eyebrow tracking-cosmic text-ink-faint">
+                <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
+                Autoplay
+              </label>
+            )}
+            {nextHref && (
+              <a
+                href={nextHref}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void goTo(nextHref);
+                }}
+                className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap"
+              >
+                Siguiente lección →
+              </a>
+            )}
           </div>
 
           {/* Chapters */}
@@ -285,175 +274,24 @@ export default function LessonPlayer({ data }: Props) {
           </div>
         </main>
 
-        {/* SIDE tabs */}
-        <aside className="w-72 flex-none border-l border-lila-300/18 flex-col hidden md:flex">
-          <div
-            role="tablist"
-            aria-label="Contenido de la lección"
-            onKeyDown={handleTabKeys}
-            className="flex border-b border-lila-300/18"
-          >
-            {TABS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                id={`tab-${t}`}
-                aria-selected={tab === t}
-                aria-controls={`panel-${t}`}
-                tabIndex={tab === t ? 0 : -1}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "flex-1 py-3 font-display text-eyebrow tracking-cosmic capitalize transition-colors",
-                  tab === t ? "text-lila-300 border-b-2 border-lila-300" : "text-ink-faint hover:text-ink-soft"
-                )}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {/* Un solo panel: solo se renderiza la pestaña activa, asi que el id y el
-              aria-labelledby siguen a `tab` en vez de haber tres contenedores. */}
-          <div
-            id={`panel-${tab}`}
-            role="tabpanel"
-            aria-labelledby={`tab-${tab}`}
-            tabIndex={0}
-            className="flex-1 overflow-auto p-4"
-          >
-            {tab === "modulos" && (
-              <div className="space-y-2">
-                {data.modules.map((m) => (
-                  <div
-                    key={m.position}
-                    className={cn(
-                      "rounded-ritual border p-3",
-                      m.lessons.some((l) => l.state === "current")
-                        ? "border-lila-300/40 bg-lila-300/[0.05]"
-                        : "border-lila-300/18"
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <span className="font-display text-sm text-lila-300 w-5">{toRoman(m.position)}</span>
-                      <span className="flex-1 font-display text-[11px] tracking-wide text-ink">{m.title}</span>
-                    </div>
-                    {m.lessons.length > 0 && (
-                      <div className="ml-7 mt-2 space-y-1">
-                        {m.lessons.map((l) => (
-                          <a
-                            key={l.id}
-                            href={l.state === "locked" ? undefined : `/leccion/${l.id}`}
-                            aria-disabled={l.state === "locked"}
-                            className={cn(
-                              "flex items-center gap-2 py-1.5 rounded px-2",
-                              l.state === "current" && "bg-gold-400/10 border border-gold-400/20",
-                              l.state === "locked" && "pointer-events-none opacity-60"
-                            )}
-                          >
-                            <span className={cn("font-display text-[9px]", STATE_ICON_CLASS[l.state])}>
-                              {STATE_ICON[l.state]}
-                            </span>
-                            <span className="font-display text-[9px] text-ink-faint w-4">{l.position}</span>
-                            <span
-                              className={cn(
-                                "flex-1 font-body text-[11px] truncate",
-                                l.state === "current" ? "text-gold-400" : "text-ink-soft"
-                              )}
-                            >
-                              {l.title}
-                            </span>
-                            <span className="font-display text-[9px] text-ink-faint">
-                              {formatDurationSeconds(l.durationSeconds)}
-                            </span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {tab === "notas" && !data.isAuthenticated && (
-              <p className="font-body text-xs italic text-ink-faint">
-                Iniciá sesión para tomar notas en esta lección.
-              </p>
-            )}
-
-            {tab === "notas" && data.isAuthenticated && (
-              <div>
-                <div className="mb-4 rounded-ritual border border-lila-300/20 bg-cosmos-surface p-3">
-                  <textarea
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    placeholder="Anotá un momento, un símbolo, una sospecha..."
-                    rows={3}
-                    className="w-full bg-transparent font-body text-sm text-ink placeholder:text-ink-faint outline-none resize-none"
-                  />
-                  <div className="flex items-center justify-between border-t border-lila-300/10 pt-2 mt-2">
-                    <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
-                      ⌘ {formatClock(currentTime)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSaveNote}
-                      disabled={savingNote || !noteDraft.trim()}
-                      className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors disabled:opacity-40 disabled:hover:text-lila-300"
-                    >
-                      {savingNote ? "Guardando…" : "Guardar"}
-                    </button>
-                  </div>
-                  {noteError && <p className="mt-2 font-body text-xs text-red-400">{noteError}</p>}
-                </div>
-                <div className="space-y-3">
-                  {notes.map((n) => (
-                    <div key={n.id} className="border-l-2 border-lila-300/30 pl-3">
-                      <span className="block font-display text-eyebrow tracking-cosmic text-gold-400 mb-1">
-                        {formatClock(n.atSeconds)}
-                      </span>
-                      <p className="font-body text-xs text-ink-soft leading-relaxed">{n.body}</p>
-                    </div>
-                  ))}
-                  {notes.length === 0 && (
-                    <p className="font-body text-xs italic text-ink-faint">Todavía no tenés notas en esta lección.</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {tab === "recursos" && (
-              <div className="space-y-3">
-                {data.resources.map((r) => (
-                  // Link comun y no boton: funciona sin JS y con "guardar como". Sin `download`,
-                  // que no aplica a un redirect cross-origin.
-                  <a
-                    key={r.id}
-                    href={r.href}
-                    aria-label={`Descargar ${r.name}`}
-                    className="flex items-start gap-3 cosmos-card p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
-                  >
-                    <span className="flex-none font-display text-eyebrow tracking-cosmic text-gold-400 border border-gold-400/40 rounded px-1.5 py-0.5 uppercase">
-                      {r.type}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-xs text-ink leading-snug">{r.name}</p>
-                      {r.sizeLabel && (
-                        <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{r.sizeLabel}</p>
-                      )}
-                    </div>
-                    <span aria-hidden="true" className="flex-none font-display text-gold-400">
-                      ↓
-                    </span>
-                  </a>
-                ))}
-                {data.resources.length === 0 && (
-                  <p className="font-body text-xs italic text-ink-faint">Esta lección no tiene recursos.</p>
-                )}
-              </div>
-            )}
-          </div>
-        </aside>
+        {/* T-030 suma "Preguntas" agregando un elemento a `tabs`. */}
+        <PlayerTabs
+          label="Contenido de la lección"
+          initialTabId="notas"
+          tabs={[
+            {
+              id: "modulos",
+              label: "Currículum",
+              panel: <CurriculumTab modules={data.modules} currentCompleted={completed} />,
+            },
+            {
+              id: "notas",
+              label: "Notas",
+              panel: <NotesTab isAuthenticated={data.isAuthenticated} currentTime={currentTime} api={notesApi} />,
+            },
+            { id: "recursos", label: "Recursos", panel: <ResourcesTab resources={data.resources} /> },
+          ]}
+        />
       </div>
     </div>
   );
