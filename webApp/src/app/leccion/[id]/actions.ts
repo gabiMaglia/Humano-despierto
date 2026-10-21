@@ -4,6 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 import { ensureCertificate } from "@/lib/server/certificates";
 import { closingHref } from "@/lib/player/navigation";
 import { notifyCourseCompleted } from "@/lib/server/mail/notify";
+import { revalidatePath } from "next/cache";
+import { answerSchema, idSchema, moderationSchema, questionSchema } from "@/lib/lesson-qa/validation";
+import type { QaActionState } from "@/lib/lesson-qa/action-state";
+// La escritura vive en un .mjs para que la suite de la base la ejecute tal cual (T-030).
+import {
+  destacar,
+  marcarResuelta,
+  moderar,
+  preguntar,
+  quitarVoto,
+  responder,
+  traducirErrorQa,
+  votar,
+} from "@/lib/lesson-qa/write.mjs";
 
 /**
  * Destino del cierre de la última lección. Se resuelve al terminar el video y no al renderizar:
@@ -271,4 +285,130 @@ export async function deleteLessonNote(noteId: string): Promise<void> {
     .select("id");
   if (error) throw new Error(`No se pudo borrar la nota: ${error.message}`);
   if (!data?.length) throw new Error(NOTE_NOT_FOUND);
+}
+
+// ---------------------------------------------------------------------------------- T-030 · Q&A
+// Finos a propósito (patrón de circulo/actions.ts): validan forma, escriben con el cliente de
+// sesión y traducen el SQLSTATE. Quién puede qué lo deciden RLS y los guards de la migración.
+
+const GENERIC_QA_ERROR = "No se pudo completar. Probá de nuevo.";
+
+function qaFail(error: string): QaActionState {
+  return { error, success: null };
+}
+
+async function qaSession() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return { supabase, uid: data.user?.id ?? null };
+}
+
+function ids(...values: unknown[]): boolean {
+  return values.every((v) => idSchema.safeParse(v).success);
+}
+
+function done(lessonId: string, success: string): QaActionState {
+  revalidatePath(`/leccion/${lessonId}`);
+  return { error: null, success };
+}
+
+function translated(error: { code?: string | null; message: string }, duplicado: string): QaActionState {
+  console.error("[qa] escritura rechazada:", error.code, error.message);
+  return qaFail(traducirErrorQa(error, { duplicado, fallback: GENERIC_QA_ERROR }));
+}
+
+export async function askQuestion(lessonId: string, _prev: QaActionState, formData: FormData): Promise<QaActionState> {
+  if (!ids(lessonId)) return qaFail("La lección no es válida.");
+  const parsed = questionSchema.safeParse({
+    title: String(formData.get("title") ?? ""),
+    body: String(formData.get("body") ?? ""),
+  });
+  if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Revisá la pregunta.");
+
+  const { supabase, uid } = await qaSession();
+  if (!uid) return qaFail("Necesitás iniciar sesión.");
+  const { error } = await preguntar(supabase, { lessonId, authorId: uid, ...parsed.data });
+  if (error) return translated(error, "Esa pregunta ya existe.");
+  return done(lessonId, "Pregunta publicada.");
+}
+
+export async function answerQuestion(
+  lessonId: string,
+  questionId: string,
+  _prev: QaActionState,
+  formData: FormData,
+): Promise<QaActionState> {
+  if (!ids(lessonId, questionId)) return qaFail("La pregunta no es válida.");
+  const parsed = answerSchema.safeParse({ body: String(formData.get("body") ?? "") });
+  if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Revisá la respuesta.");
+
+  const { supabase, uid } = await qaSession();
+  if (!uid) return qaFail("Necesitás iniciar sesión.");
+  const { error } = await responder(supabase, { questionId, authorId: uid, body: parsed.data.body });
+  if (error) return translated(error, "Esa respuesta ya existe.");
+  return done(lessonId, "Respuesta publicada.");
+}
+
+export async function voteQuestion(lessonId: string, questionId: string, vote: boolean): Promise<QaActionState> {
+  if (!ids(lessonId, questionId) || typeof vote !== "boolean") return qaFail("La pregunta no es válida.");
+  const { supabase, uid } = await qaSession();
+  if (!uid) return qaFail("Necesitás iniciar sesión.");
+  const { error } = vote
+    ? await votar(supabase, { questionId, userId: uid })
+    : await quitarVoto(supabase, { questionId, userId: uid });
+  if (error) return translated(error, "Ya votaste esta pregunta.");
+  return done(lessonId, vote ? "Voto sumado." : "Voto quitado.");
+}
+
+export async function resolveQuestion(lessonId: string, questionId: string, resolved: boolean): Promise<QaActionState> {
+  if (!ids(lessonId, questionId) || typeof resolved !== "boolean") return qaFail("La pregunta no es válida.");
+  const { supabase, uid } = await qaSession();
+  if (!uid) return qaFail("Necesitás iniciar sesión.");
+  const { error } = await marcarResuelta(supabase, { questionId, resolved });
+  if (error) return translated(error, GENERIC_QA_ERROR);
+  return done(lessonId, resolved ? "Marcada como resuelta." : "Pregunta reabierta.");
+}
+
+export async function featureAnswer(lessonId: string, answerId: string, featured: boolean): Promise<QaActionState> {
+  if (!ids(lessonId, answerId) || typeof featured !== "boolean") return qaFail("La respuesta no es válida.");
+  const { supabase, uid } = await qaSession();
+  if (!uid) return qaFail("Necesitás iniciar sesión.");
+  const { error } = await destacar(supabase, { answerId, featured });
+  if (error) return translated(error, "Esta pregunta ya tiene una respuesta destacada. Quitala primero.");
+  return done(lessonId, featured ? "Respuesta destacada." : "Destacado quitado.");
+}
+
+async function moderate(
+  tabla: "lesson_questions" | "lesson_answers",
+  lessonId: string,
+  id: string,
+  formData: FormData,
+): Promise<QaActionState> {
+  if (!ids(lessonId, id)) return qaFail("El mensaje no es válido.");
+  const parsed = moderationSchema.safeParse({ reason: String(formData.get("reason") ?? "") });
+  if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Borrar exige un motivo.");
+
+  const { supabase, uid } = await qaSession();
+  if (!uid) return qaFail("Necesitás iniciar sesión.");
+  const { error } = await moderar(supabase, { tabla, id, moderatorId: uid, reason: parsed.data.reason });
+  if (error) return translated(error, GENERIC_QA_ERROR);
+  return done(lessonId, "Mensaje borrado.");
+}
+
+export async function moderateQuestion(
+  lessonId: string,
+  questionId: string,
+  _prev: QaActionState,
+  formData: FormData,
+): Promise<QaActionState> {
+  return moderate("lesson_questions", lessonId, questionId, formData);
+}
+
+export async function moderateAnswer(
+  lessonId: string,
+  answerId: string,
+  _prev: QaActionState,
+  formData: FormData,
+): Promise<QaActionState> {
+  return moderate("lesson_answers", lessonId, answerId, formData);
 }

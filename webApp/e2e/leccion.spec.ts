@@ -1,26 +1,5 @@
-import { expect, test, type Browser } from "@playwright/test";
-import { ALUMNA, DELFINA, lessonHrefs, login } from "./fixtures";
-
-// Una leccion preview es publica, asi que probar con ella el negativo pasaria por la razon
-// equivocada. Las no-preview son las que la inscripta ve y un anonimo no: diferencia de conjuntos.
-async function nonPreviewLessonHref(browser: Browser): Promise<string> {
-  const anon = await browser.newPage();
-  const publicHrefs = new Set(await lessonHrefs(anon, ALUMNA.enrolledSlug));
-  await anon.close();
-
-  const enrolled = await browser.newPage();
-  await login(enrolled, ALUMNA);
-  const enrolledHrefs = await lessonHrefs(enrolled, ALUMNA.enrolledSlug);
-  await enrolled.close();
-
-  const href = enrolledHrefs.find((h) => !publicHrefs.has(h));
-  if (!href) {
-    throw new Error(
-      `En ${ALUMNA.enrolledSlug} la inscripta no ve ninguna leccion que no sea preview (${enrolledHrefs.length} links): revisa el seed.`,
-    );
-  }
-  return href;
-}
+import { expect, test } from "@playwright/test";
+import { ALUMNA, DELFINA, login, nonPreviewLessonHref } from "./fixtures";
 
 test("inscripta: una leccion no-preview muestra el iframe de YouTube", async ({ browser, page }) => {
   const href = await nonPreviewLessonHref(browser);

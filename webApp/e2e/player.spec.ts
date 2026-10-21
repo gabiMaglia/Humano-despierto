@@ -84,8 +84,9 @@ test.describe("móvil 390x844 (c.5)", () => {
     await expect(page.getByRole("tablist")).toHaveCount(1);
 
     const tabs = page.getByRole("tab");
-    await expect(tabs).toHaveCount(3);
-    for (let i = 0; i < 3; i++) await expect(tabs.nth(i)).toBeVisible();
+    // T-030 suma "Preguntas": cuatro pestañas, todas visibles en móvil.
+    await expect(tabs).toHaveCount(4);
+    for (let i = 0; i < 4; i++) await expect(tabs.nth(i)).toBeVisible();
 
     const video = await page.locator("iframe").boundingBox();
     const list = await page.getByRole("tablist").boundingBox();

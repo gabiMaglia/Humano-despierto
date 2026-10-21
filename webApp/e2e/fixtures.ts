@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
 export interface SeedUser {
   email: string;
@@ -98,4 +98,41 @@ export async function expectDenied(res: import("@playwright/test").APIResponse):
   expect(await res.text()).toBe("");
   expect(res.headers()["cache-control"]).toBe("private, no-store");
   expect(res.headers()["location"]).toBeUndefined();
+}
+
+// ---------------------------------------------------------------- T-030 · Q&A por leccion
+// Duena de tarot-iniciatico en el seed (seed.sql, bloque de docentes).
+export const SOL: Pick<SeedUser, "email" | "password"> = {
+  email: "sol.mayor@seed.humano.local",
+  password: "seed-teacher-1234",
+};
+
+// `login` afirma /panel; desde T-040 una docente aterriza en /panel/docente. Mismo flujo, otro destino.
+export async function loginAs(page: Page, user: Pick<SeedUser, "email" | "password">, landing: RegExp): Promise<void> {
+  await page.goto("/entrar", { waitUntil: "networkidle" });
+  await page.locator('input[type="email"]').fill(user.email);
+  await page.locator('input[type="password"]').fill(user.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(landing);
+}
+
+// Una leccion preview es publica, asi que probar con ella pasaria por la razon equivocada. Las
+// no-preview son las que la inscripta ve y un anonimo no: diferencia de conjuntos.
+export async function nonPreviewLessonHref(browser: Browser): Promise<string> {
+  const anon = await browser.newPage();
+  const publicHrefs = new Set(await lessonHrefs(anon, ALUMNA.enrolledSlug));
+  await anon.close();
+
+  const enrolled = await browser.newPage();
+  await login(enrolled, ALUMNA);
+  const enrolledHrefs = await lessonHrefs(enrolled, ALUMNA.enrolledSlug);
+  await enrolled.close();
+
+  const href = enrolledHrefs.find((h) => !publicHrefs.has(h));
+  if (!href) {
+    throw new Error(
+      `En ${ALUMNA.enrolledSlug} la inscripta no ve ninguna leccion que no sea preview (${enrolledHrefs.length} links): revisa el seed.`,
+    );
+  }
+  return href;
 }
