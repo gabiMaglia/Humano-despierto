@@ -63,8 +63,10 @@ export async function seed(db) {
       ('${ID.chapterA}',       '${ID.courseA}', '${ID.lessonA}',        1, 0,  'Apertura del arcano'),
       ('${ID.chapterPreview}', '${ID.courseA}', '${ID.lessonPreviewB}', 1, 12, 'Que vas a ver');
 
-    insert into public.enrollments (user_id, course_id, granted_by) values
-      ('${ID.student}', '${ID.courseA}', '${ID.admin}');
+    -- T-043: el default de status pasa a 'requested'. Sin el valor explicito la alumna de
+    -- todos los tests perderia el acceso a courseA en silencio.
+    insert into public.enrollments (user_id, course_id, status, granted_by) values
+      ('${ID.student}', '${ID.courseA}', 'active', '${ID.admin}');
 
     -- T-028 · una resena de la alumna inscripta. Sin ella el barrido de localizadores sobre
     -- course_reviews correria contra CERO filas y pasaria trivialmente -- el mismo modo de

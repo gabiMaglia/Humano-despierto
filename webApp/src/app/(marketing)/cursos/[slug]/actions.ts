@@ -7,6 +7,11 @@ import { noLocator } from "@/lib/validation/teacher";
 // La lógica de escritura vive en un .mjs para que la suite de la base la ejecute tal cual
 // (ver `lib/reviews/write.mjs`).
 import { guardarResena, responderResena, traducirErrorResena } from "@/lib/reviews/write.mjs";
+import {
+  ENROLLMENT_COPY,
+  translateEnrollmentError,
+  type EnrollmentRequestState,
+} from "@/lib/enrollment/messages";
 
 export interface ReviewActionState {
   error: string | null;
@@ -81,4 +86,37 @@ export async function respondReviewAction(
 
   revalidatePath(`/cursos/${slug}`);
   return { error: null, success: "Respuesta publicada." };
+}
+
+/**
+ * T-043 · la alumna pide un curso. Cliente de SESIÓN: quién puede lo deciden grant + policy +
+ * guard (0029), no esta función. El curso se resuelve acá desde el slug de la URL y la alumna
+ * desde la sesión: el formulario no manda ningún id, así que no hay nada que falsificar en él.
+ * `status` no se manda: la base lo fuerza a `requested`.
+ */
+export async function requestEnrollmentAction(
+  slug: string,
+  _prev: EnrollmentRequestState,
+  _formData: FormData,
+): Promise<EnrollmentRequestState> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return { error: ENROLLMENT_COPY.needsLogin, success: null };
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .select("id")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (courseError) return { error: ENROLLMENT_COPY.generic, success: null };
+  if (!course) return { error: ENROLLMENT_COPY.courseUnavailable, success: null };
+
+  const { error } = await supabase.from("enrollments").insert({ user_id: uid, course_id: course.id });
+  if (error) return { error: translateEnrollmentError(error), success: null };
+
+  revalidatePath(`/cursos/${slug}`);
+  revalidatePath("/panel");
+  return { error: null, success: ENROLLMENT_COPY.requested };
 }

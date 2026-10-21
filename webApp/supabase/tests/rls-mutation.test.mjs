@@ -81,9 +81,12 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
 
   // ------------------------------------------------------------ criterio 5(a)
   describe('5(a) el alumno no puede auto-inscribirse', () => {
-    test('INSERT en enrollments para un curso ajeno', async () => {
+    // T-043: pedir un curso (`user_id`, `course_id`) es legitimo y nace `requested` (ver
+    // enrollment-requests.test.mjs). Auto-inscribirse es nombrar el estado: `status` no esta en
+    // el grant de INSERT.
+    test('INSERT en enrollments con status active (auto-inscribirse)', async () => {
       const r = await asStudent(db, () =>
-        attempt(db, `insert into public.enrollments (user_id, course_id) values ($1, $2)`, [
+        attempt(db, `insert into public.enrollments (user_id, course_id, status) values ($1, $2, 'active')`, [
           ID.student,
           ID.courseB,
         ]),
@@ -709,10 +712,11 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
 
     test('service_role si hace las tres cosas prohibidas', async () => {
       await db.exec(`set role service_role;`);
-      const enroll = await attempt(db, `insert into public.enrollments (user_id, course_id) values ($1, $2)`, [
-        ID.student,
-        ID.courseB,
-      ]);
+      const enroll = await attempt(
+        db,
+        `insert into public.enrollments (user_id, course_id, status) values ($1, $2, 'active')`,
+        [ID.student, ID.courseB],
+      );
       const promote = await attempt(db, `update public.profiles set role = 'teacher' where id = $1`, [ID.otro]);
       const publish = await attempt(db, `update public.courses set status = 'published' where id = $1`, [
         ID.courseDraft,
@@ -751,6 +755,7 @@ describe('control negativo · con las guardas revertidas los ataques SI pasan', 
         `drop trigger profiles_guard    on public.profiles;
          drop trigger courses_guard     on public.courses;
          drop trigger enrollments_guard on public.enrollments;
+         drop trigger enrollments_guard_insert on public.enrollments;
          create policy regresion_enroll on public.enrollments for all to authenticated using (true) with check (true);
          create policy regresion_course on public.courses     for update to authenticated using (true) with check (true);`,
       ],
@@ -758,7 +763,7 @@ describe('control negativo · con las guardas revertidas los ataques SI pasan', 
     await seed(db);
 
     const enroll = await asStudent(db, () =>
-      attempt(db, `insert into public.enrollments (user_id, course_id) values ($1, $2)`, [ID.student, ID.courseB]),
+      attempt(db, `insert into public.enrollments (user_id, course_id, status) values ($1, $2, 'active')`, [ID.student, ID.courseB]),
     );
     const promote = await asStudent(db, () =>
       attempt(db, `update public.profiles set role = 'teacher' where id = $1`, [ID.student]),

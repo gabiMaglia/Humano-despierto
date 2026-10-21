@@ -34,7 +34,7 @@ LECCION_PREVIEW=$(docker exec supabase_db_webApp psql -U postgres -d postgres -t
 
 RUTAS=(/ /cursos /cursos/tarot-iniciatico /cursos/reiki-nivel-1 /cursos/carta-natal-esencial
        /guias /guias/sol-mayor /guias/luna-arce /guias/aurora-violeta
-       /diario /circulo /entrar /panel /inscribirme/tarot-iniciatico)
+       /diario /circulo /entrar /panel)
 [ -n "$LECCION_PREVIEW" ] && RUTAS+=("/leccion/$LECCION_PREVIEW")
 
 # El invariante, no una lista de lugares. Cada patrón con su motivo.
@@ -86,7 +86,7 @@ COOKIE=${COOKIE:-}
 
 for r in "${RUTAS[@]}"; do
   # SIN -L a propósito. Segundo agujero por construcción que encontró QA: con -L,
-  # /panel, /leccion/* e /inscribirme/* redirigen a /entrar sin sesión y el guard
+  # /panel y /leccion/* redirigen a /entrar sin sesión y el guard
   # terminaba escaneando el login tres veces, dando verde sobre las rutas que MÁS
   # historial de violaciones tienen. Un redirect ahora se reporta como NO ESCANEADA
   # y cuenta como falla: el guard no puede quedar en verde sobre lo que no miró.

@@ -7,7 +7,7 @@ import { updateSession } from "@/lib/supabase/proxy";
 // servidor (`getLessonPlayerData`: inscripción activa o `is_preview`, ADR-003) — la decisión
 // queda donde ya está la lógica, no duplicada acá. Por eso además `leccion/[id]` se movió fuera
 // del grupo `(app)`: su layout también redirigía a cualquier anónimo antes de llegar a la página.
-const PROTECTED_PREFIXES = ["/panel", "/inscribirme"];
+const PROTECTED_PREFIXES = ["/panel"];
 
 // Rutas de T-005/T-008 (paneles docente/admin) — el guard ya existe aunque
 // las páginas todavía no. Claim del JWT (ADR-006: autoridad "orientativa"
@@ -52,5 +52,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/panel/:path*", "/inscribirme/:path*"],
+  matcher: ["/panel/:path*"],
 };
