@@ -9,7 +9,8 @@ import PromoVideo from "@/components/course/PromoVideo";
 import ReviewsSection from "@/components/reviews/ReviewsSection";
 import { visibleDescription } from "@/lib/catalog/description";
 import { getCourseBySlug } from "@/lib/server/courses";
-import { getStudentCourseAccess } from "@/lib/server/enrollment";
+import EnrollmentCta from "@/components/course/EnrollmentCta";
+import { getStudentCourseAccess, getStudentEnrollmentState } from "@/lib/server/enrollment";
 import { getCourseReviews } from "@/lib/server/reviews";
 import { formatCertificateDate, formatPriceCents, formatTotalDuration } from "@/lib/utils/format";
 import { toRoman } from "@/lib/utils/roman";
@@ -54,9 +55,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   if (!course) notFound();
   const longDescription = visibleDescription(course.intro, course.description);
 
-  const [access, reviews] = await Promise.all([
+  const [access, reviews, enrollment] = await Promise.all([
     getStudentCourseAccess(course.id),
     getCourseReviews(course.id),
+    getStudentEnrollmentState(course.id),
   ]);
 
   return (
@@ -280,19 +282,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         <h2 className="mb-4 font-display text-4xl tracking-wide text-ink">
           El umbral está <em className="font-quote italic text-lila-300">abierto</em>
         </h2>
-        <p className="mb-8 font-quote italic text-lg text-ink-soft">Acceso inmediato · empezá cuando quieras, a tu propio ritmo</p>
+        <p className="mb-8 font-quote italic text-lg text-ink-soft">Pedí tu lugar · la escuela confirma tu inscripción y te avisa por mail</p>
 
         <div className="mx-auto max-w-xs cosmos-card p-6 mb-8 text-left">
           <div className="flex justify-between items-baseline mb-2">
             <span className="font-body text-sm text-ink-soft">Ofrenda</span>
             <span className="font-display text-2xl text-gold-400">{formatPriceCents(course.priceCents, course.currency)}</span>
           </div>
-          <a href={`/inscribirme/${course.slug}`} className="btn-ritual btn-ritual-primary w-full rounded-pill justify-center">
-            Sellar el pacto ↦
-          </a>
-          <button className="mt-3 w-full font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors">
-            Hablar con una guía antes
-          </button>
+          {/* "Hablar con una guía antes" se quitó (T-043): no hay canal definido y un mailto
+              expondría el mail de la docente, que nunca es público. La ficha ya linkea a /guias. */}
+          <EnrollmentCta slug={course.slug} state={enrollment} />
         </div>
       </section>
     </div>

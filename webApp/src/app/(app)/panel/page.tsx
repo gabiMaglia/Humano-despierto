@@ -3,6 +3,7 @@ import Nav from "@/components/layout/Nav";
 import ProgressRing from "@/components/atoms/ProgressRing";
 import { getCurrentUser } from "@/lib/server/auth";
 import { getStudentDashboard } from "@/lib/server/enrollment";
+import StudentRequests from "@/components/molecules/StudentRequests";
 import { ensureCertificate } from "@/lib/server/certificates";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { toRoman } from "@/lib/utils/roman";
@@ -14,7 +15,7 @@ import { toRoman } from "@/lib/utils/roman";
 // alumno (c.5). Si en el futuro cursan la bitácora/el círculo de una tabla real, vuelven acá.
 export default async function DashboardPage() {
   const user = await getCurrentUser();
-  const { courses } = user ? await getStudentDashboard() : { courses: [] };
+  const { courses, requests } = user ? await getStudentDashboard() : { courses: [], requests: [] };
 
   if (courses.length === 0) {
     return (
@@ -33,6 +34,7 @@ export default async function DashboardPage() {
             Explorar el catálogo ↦
           </Link>
         </div>
+        <StudentRequests requests={requests} />
       </div>
     );
   }
@@ -98,6 +100,8 @@ export default async function DashboardPage() {
             )}
           </div>
         </div>
+
+        <StudentRequests requests={requests} />
 
         {/* Enrolled courses */}
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">

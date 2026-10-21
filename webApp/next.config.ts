@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
     // (`checkAvatarBytes`), asi que 2 MB + 1 byte llega a la action y recibe un mensaje propio.
     serverActions: { bodySizeLimit: "3mb" },
   },
+  // T-043 · el checkout maqueta se fue (D2). Los links viejos caen en la ficha, donde se pide.
+  async redirects() {
+    return [{ source: "/inscribirme/:curso", destination: "/cursos/:curso", permanent: true }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -54,7 +54,8 @@ const CASOS = {
   courses_guard_insert: 'la docente crea un curso, que nace en draft',
   lessons_guard: 'service_role carga video_id + duration_seconds y publica (T-005 c.4b)',
   diario_posts_guard: 'service_role publica un post del diario',
-  enrollments_guard: 'service_role otorga y revoca una inscripcion',
+  enrollments_guard: 'service_role aprueba, rechaza con motivo, reconsidera y revoca',
+  enrollments_guard_insert: 'la alumna pide un curso publicado y la fila nace requested',
   profiles_guard: 'la docente edita su bio sin tocar su rol',
   certificates_guard_insert: 'service_role emite el certificado de un curso completo',
 
@@ -181,22 +182,45 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
     });
 
+    test(`enrollments_guard_insert · ${CASOS.enrollments_guard_insert}`, async () => {
+      const r = await asUser(db, { sub: ID.student, userRole: 'student' }, () =>
+        attempt(
+          db,
+          `insert into public.enrollments (user_id, course_id) values ($1, $2)
+           returning status, requested_at is not null as fechada, granted_by`,
+          [ID.student, ID.courseB],
+        ),
+      );
+      assert.equal(r.ok, true, `la alumna no pudo pedir el curso: ${r.message}`);
+      assert.equal(r.rows[0].status, 'requested');
+      assert.equal(r.rows[0].fechada, true, 'el guard no fecho la solicitud');
+      assert.equal(r.rows[0].granted_by, null);
+    });
+
     test(`enrollments_guard · ${CASOS.enrollments_guard}`, async () => {
       await db.exec(`reset role;`);
       const alta = await attempt(
         db,
-        `insert into public.enrollments (user_id, course_id, granted_by) values ($1, $2, $3) returning id`,
-        [ID.otro, ID.courseB, ID.admin],
-      );
-      assert.equal(alta.ok, true, `service_role no pudo otorgar una inscripcion: ${alta.message}`);
-
-      const baja = await attempt(
-        db,
-        `update public.enrollments set status = 'revoked' where user_id = $1 and course_id = $2 returning status`,
+        `insert into public.enrollments (user_id, course_id, status) values ($1, $2, 'requested') returning id`,
         [ID.otro, ID.courseB],
       );
-      assert.equal(baja.ok, true, `service_role no pudo revocar: ${baja.message}`);
-      assert.equal(baja.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+      assert.equal(alta.ok, true, `service_role no pudo registrar una solicitud: ${alta.message}`);
+
+      const pasos = [
+        [`status = 'rejected', decided_at = now(), decided_reason = 'Cupo completo'`, 'rejected'],
+        [`status = 'active', decided_reason = null, decided_at = now(), granted_by = '${ID.admin}', enrolled_at = now()`, 'active'],
+        [`status = 'revoked', decided_at = now()`, 'revoked'],
+      ];
+      for (const [set, esperado] of pasos) {
+        const r = await attempt(
+          db,
+          `update public.enrollments set ${set} where user_id = $1 and course_id = $2 returning status`,
+          [ID.otro, ID.courseB],
+        );
+        assert.equal(r.ok, true, `service_role no pudo pasar a ${esperado}: ${r.message}`);
+        assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+        assert.equal(r.rows[0].status, esperado);
+      }
     });
 
     test(`profiles_guard · ${CASOS.profiles_guard}`, async () => {

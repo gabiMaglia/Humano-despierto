@@ -6,6 +6,7 @@ import { renderCourseCompletedMail } from "@/lib/server/mail/templates/course-co
 import { reviewAnchorPath } from "@/lib/reviews/links.mjs";
 import { renderWelcomeMail } from "@/lib/server/mail/templates/welcome";
 import { renderTeacherNewStudentMail } from "@/lib/server/mail/templates/teacher-new-student";
+import { renderEnrollmentRejectedMail } from "@/lib/server/mail/templates/enrollment-rejected";
 import { getSiteUrl } from "@/lib/server/site-url";
 
 // T-020 · capa de orquestación: junta los datos (nombre, curso, docente, email) y llama a
@@ -51,7 +52,12 @@ async function getUserEmail(
   return { id: profile.id, email: authData.user.email, name: profile.full_name || "—" };
 }
 
-export type MailType = "welcome" | "enrollment_granted" | "course_completed" | "teacher_new_student";
+export type MailType =
+  | "welcome"
+  | "enrollment_granted"
+  | "course_completed"
+  | "teacher_new_student"
+  | "enrollment_rejected";
 
 interface MailClaim {
   id: string;
@@ -334,5 +340,37 @@ export async function notifyCourseCompleted(input: {
     if (result.ok) await confirmMailSent(claim);
   } catch (err) {
     console.error("[mail] notifyCourseCompleted falló:", err);
+  }
+}
+
+/**
+ * T-043 · mail de solicitud no aprobada. Una solicitud se rechaza a lo sumo una vez por
+ * (alumna, curso): el cliente no tiene `rejected -> requested` y el UNIQUE impide pedir de nuevo.
+ * Por eso `scope_key` es el id CANÓNICO del curso (`course.id`, lección de la ronda 7) y la
+ * recipiente el id canónico de la alumna. Captura total, como los otros cuatro: un SMTP caído no
+ * deshace el rechazo ni le cambia la respuesta al admin.
+ */
+export async function notifyEnrollmentRejected(input: {
+  studentId: string;
+  courseId: string;
+  reason: string | null;
+}): Promise<void> {
+  try {
+    const [student, course] = await Promise.all([getUserEmail(input.studentId), getCourseInfo(input.courseId)]);
+    if (!student || !course) return;
+
+    const claim = await claimOrReclaimMailSlot(student.id, "enrollment_rejected", course.id);
+    if (!claim) return;
+
+    const { subject, html, text } = renderEnrollmentRejectedMail({
+      studentName: student.name,
+      courseTitle: course.title,
+      reason: input.reason,
+      catalogUrl: `${getSiteUrl()}/cursos`,
+    });
+    const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
+    if (result.ok) await confirmMailSent(claim);
+  } catch (err) {
+    console.error("[mail] notifyEnrollmentRejected falló:", err);
   }
 }

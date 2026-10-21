@@ -456,6 +456,40 @@ nota_http "(n5) borrar la nota PROPIA (camino legitimo)" DELETE "$NOTA_PROPIA" "
 x "delete from public.lesson_notes where body like 'b1-nota:%';"
 
 echo ""
+echo "── T-043 · inscripcion por solicitud: la alumna pide, no se activa"
+# Actora PROPIA: b1-alumna tiene que terminar sin fila en curso-ajeno (lo afirma el bloque final).
+alta "b1-solicitante@test.local" '' student
+SOLICITANTE_JWT=$(tok "b1-solicitante@test.local")
+SOLICITANTE=$(q "select id from auth.users where email='b1-solicitante@test.local';")
+x "delete from public.enrollments where user_id='$SOLICITANTE' and course_id='$CURSO';"
+x "insert into public.courses (slug,title,discipline,level,price_cents,teacher_id,status)
+   values ('curso-borrador-b1','Curso Borrador','tarot','inicial',10000,'$DOCENTE','draft')
+   on conflict (slug) do update set teacher_id='$DOCENTE', status='draft';"
+BORRADOR=$(q "select id from public.courses where slug='curso-borrador-b1';")
+SOLICITUD="enrollments?user_id=eq.$SOLICITANTE&course_id=eq.$CURSO"
+
+# "(a) auto-inscribirse" de arriba (status: active) sigue en 403: status no esta en el grant.
+esperar "(e1) pedir a nombre de otra"           403 POST "enrollments" "$ALUMNA_JWT" "{\"user_id\":\"$SOLICITANTE\",\"course_id\":\"$CURSO\"}"
+esperar "(e2) pedir un curso en borrador"       403 POST "enrollments" "$ALUMNA_JWT" "{\"user_id\":\"$ALUMNA\",\"course_id\":\"$BORRADOR\"}"
+esperar "(e3) pedir firmando como otorgante"    403 POST "enrollments" "$ALUMNA_JWT" "{\"user_id\":\"$ALUMNA\",\"course_id\":\"$CURSO\",\"granted_by\":\"$ALUMNA\"}"
+# Control positivo: sin el, un esquema que rechace todo daria verde arriba.
+esperar "(e+) solicitud legitima"               201 POST "enrollments" "$SOLICITANTE_JWT" "{\"user_id\":\"$SOLICITANTE\",\"course_id\":\"$CURSO\"}"
+EST_SOL=$(q "select status || ':' || (requested_at is not null)::text || ':' || coalesce(granted_by::text,'null') from public.enrollments where user_id='$SOLICITANTE' and course_id='$CURSO';")
+if [ "$EST_SOL" = "requested:true:null" ]; then printf '  ok    %-52s %s\n' "(e+b) la fila nacio requested, fechada, sin otorgante" "$EST_SOL"
+else printf '  FALLA %-52s %s\n' "(e+b) la solicitud no nacio como debia" "$EST_SOL"; fallos=$((fallos+1)); fi
+esperar "(e4) pedir dos veces (23505 -> 409)"   409 POST "enrollments" "$SOLICITANTE_JWT" "{\"user_id\":\"$SOLICITANTE\",\"course_id\":\"$CURSO\"}"
+esperar "(e5) pasar la propia a active"         403 PATCH "$SOLICITUD" "$SOLICITANTE_JWT" '{"status":"active"}'
+esperar "(e6) con requested no ve video_id"     403 GET "lessons?select=id,video_id" "$SOLICITANTE_JWT"
+# El camino legitimo de service_role por HTTP: aprobar con el origen en el filtro, como la action.
+AHORA=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+esperar "(e+) service_role aprueba"             204 PATCH "$SOLICITUD&status=in.(requested,rejected)" "$SRV" "{\"status\":\"active\",\"decided_at\":\"$AHORA\",\"enrolled_at\":\"$AHORA\"}"
+EST_SOL=$(q "select status from public.enrollments where user_id='$SOLICITANTE' and course_id='$CURSO';")
+if [ "$EST_SOL" = "active" ]; then printf '  ok    %-52s %s\n' "(e+c) quedo activa" "$EST_SOL"
+else printf '  FALLA %-52s %s\n' "(e+c) service_role no pudo aprobar" "$EST_SOL"; fallos=$((fallos+1)); fi
+x "delete from public.enrollments where user_id='$SOLICITANTE' and course_id='$CURSO';"
+x "delete from public.courses where slug='curso-borrador-b1';"
+
+echo ""
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"

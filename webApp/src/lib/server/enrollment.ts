@@ -26,8 +26,35 @@ export interface DashboardCourse {
   lastSeenAt: string | null;
 }
 
+export interface StudentRequest {
+  courseId: string;
+  slug: string;
+  title: string;
+  status: "requested" | "rejected";
+  requestedAt: string | null;
+  decidedReason: string | null;
+}
+
 export interface StudentDashboard {
   courses: DashboardCourse[];
+  /** T-043 · lo que la alumna pidió y todavía no cursa: pendiente o no aprobado (con motivo). */
+  requests: StudentRequest[];
+}
+
+export type StudentEnrollmentState =
+  | { status: "anonymous" }
+  | { status: "none" }
+  | { status: "requested"; requestedAt: string }
+  | { status: "active" }
+  | { status: "revoked" }
+  | { status: "rejected"; decidedReason: string | null };
+
+interface RequestRow {
+  course_id: string;
+  status: "requested" | "rejected";
+  requested_at: string | null;
+  decided_reason: string | null;
+  course: { slug: string; title: string } | { slug: string; title: string }[] | null;
 }
 
 interface DashboardTeacherRow {
@@ -121,6 +148,73 @@ export async function getStudentCourseAccess(courseId: string): Promise<StudentC
 }
 
 /**
+ * T-043 · en qué punto está la alumna logueada respecto de UN curso, para elegir el CTA de la
+ * ficha. Cliente de sesión: `enrollments_read` solo devuelve la fila propia. `anonymous` existe
+ * aparte de `none` porque sin sesión el botón lleva a `/entrar?next=`, no a la action.
+ */
+export async function getStudentEnrollmentState(courseId: string): Promise<StudentEnrollmentState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "anonymous" };
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("status, requested_at, decided_reason")
+    .eq("course_id", courseId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo leer la inscripción: ${error.message}`);
+  if (!data) return { status: "none" };
+
+  switch (data.status) {
+    case "requested":
+      return { status: "requested", requestedAt: data.requested_at as string };
+    case "active":
+      return { status: "active" };
+    case "revoked":
+      return { status: "revoked" };
+    case "rejected":
+      return { status: "rejected", decidedReason: data.decided_reason ?? null };
+    default:
+      throw new Error(`Estado de inscripción desconocido: ${String(data.status)}`);
+  }
+}
+
+async function getStudentRequests(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<StudentRequest[]> {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("course_id, status, requested_at, decided_reason, course:courses(slug, title)")
+    .eq("user_id", userId)
+    .in("status", ["requested", "rejected"])
+    .order("requested_at", { ascending: false });
+
+  if (error) throw new Error(`No se pudieron leer las solicitudes: ${error.message}`);
+
+  return ((data ?? []) as unknown as RequestRow[])
+    .map((row) => {
+      const course = firstOf(row.course);
+      // Un curso archivado deja de ser legible por RLS: la solicitud no tiene a dónde linkear.
+      if (!course) return null;
+      const request: StudentRequest = {
+        courseId: row.course_id,
+        slug: course.slug,
+        title: course.title,
+        status: row.status,
+        requestedAt: row.requested_at,
+        decidedReason: row.decided_reason,
+      };
+      return request;
+    })
+    .filter((r): r is StudentRequest => r !== null);
+}
+
+/**
  * `/panel` (T-007): las inscripciones activas del usuario logueado, con el progreso calculado
  * desde `lesson_progress` — nunca declarado (ADR-007: `completed` es derivada). Sin sesión,
  * lista vacía; el layout de `(app)` ya garantiza sesión antes de llegar acá, esto es defensa
@@ -132,7 +226,9 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { courses: [] };
+  if (!user) return { courses: [], requests: [] };
+
+  const requests = await getStudentRequests(supabase, user.id);
 
   const { data: enrollmentRows, error: enrollmentError } = await supabase
     .from("enrollments")
@@ -153,7 +249,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
   }
 
   const rows = (enrollmentRows ?? []) as unknown as EnrollmentRow[];
-  if (rows.length === 0) return { courses: [] };
+  if (rows.length === 0) return { courses: [], requests };
 
   const courseIds = rows.map((r) => r.course_id);
 
@@ -231,5 +327,5 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
     })
     .filter((c): c is DashboardCourse => c !== null);
 
-  return { courses };
+  return { courses, requests };
 }

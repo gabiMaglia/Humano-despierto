@@ -117,7 +117,7 @@ export async function listAllCourses(): Promise<AdminCourseRow[]> {
   }));
 }
 
-export type EnrollmentStatus = "active" | "revoked";
+export type EnrollmentStatus = "requested" | "active" | "revoked" | "rejected";
 
 export interface AdminEnrollmentRow {
   id: string;
@@ -128,6 +128,7 @@ export interface AdminEnrollmentRow {
   status: EnrollmentStatus;
   enrolledAt: string;
   grantedByName: string | null;
+  decidedReason: string | null;
 }
 
 interface AdminEnrollmentQueryRow {
@@ -136,6 +137,7 @@ interface AdminEnrollmentQueryRow {
   course_id: string;
   status: EnrollmentStatus;
   enrolled_at: string;
+  decided_reason: string | null;
   student: TeacherRow | TeacherRow[] | null;
   course: { title: string } | { title: string }[] | null;
   granted_by_profile: TeacherRow | TeacherRow[] | null;
@@ -146,11 +148,13 @@ export async function listAllEnrollments(): Promise<AdminEnrollmentRow[]> {
   const { data, error } = await db
     .from("enrollments")
     .select(
-      `id, user_id, course_id, status, enrolled_at,
+      `id, user_id, course_id, status, enrolled_at, decided_reason,
        student:profiles!enrollments_user_id_fkey(full_name),
        course:courses!enrollments_course_id_fkey(title),
        granted_by_profile:profiles!enrollments_granted_by_fkey(full_name)`
     )
+    // Las pendientes viven en su propia sección (`listPendingEnrollmentRequests`).
+    .neq("status", "requested")
     .order("enrolled_at", { ascending: false });
 
   if (error) {
@@ -169,6 +173,50 @@ export async function listAllEnrollments(): Promise<AdminEnrollmentRow[]> {
       status: row.status,
       enrolledAt: row.enrolled_at,
       grantedByName: firstTeacher(row.granted_by_profile)?.full_name ?? null,
+      decidedReason: row.decided_reason,
+    };
+  });
+}
+
+export interface AdminEnrollmentRequestRow {
+  id: string;
+  userName: string;
+  courseTitle: string;
+  requestedAt: string;
+}
+
+interface AdminEnrollmentRequestQueryRow {
+  id: string;
+  requested_at: string;
+  student: TeacherRow | TeacherRow[] | null;
+  course: { title: string } | { title: string }[] | null;
+}
+
+/** T-043 · la cola: solicitudes `requested`, la más vieja primero (se atiende en orden). */
+export async function listPendingEnrollmentRequests(): Promise<AdminEnrollmentRequestRow[]> {
+  const db = getAdminSupabaseClient();
+  const { data, error } = await db
+    .from("enrollments")
+    .select(
+      `id, requested_at,
+       student:profiles!enrollments_user_id_fkey(full_name),
+       course:courses!enrollments_course_id_fkey(title)`
+    )
+    .eq("status", "requested")
+    .order("requested_at", { ascending: true });
+
+  if (error) {
+    throw new Error(`No se pudieron leer las solicitudes: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as unknown as AdminEnrollmentRequestQueryRow[];
+  return rows.map((row) => {
+    const course = Array.isArray(row.course) ? (row.course[0] ?? null) : row.course;
+    return {
+      id: row.id,
+      userName: firstTeacher(row.student)?.full_name ?? "—",
+      courseTitle: course?.title ?? "—",
+      requestedAt: row.requested_at,
     };
   });
 }

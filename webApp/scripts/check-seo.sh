@@ -55,7 +55,7 @@ done
 
 echo "== robots.txt =="
 r=$(curl -s "$BASE/robots.txt")
-for d in /panel/ /leccion/ /circulo/ /inscribirme/; do
+for d in /panel/ /leccion/ /circulo/; do
   if grep -q "Disallow: $d" <<<"$r"; then echo "  ok     Disallow $d"
   else echo "  FALLA  falta Disallow $d"; fail=1; fi
 done
@@ -65,11 +65,17 @@ echo "== sitemap.xml =="
 sm=$(curl -s "$BASE/sitemap.xml")
 n=$(grep -c "<loc>" <<<"$sm")
 if [ "$n" -ge 4 ]; then echo "  ok     $n URLs"; else echo "  FALLA  solo $n URLs"; fail=1; fi
-for d in /panel /leccion /circulo /inscribirme; do
+for d in /panel /leccion /circulo; do
   if grep -q "<loc>[^<]*$d" <<<"$sm"; then
     echo "  FALLA  el sitemap expone $d"; fail=1
   else echo "  ok     sitemap sin $d"; fi
 done
+
+echo "== /inscribirme es un redirect permanente (T-043) =="
+hdr=$(curl -s -o /dev/null -D - "$BASE/inscribirme/tarot-iniciatico")
+if grep -qE "^HTTP/[0-9.]+ 308" <<<"$hdr" && grep -qiE "^location: .*/cursos/tarot-iniciatico" <<<"$hdr"; then
+  echo "  ok     308 a /cursos/tarot-iniciatico"
+else echo "  FALLA  /inscribirme no redirige 308 a la ficha"; fail=1; fi
 
 echo "== no quedan links muertos (C-02) =="
 if grep -rq 'href="#"' "$(dirname "$0")/../src" --include='*.tsx'; then

@@ -99,3 +99,18 @@ export async function expectDenied(res: import("@playwright/test").APIResponse):
   expect(res.headers()["cache-control"]).toBe("private, no-store");
   expect(res.headers()["location"]).toBeUndefined();
 }
+
+// T-043 · desde T-040 el login redirige por rol (el admin cae en /panel/admin), asi que `login`
+// solo sirve para alumnas. Este recibe el destino esperado; el regex ancla el final para que
+// /panel no se confunda con /panel/admin.
+export async function loginAs(
+  page: Page,
+  user: Pick<SeedUser, "email" | "password">,
+  expectedPath: string,
+): Promise<void> {
+  await page.goto("/entrar", { waitUntil: "networkidle" });
+  await page.locator('input[type="email"]').fill(user.email);
+  await page.locator('input[type="password"]').fill(user.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(new RegExp(`${expectedPath.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}$`));
+}
