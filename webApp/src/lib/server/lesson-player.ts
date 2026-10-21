@@ -6,6 +6,9 @@ import { getStudentCourseAccess } from "@/lib/server/enrollment";
 import type { StudentCourseAccess } from "@/lib/server/enrollment";
 import { getCourseBySlug } from "@/lib/server/courses";
 import { nextLesson, type NextLesson } from "@/lib/player/navigation";
+import { resolvePlayerAccess, type PlayerAccess } from "@/lib/player/access";
+import { getLessonQa } from "@/lib/server/lesson-qa";
+import type { LessonQaData } from "@/lib/lesson-qa/types";
 
 export interface PlayerChapter {
   id: string;
@@ -73,6 +76,10 @@ export interface LessonPlayerData {
   // tiran si no hay `user`). El cliente usa esto para no intentar persistir nada sin sesión, en
   // vez de fallar en silencio contra el server action cada `THROTTLE_MS`.
   isAuthenticated: boolean;
+  // T-030 · la docente dueña y el admin ven el player pero no cursan: progreso y notas exigen
+  // inscripción o preview en RLS (0004), así que el cliente no intenta escribirlos.
+  canTrackProgress: boolean;
+  qa: LessonQaData;
 }
 
 export interface LessonRow {
@@ -97,8 +104,10 @@ export interface LessonAccess {
   lessonId: string;
   courseId: string;
   isPreview: boolean;
-  /** `is_preview` o inscripción activa. */
+  /** `is_preview`, inscripción activa, o (T-030) docente dueña con rol teacher o admin. */
   hasAccess: boolean;
+  /** Qué puede hacer en el player quien llama; `hasAccess` es `player.canView`. */
+  player: PlayerAccess;
   userId: string | null;
   enrollment: StudentCourseAccess;
   lesson: LessonRow;
@@ -107,7 +116,8 @@ export interface LessonAccess {
 }
 
 /**
- * Única función que decide el acceso a una lección (ADR-003): inscripción activa o `is_preview`.
+ * Única función que decide el acceso a una lección (ADR-003): inscripción activa o `is_preview`,
+ * y desde T-030 también la docente dueña y el admin (ampliación de ADR-003).
  * La usan el player (video) y el handler de recursos, para que video y material no puedan
  * divergir. Sólo cliente de sesión; el llamador recién después puede usar service_role.
  * `null` y `hasAccess: false` se distinguen acá pero nunca hacia afuera: los dos callers los
@@ -147,7 +157,7 @@ export const getLessonAccess = cache(async function getLessonAccess(
 
   const { data: course, error: courseError } = await supabase
     .from("courses")
-    .select("slug, title")
+    .select("slug, title, teacher_id")
     .eq("id", row.course_id)
     .maybeSingle();
   if (courseError) {
@@ -157,23 +167,44 @@ export const getLessonAccess = cache(async function getLessonAccess(
 
   const enrollment = await getStudentCourseAccess(row.course_id);
 
+  // T-030 · la dueña y el admin se deciden por `profiles.role` y `courses.teacher_id`, nunca por el
+  // claim del JWT (R-2). Dueña exige además rol teacher (E3, D-16): `teacher_id` solo no alcanza.
+  let role: string | null = null;
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileError) throw new Error(`No se pudo leer el perfil: ${profileError.message}`);
+    role = profile?.role ?? null;
+  }
+  const player = resolvePlayerAccess({
+    isAuthenticated: Boolean(user),
+    isPreview: row.is_preview,
+    isEnrolled: enrollment.hasAccess,
+    isOwner: Boolean(user) && course.teacher_id === user?.id && role === "teacher",
+    isAdmin: role === "admin",
+  });
+
   return {
     lessonId: row.id,
     courseId: row.course_id,
     isPreview: row.is_preview,
-    hasAccess: row.is_preview || enrollment.hasAccess,
+    hasAccess: player.canView,
+    player,
     userId: user?.id ?? null,
     enrollment,
     lesson: row,
     moduleInfo,
-    course: course as { slug: string; title: string },
+    course: { slug: course.slug as string, title: course.title as string },
   };
 });
 
 /**
  * Datos completos para renderizar `/leccion/[id]`, con el control de acceso de ADR-003 ya
- * resuelto por `getLessonAccess`: si el llamador no tiene inscripción activa en el curso ni la
- * lección es `is_preview`, devuelve `null` — el caller responde con `notFound()`, sin distinguir
+ * resuelto por `getLessonAccess`: si el llamador no tiene inscripción activa en el curso, no es la
+ * docente dueña ni admin, y la lección no es `is_preview`, devuelve `null` — el caller responde con `notFound()`, sin distinguir
  * "no existe" de "no tenés acceso" (misma respuesta para las dos, no hay nada que confirmar).
  *
  * `video_id` es la ÚNICA columna que se lee con el cliente de service_role (ADR-003 regla A:
@@ -190,7 +221,7 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
 ): Promise<LessonPlayerData | null> {
   const lessonAccess = await getLessonAccess(lessonId);
   if (!lessonAccess || !lessonAccess.hasAccess) return null;
-  const { lesson: row, moduleInfo, course, enrollment: access, userId } = lessonAccess;
+  const { lesson: row, moduleInfo, course, enrollment, userId, player: access } = lessonAccess;
 
   const supabase = await createClient();
 
@@ -210,7 +241,7 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
     throw new Error("La lección no tiene un video cargado.");
   }
 
-  const [chaptersRes, resourcesRes, notesRes, progressRes, courseDetail] = await Promise.all([
+  const [chaptersRes, resourcesRes, notesRes, progressRes, courseDetail, qa] = await Promise.all([
     supabase
       .from("lesson_chapters")
       .select("id, position, start_seconds, label")
@@ -238,6 +269,13 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     getCourseBySlug(course.slug),
+    getLessonQa(supabase, {
+      lessonId,
+      viewerId: userId,
+      canReadQa: access.canReadQa,
+      canAsk: access.canAsk,
+      canModerate: access.canModerate,
+    }),
   ]);
 
   if (chaptersRes.error) {
@@ -262,10 +300,10 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
       let state: PlayerLessonState;
       if (l.id === lessonId) {
         state = "current";
-      } else if (!access.hasAccess) {
+      } else if (!access.fullCurriculum) {
         state = l.isPreview ? "preview" : "locked";
       } else {
-        state = access.completedLessonIds.has(l.id) ? "done" : "pending";
+        state = enrollment.completedLessonIds.has(l.id) ? "done" : "pending";
       }
       return {
         id: l.id,
@@ -315,5 +353,7 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
     modules,
     nextLesson: nextLesson(modules, row.id),
     isAuthenticated: userId !== null,
+    canTrackProgress: access.canTrackProgress,
+    qa,
   };
 });
