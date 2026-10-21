@@ -141,6 +141,15 @@ export function timestampToSeconds(raw: string): number {
   return NaN;
 }
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 export const resourceFormSchema = z.object({
   type: z.enum(["pdf", "audio", "texto", "link"]),
   name: z
@@ -149,7 +158,14 @@ export const resourceFormSchema = z.object({
     .min(1, "El nombre del recurso es obligatorio.")
     .max(200)
     .refine((v) => rejectUrl("name", v), { message: NO_URL_MESSAGE("nombre") }),
-  link: z.string().trim().min(1, "Pegá el link del recurso.").max(1000),
+  // D-17 · el handler de descarga (T-044) solo redirige a http(s); cualquier otra cosa quedaria
+  // guardada como un recurso que nunca abre.
+  link: z
+    .string()
+    .trim()
+    .min(1, "Pegá el link del recurso.")
+    .max(1000)
+    .refine(isHttpUrl, { message: "El link tiene que empezar con http:// o https://." }),
   sizeLabel: z
     .string()
     .trim()

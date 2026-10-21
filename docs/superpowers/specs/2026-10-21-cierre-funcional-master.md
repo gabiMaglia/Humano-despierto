@@ -65,7 +65,8 @@ Sprint 2). Los timestamps se reservan acá, ascendentes en el orden de ejecució
 | Ticket | Timestamp reservado |
 |---|---|
 | T-038 (fixtures en seed, sin migración) |: |
-| T-042 perfil | `20261021120000` |
+| T-041 Google (migración imprevista: nombre de Google con forma de localizador) | `20261021121000` |
+| T-042 perfil | `20261021122000` (corregido: iba antes que T-041 y se mergea después) |
 | T-043 solicitudes | `20261021130000` |
 | T-044 recursos (si hace falta) | `20261021140000` |
 | T-047 portada | `20261021150000` |

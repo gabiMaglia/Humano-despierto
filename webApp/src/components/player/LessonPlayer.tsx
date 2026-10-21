@@ -425,7 +425,14 @@ export default function LessonPlayer({ data }: Props) {
             {tab === "recursos" && (
               <div className="space-y-3">
                 {data.resources.map((r) => (
-                  <div key={r.id} className="flex items-start gap-3 cosmos-card p-3">
+                  // Link comun y no boton: funciona sin JS y con "guardar como". Sin `download`,
+                  // que no aplica a un redirect cross-origin.
+                  <a
+                    key={r.id}
+                    href={r.href}
+                    aria-label={`Descargar ${r.name}`}
+                    className="flex items-start gap-3 cosmos-card p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
+                  >
                     <span className="flex-none font-display text-eyebrow tracking-cosmic text-gold-400 border border-gold-400/40 rounded px-1.5 py-0.5 uppercase">
                       {r.type}
                     </span>
@@ -435,7 +442,10 @@ export default function LessonPlayer({ data }: Props) {
                         <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{r.sizeLabel}</p>
                       )}
                     </div>
-                  </div>
+                    <span aria-hidden="true" className="flex-none font-display text-gold-400">
+                      ↓
+                    </span>
+                  </a>
                 ))}
                 {data.resources.length === 0 && (
                   <p className="font-body text-xs italic text-ink-faint">Esta lección no tiene recursos.</p>
