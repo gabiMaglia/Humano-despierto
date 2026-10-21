@@ -13,6 +13,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // T-043 · el checkout maqueta se fue (D2). Los links viejos caen en la ficha, donde se pide.
+  async redirects() {
+    return [{ source: "/inscribirme/:curso", destination: "/cursos/:curso", permanent: true }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
