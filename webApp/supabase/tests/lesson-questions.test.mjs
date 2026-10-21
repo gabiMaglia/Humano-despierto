@@ -75,7 +75,7 @@ describe('T-030 · Q&A por leccion', () => {
     await seed(db);
     await db.query(`insert into auth.users (id, email) values ($1, 'companera@humano.test')`, [COMPANERA_ID]);
     await db.query(
-      `insert into public.enrollments (user_id, course_id, granted_by) values ($1, $2, $3)`,
+      `insert into public.enrollments (user_id, course_id, status, granted_by) values ($1, $2, 'active', $3)`,
       [COMPANERA_ID, ID.courseA, ID.admin],
     );
   });
