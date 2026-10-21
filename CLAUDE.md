@@ -45,7 +45,7 @@ npm run build    # production build (don't run unless asked)
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 449 tests, ~20s, no Docker and no credentials needed
+npm test         # 449 tests, ~3-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
