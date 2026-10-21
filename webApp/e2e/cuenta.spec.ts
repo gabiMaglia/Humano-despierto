@@ -12,6 +12,11 @@ function freshEmail(tag: string): string {
   return `e2e-${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`;
 }
 
+// Next monta su propio `role="alert"` (el anunciador de rutas); el error de la pantalla vive en el form.
+function formAlert(page: Page) {
+  return page.locator('form [role="alert"]');
+}
+
 async function hasSession(page: Page): Promise<boolean> {
   return (await page.context().cookies()).some((c) => SESSION_COOKIE.test(c.name));
 }
@@ -86,7 +91,7 @@ test("c.4 sin confirmar no entra y se le pide confirmar", async ({ page }) => {
   await expect(page.getByRole("status")).toBeVisible();
 
   await loginAt(page, "/entrar", email, PASSWORD);
-  await expect(page.getByRole("alert")).toHaveText("Confirmá tu mail para entrar.");
+  await expect(formAlert(page)).toHaveText("Confirmá tu mail para entrar.");
   await expect(page).toHaveURL(/\/entrar/);
   expect(await hasSession(page)).toBe(false);
 });
@@ -132,7 +137,7 @@ test("c.6 link de recuperación, clave nueva, login con ella; el link usado da e
 
   await page.goto(link);
   await expect(page).toHaveURL(/\/entrar\?error=link/);
-  await expect(page.getByRole("alert")).toContainText("venció o ya se usó");
+  await expect(formAlert(page)).toContainText("venció o ya se usó");
   // La recuperación no es un alta: sigue habiendo una sola bienvenida.
   expect(await welcomeCount(page.request, email)).toBe(1);
 });
@@ -141,15 +146,15 @@ test("c.7 callback sin code o con code inválido redirige al error neutro", asyn
   for (const path of ["/auth/callback", "/auth/callback?code=no-existe"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/entrar\?error=link$/);
-    await expect(page.getByRole("alert")).toContainText("venció o ya se usó");
-    await expect(page.getByRole("alert")).not.toContainText(/code|pkce|token/i);
+    await expect(formAlert(page)).toContainText("venció o ya se usó");
+    await expect(formAlert(page)).not.toContainText(/code|pkce|token/i);
   }
 });
 
 test("c.8 un nombre con link se frena antes de signUp", async ({ page }) => {
   const email = freshEmail("nombre-link");
   await register(page, email, "visitá https://ejemplo.com");
-  await expect(page.getByRole("alert")).toContainText("no puede contener un link");
+  await expect(formAlert(page)).toContainText("no puede contener un link");
   await expect(page.getByRole("status")).toHaveCount(0);
   expect(await messagesTo(page.request, email)).toHaveLength(0);
 });

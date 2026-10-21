@@ -1,18 +1,18 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/server/auth";
-import { notifyWelcome } from "@/lib/server/mail/notify";
+import { internalNext } from "@/lib/auth/safe-next";
+import { homeForRole } from "@/lib/auth/paths";
 
 /**
- * Mail 3/4 (T-020): bienvenida al registrarse. El destinatario se resuelve SIEMPRE server-side
- * contra la sesión actual (`getCurrentUser`) — esta acción no recibe ni email ni nombre por
- * parámetro. Un Server Action que mande mail a lo que el cliente le pase en el body es un relay
- * abierto (lección del playbook, sección Backend); acá ni existe el parámetro que lo permitiría.
- * Si no hay sesión (llamada fuera de flujo, replay, lo que sea) no hace nada — no hay a quién
- * escribirle.
+ * c.9: adónde va el login. Corre después de `signInWithPassword`, así que la cookie de sesión ya
+ * viaja en este request. El rol sale de `profiles.role` vía `getCurrentUser` (R-2): el claim del
+ * JWT recién emitido podría estar viejo si el rol cambió. `next` se vuelve a sanear acá porque
+ * lo manda el cliente.
  */
-export async function sendWelcomeEmailAction(): Promise<void> {
+export async function postLoginDestinationAction(rawNext: string | null): Promise<string> {
+  const next = internalNext(rawNext);
+  if (next) return next;
   const user = await getCurrentUser();
-  if (!user) return;
-  await notifyWelcome({ userId: user.id });
+  return homeForRole(user?.role);
 }
