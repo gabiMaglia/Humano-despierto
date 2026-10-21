@@ -504,10 +504,13 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
       // que es SECURITY INVOKER a proposito. Es un oraculo acotado —responde si/no sobre un
       // string que el llamador YA tiene, sin decir de que curso es ni devolver ningun
       // localizador— y esta declarado como tal en la cabecera de 0016. A `anon` no se le otorga.
+      // T-042 suma `my_private_profile`: SECURITY DEFINER porque `phone`/`birth_date` no tienen
+      // grant de SELECT para nadie. Filtra por `auth.uid()`, asi que solo devuelve la fila propia;
+      // a `anon` no se le otorga (no tiene fila propia que leer).
       const ESPERADO_AUTH = [
         ...ESPERADO_ANON, 'array_has_locator', 'body_has_known_locator', 'campus_post_authors',
         'can_author', 'can_read_campus_thread', 'can_write_campus_post', 'has_course_access',
-        'is_campus_moderator', 'is_service_context', 'text_has_locator',
+        'is_campus_moderator', 'is_service_context', 'my_private_profile', 'text_has_locator',
       ].sort();
       const fns = await functionPrivileges(db);
       assert.deepEqual(fns.filter((f) => f.anon).map((f) => f.proname).sort(), ESPERADO_ANON);
@@ -623,6 +626,21 @@ describe('T-001 · RLS y privilegios contra un JWT de student', () => {
          where slug in ('autopublicado', 'explicito', 'destacado')`,
       );
       assert.equal(r.rows[0].n, 0);
+    });
+  });
+
+  // ------------------------------------------------------------ T-042 · c.2 (R-6)
+  // El rojo de este caso esta probado en profile-private-fields.test.mjs (control con la policy
+  // abierta). Se repite aca porque este archivo es el inventario de ataques del alumno.
+  describe('T-042 · el telefono de otra persona', () => {
+    test('UPDATE de phone sobre la fila de la docente: cero filas', async () => {
+      const r = await asStudent(db, () =>
+        attempt(db, `update public.profiles set phone = '+54 9 0000-0000' where id = $1 returning id`, [
+          ID.teacherA,
+        ]),
+      );
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows.length, 0, 'la alumna alcanzo la fila de la docente');
     });
   });
 

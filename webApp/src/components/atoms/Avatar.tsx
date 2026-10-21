@@ -12,23 +12,28 @@ const SIZES: Record<Size, string> = {
 
 interface Props {
   glyph?: string;
+  src?: string | null;
+  alt?: string;
   size?: Size;
   online?: boolean;
   className?: string;
 }
 
-export default function Avatar({ glyph, size = "md", online, className }: Props) {
+export default function Avatar({ glyph, src, alt, size = "md", online, className }: Props) {
   return (
     <div className={cn("relative flex-none", className)}>
       <div
         className={cn(
           SIZES[size],
-          "rounded-full border border-lila-300/40 bg-linear-to-br from-magenta to-lila-700",
+          "overflow-hidden rounded-full border border-lila-300/40 bg-linear-to-br from-magenta to-lila-700",
           "flex items-center justify-center"
         )}
       >
-        {glyph && (
-          <span className="font-display text-ink leading-none">{glyph}</span>
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h; el optimizador de next/image la cachearia mas alla de su vida.
+          <img src={src} alt={alt ?? ""} className="h-full w-full rounded-full object-cover" />
+        ) : (
+          glyph && <span className="font-display text-ink leading-none">{glyph}</span>
         )}
       </div>
       {online && (

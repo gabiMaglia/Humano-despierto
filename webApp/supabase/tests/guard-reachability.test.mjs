@@ -73,6 +73,8 @@ const CASOS = {
   lesson_chapters_locator_guard: 'la docente crea y renombra un capitulo',
   lesson_resources_locator_guard: 'la docente renombra un recurso',
   profiles_locator_guard: 'el hook de alta crea el perfil y la docente edita su bio',
+  // --- perfil (T-042)
+  profiles_avatar_path_guard: 'el alta crea el perfil sin avatar y la duena apunta el suyo a su carpeta y lo saca',
 };
 
 const triggersDeLaDb = async (db) =>
@@ -413,6 +415,35 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       );
       assert.equal(edicion.ok, true, edicion.message);
       assert.equal(edicion.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+    });
+  });
+
+  // ---------------------------------------------------------------- perfil
+  describe('perfil', () => {
+    test(`profiles_avatar_path_guard · ${CASOS.profiles_avatar_path_guard}`, async () => {
+      await db.exec(`reset role;`);
+      // El alta real: insertar en auth.users y dejar que handle_new_user cree la fila (T-036).
+      const alta = await attempt(db, `insert into auth.users (id, email) values ($1, $2) returning id`, [
+        '10000000-0000-4000-8000-0000000000f1',
+        'avatar-alta@humano.test',
+      ]);
+      assert.equal(alta.ok, true, `el alta no paso el guard: ${alta.message}`);
+
+      const propio = `avatars/${ID.student}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.png`;
+      const poner = await asUser(db, { sub: ID.student, userRole: 'student' }, () =>
+        attempt(db, `update public.profiles set avatar_path = $1 where id = $2 returning avatar_path`, [
+          propio,
+          ID.student,
+        ]),
+      );
+      assert.equal(poner.ok, true, `la alumna no pudo poner su avatar: ${poner.message}`);
+      assert.equal(poner.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+
+      const sacar = await asUser(db, { sub: ID.student, userRole: 'student' }, () =>
+        attempt(db, `update public.profiles set avatar_path = null where id = $1 returning id`, [ID.student]),
+      );
+      assert.equal(sacar.ok, true, `la alumna no pudo sacar su avatar: ${sacar.message}`);
+      assert.equal(sacar.rows.length, 1);
     });
   });
 

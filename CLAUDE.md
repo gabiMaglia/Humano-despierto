@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 477 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 502 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, 1 mock module left (`lib/mocks/landing.ts`, scheduled for removal in T-053), `tokens.css`. Real Supabase queries everywhere else. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 25 migrations (last `0026`), 14 tables, RLS + per-column grants + guard triggers, 477 mutation tests (PGlite). Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 26 migrations (last `0028`), 14 tables, RLS + per-column grants + guard triggers, 502 mutation tests (PGlite). Private Storage bucket `uploads` (T-042; its policies are only tested over HTTP by b1). Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -76,6 +76,8 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /certificado/[code]                 Public certificate verification
 /inscribirme/[curso]                Checkout MOCK: no handlers, replaced by T-043 (request + admin approval)
 /panel                              Student dashboard                         [auth]
+/panel/perfil                       Own profile, all three roles: name, bio,  [auth]
+                                    phone, birth date, avatar
 /leccion/[id]                       Lesson player: YouTube IFrame API,        [auth or preview]
                                     persisted progress, chapters, notes
 /circulo  ·  /circulo/[curso]       Campus threads                            [auth]
@@ -134,6 +136,10 @@ covered by mutation tests that fail loudly if you regress them.
    `lesson_resources.drive_file_id`, `lesson_resources.url`. RLS filters *rows*, not *columns*,
    and every authenticated user sees the rows of any published course. Serve them from a Server
    Action after checking enrollment. A `select *` on `lessons` from the client fails with 42501.
+   Same for personal data: `profiles.phone` and `profiles.birth_date` have no SELECT for any
+   client role; the owner reads them through `my_private_profile()`. A `select *` on `profiles`
+   from the client fails with 42501. Avatars live in the private bucket `uploads`
+   (`avatars/<uid>/<uuid>.<ext>`) and are served by 1 h signed URL.
 5. **`lesson_progress.completed` is derived, never declared.** It is computed from
    `seconds_watched` against `lessons.duration_seconds` at 90%, in INSERT and UPDATE, with no
    `service_role` bypass. **With `duration_seconds = 0` nobody can ever complete a lesson** —
