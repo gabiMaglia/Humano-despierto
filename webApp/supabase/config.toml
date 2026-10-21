@@ -428,3 +428,11 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# T-042 · bucket privado compartido (S-D): `avatars/<uid>/` hoy, `covers/<course_id>/` en T-047.
+# Mismos limites que la migracion 0028, que es la que rige fuera de local. Va al final del archivo
+# y no en el bloque `[storage]` de arriba para no chocar con otros tickets que editan este archivo.
+[storage.buckets.uploads]
+public = false
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]

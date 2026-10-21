@@ -64,12 +64,17 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
         {/* Portrait */}
         <div className="hidden md:flex flex-col items-center gap-4">
           <div className="relative h-64 w-48 rounded-sm overflow-hidden bg-linear-to-b from-lila-700 to-cosmos-1">
+            {M.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h; el optimizador de next/image la cachearia mas alla de su vida.
+              <img src={M.avatarUrl} alt={`Retrato de ${M.fullName}`} className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <span className="absolute inset-0 flex items-center justify-center text-6xl font-display text-lila-300/70">
+                {M.glyph}
+              </span>
+            )}
             {["top-3 left-3 border-t border-l","top-3 right-3 border-t border-r","bottom-3 left-3 border-b border-l","bottom-3 right-3 border-b border-r"].map((cls) => (
               <span key={cls} className={`absolute h-5 w-5 ${cls} border-gold-400/60`} />
             ))}
-            <span className="absolute inset-0 flex items-center justify-center text-6xl font-display text-lila-300/70">
-              {M.glyph}
-            </span>
           </div>
         </div>
       </header>
