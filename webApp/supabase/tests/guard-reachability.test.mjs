@@ -42,6 +42,9 @@ const EXENTOS_NO_BLOQUEAN = [
   // `published_at_matches_status`. Tampoco tienen `raise`: no pueden bloquear, solo corregir.
   'courses_sync_published_at',
   'diario_posts_sync_published_at',
+  'course_announcements_set_updated_at',
+  // Igual que courses/diario_posts: deriva published_at de status, sin `raise`.
+  'course_announcements_sync_published_at',
 ];
 
 // Cada entrada declara el trigger y QUE OPERACION protege de volverse inalcanzable. El texto va
@@ -78,6 +81,10 @@ const CASOS = {
   campus_posts_locator_guard: 'la moderadora borra un mensaje del Campus con un motivo en prosa normal',
   // --- moderacion de resenas (T-037)
   course_review_reports_guard: 'la guia duena reporta con prosa normal y la cuenta de quien resolvio se puede borrar',
+  // --- anuncios (T-031)
+  course_announcements_guard: 'la duena escribe un borrador, lo corrige y retira otro con motivo; el admin modera uno publicado',
+  course_announcements_freeze_published: 'service_role publica un borrador y el publicado se puede retirar',
+  course_announcements_locator_guard: 'la duena anuncia con prosa normal',
 
   // --- localizadores (T-035). De estos seis, TRES nunca se verificaron por el lado legitimo:
   //     course_modules, lesson_chapters y lesson_resources. Este ticket existe en parte por eso.
@@ -653,6 +660,95 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
       );
       assert.equal(r.ok, true, r.message);
       assert.equal(r.rows.length, 1);
+    });
+  });
+
+  // ---------------------------------------------------------------- anuncios (T-031)
+  describe('anuncios (T-031) · lo legitimo pasa', () => {
+    const DUENA = { sub: ID.teacherA, userRole: 'teacher' };
+    const ADMIN = { sub: ID.admin, userRole: 'admin' };
+    const SERVIDOR = { sub: null, role: 'service_role' };
+    const borrador = async (title = 'Anuncio de prueba') => {
+      const r = await asUser(db, DUENA, () =>
+        attempt(
+          db,
+          `insert into public.course_announcements (course_id, author_id, title, body)
+           values ($1, $2, $3, 'Cuerpo de prueba') returning id`,
+          [ID.courseA, ID.teacherA, title],
+        ),
+      );
+      assert.equal(r.ok, true, `la duena no pudo escribir: ${r.message}`);
+      return r.rows[0].id;
+    };
+
+    test(`course_announcements_locator_guard · ${CASOS.course_announcements_locator_guard}`, async () => {
+      const r = await asUser(db, DUENA, () =>
+        attempt(
+          db,
+          `insert into public.course_announcements (course_id, author_id, title, body)
+           values ($1, $2, 'Video nuevo en la clase dos', 'Cada leccion trae un video corto y material para bajar.') returning id`,
+          [ID.courseA, ID.teacherA],
+        ),
+      );
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.rows.length, 1);
+    });
+
+    test(`course_announcements_guard · ${CASOS.course_announcements_guard}`, async () => {
+      const id = await borrador();
+      const editar = await asUser(db, DUENA, () =>
+        attempt(db, `update public.course_announcements set body = 'Cuerpo corregido' where id = $1 returning id`, [id]),
+      );
+      assert.equal(editar.ok, true, `la duena no pudo corregir su borrador: ${editar.message}`);
+      assert.equal(editar.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+
+      const otro = await borrador('Para retirar');
+      const retirar = await asUser(db, DUENA, () =>
+        attempt(
+          db,
+          `update public.course_announcements set deleted_at = now(), deleted_by = $2, deleted_reason = 'Duplicado'
+            where id = $1 returning id`,
+          [otro, ID.teacherA],
+        ),
+      );
+      assert.equal(retirar.ok, true, `la duena no pudo retirar: ${retirar.message}`);
+      assert.equal(retirar.rows.length, 1);
+
+      const publicado = await borrador('Para moderar');
+      await asUser(db, SERVIDOR, () =>
+        attempt(db, `update public.course_announcements set status = 'published' where id = $1`, [publicado]),
+      );
+      const moderar = await asUser(db, ADMIN, () =>
+        attempt(
+          db,
+          `update public.course_announcements set deleted_at = now(), deleted_by = $2, deleted_reason = 'Moderado'
+            where id = $1 returning id`,
+          [publicado, ID.admin],
+        ),
+      );
+      assert.equal(moderar.ok, true, `el admin no pudo moderar: ${moderar.message}`);
+      assert.equal(moderar.rows.length, 1);
+    });
+
+    test(`course_announcements_freeze_published · ${CASOS.course_announcements_freeze_published}`, async () => {
+      const id = await borrador('Para publicar');
+      const publicar = await asUser(db, SERVIDOR, () =>
+        attempt(db, `update public.course_announcements set status = 'published' where id = $1 returning published_at`, [id]),
+      );
+      assert.equal(publicar.ok, true, `service_role no pudo publicar: ${publicar.message}`);
+      assert.equal(publicar.rows.length, 1);
+      assert.ok(publicar.rows[0].published_at, 'sync_published_at no puso la fecha');
+
+      const retirar = await asUser(db, DUENA, () =>
+        attempt(
+          db,
+          `update public.course_announcements set deleted_at = now(), deleted_by = $2, deleted_reason = 'Ya no aplica'
+            where id = $1 returning id`,
+          [id, ID.teacherA],
+        ),
+      );
+      assert.equal(retirar.ok, true, `el congelado bloqueo el retiro de un publicado: ${retirar.message}`);
+      assert.equal(retirar.rows.length, 1);
     });
   });
 
