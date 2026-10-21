@@ -1,8 +1,10 @@
 import SectionDivider from "@/components/atoms/SectionDivider";
 import Stars from "@/components/reviews/Stars";
 import ReviewForm from "@/components/reviews/ReviewForm";
+import ResponseForm from "@/components/reviews/ResponseForm";
+import { REVIEWS_ANCHOR } from "@/lib/reviews/links.mjs";
 import { formatCertificateDate } from "@/lib/utils/format";
-import type { CourseReviewsData } from "@/lib/server/reviews";
+import type { CourseReview, CourseReviewsData } from "@/lib/server/reviews";
 
 /** Un curso NUEVO sin reseñas y un curso MALO no se pueden ver igual (criterio 3). Por eso el
  *  vacío dice lo que pasa en vez de mostrar "0.0 ★", que se lee como una calificación pésima. */
@@ -25,10 +27,13 @@ export default function ReviewsSection({
   courseId: string;
   slug: string;
 }) {
-  const { summary, reviews, own, canReview } = data;
+  const { summary, reviews, own, canReview, featured, viewerIsOwner } = data;
+  // La destacada va arriba y no se repite en la lista.
+  const resto = featured ? reviews.filter((r) => r.id !== featured.id) : reviews;
 
   return (
-    <section className="border-t border-lila-300/18 px-6 py-16 md:px-12">
+    // El id es el ancla del mail de curso completado (c.7): `scroll-mt` deja aire bajo el header.
+    <section id={REVIEWS_ANCHOR} className="scroll-mt-24 border-t border-lila-300/18 px-6 py-16 md:px-12">
       <div className="mx-auto max-w-3xl">
         <SectionDivider label="Lo que dicen quienes lo hicieron" className="mb-10" />
 
@@ -66,31 +71,61 @@ export default function ReviewsSection({
 
         {canReview && <ReviewForm courseId={courseId} slug={slug} own={own} />}
 
-        {reviews.length > 0 && (
+        {featured && (
+          <article
+            aria-label="Testimonio destacado"
+            className="mt-12 rounded-ritual border border-gold-400/30 bg-cosmos-surface p-6"
+          >
+            <p className="mb-3 font-display text-eyebrow tracking-cosmic text-gold-400">
+              <span aria-hidden="true">✦ </span>Destacado
+            </p>
+            <ReviewItem review={featured} slug={slug} viewerIsOwner={viewerIsOwner} />
+          </article>
+        )}
+
+        {resto.length > 0 && (
           <ul className="mt-12 space-y-8">
-            {reviews.map((r) => (
+            {resto.map((r) => (
               <li key={r.id} className="border-t border-lila-300/12 pt-6 first:border-0 first:pt-0">
-                <div className="mb-2 flex flex-wrap items-center gap-3">
-                  <Stars value={r.rating} />
-                  <span className="font-display text-sm tracking-wide text-lila-300">{r.authorName}</span>
-                  <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
-                    {formatCertificateDate(r.updatedAt)}
-                  </span>
-                </div>
-                {r.body && <p className="font-body text-sm text-ink-soft leading-relaxed">{r.body}</p>}
-                {r.response && (
-                  <div className="mt-4 border-l-2 border-lila-300/30 pl-4">
-                    <p className="mb-1 font-display text-eyebrow tracking-cosmic text-lila-300">
-                      Respuesta de la guía
-                    </p>
-                    <p className="font-body text-sm text-ink-soft leading-relaxed">{r.response}</p>
-                  </div>
-                )}
+                <ReviewItem review={r} slug={slug} viewerIsOwner={viewerIsOwner} />
               </li>
             ))}
           </ul>
         )}
       </div>
     </section>
+  );
+}
+
+function ReviewItem({
+  review: r,
+  slug,
+  viewerIsOwner,
+}: {
+  review: CourseReview;
+  slug: string;
+  viewerIsOwner: boolean;
+}) {
+  return (
+    <>
+      <div className="mb-2 flex flex-wrap items-center gap-3">
+        <Stars value={r.rating} />
+        <span className="font-display text-sm tracking-wide text-lila-300">{r.authorName}</span>
+        <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
+          {formatCertificateDate(r.updatedAt)}
+        </span>
+      </div>
+      {r.body && <p className="font-body text-sm text-ink-soft leading-relaxed">{r.body}</p>}
+      {r.response ? (
+        <div className="mt-4 border-l-2 border-lila-300/30 pl-4">
+          <p className="mb-1 font-display text-eyebrow tracking-cosmic text-lila-300">
+            Respuesta de la guía
+          </p>
+          <p className="font-body text-sm text-ink-soft leading-relaxed">{r.response}</p>
+        </div>
+      ) : (
+        viewerIsOwner && <ResponseForm reviewId={r.id} slug={slug} />
+      )}
+    </>
   );
 }

@@ -5,6 +5,8 @@ export interface CourseCompletedProps {
   studentName: string;
   courseTitle: string;
   certificateUrl: string;
+  /** Ficha del curso con el ancla de reseñas (T-028 c.7). Un link en este mail, no una campaña. */
+  reviewUrl: string;
 }
 
 /** Mail 2/4 (T-020): "completaste el curso", con link al certificado (T-018,
@@ -21,7 +23,11 @@ export function renderCourseCompletedMail(props: CourseCompletedProps) {
       <strong style="color:#f5d76e;">${escapeHtml(props.courseTitle)}</strong>. Tu certificado
       ya está emitido y es verificable con solo abrir el link — nadie más lo puede editar.
     </p>
-    <p style="margin:0;">Gracias por sostener el camino hasta acá.</p>`;
+    <p style="margin:0 0 14px;">Gracias por sostener el camino hasta acá.</p>
+    <p style="margin:0;">
+      Si querés contarle a quien viene detrás cómo fue el recorrido,
+      <a href="${escapeHtml(props.reviewUrl)}" style="color:#c4b5fd;">dejá tu reseña del curso</a>.
+    </p>`;
 
   const html = renderEmailHtml({
     preheader: `Tu certificado de ${props.courseTitle} ya está listo.`,
@@ -41,6 +47,9 @@ export function renderCourseCompletedMail(props: CourseCompletedProps) {
       "está emitido y es verificable con solo abrir el link — nadie más lo puede editar.",
       "",
       "Gracias por sostener el camino hasta acá.",
+      "",
+      "Si querés contarle a quien viene detrás cómo fue el recorrido, dejá tu reseña:",
+      props.reviewUrl,
     ],
     cta: { label: "Ver mi certificado", url: props.certificateUrl },
   });

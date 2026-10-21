@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { noLocator } from "@/lib/validation/teacher";
+// La lógica de escritura vive en un .mjs para que la suite de la base la ejecute tal cual
+// (ver `lib/reviews/write.mjs`).
+import { guardarResena, responderResena, traducirErrorResena } from "@/lib/reviews/write.mjs";
 
 export interface ReviewActionState {
   error: string | null;
@@ -15,22 +18,6 @@ const reviewSchema = z.object({
   // Opcional a proposito: se puede puntuar sin escribir (criterio 2).
   body: noLocator(z.string().trim().max(4000).optional().or(z.literal("")), "reseña"),
 });
-
-/** El 42501 lo levanta `guard_course_reviews` (0024) y el 23514 el CHECK de forma: la
- *  coincidencia EXACTA de ADR-009 necesita consultar `lessons` y ningún schema del cliente puede
- *  replicarla. Sin traducir, la alumna ve un error crudo del motor. */
-function traducir(code: string | undefined, fallback: string): string {
-  if (code === "42501") {
-    return "El texto contiene el identificador de un video o archivo del curso. Ese dato es de contenido pago y no puede aparecer en una reseña, que se lee sin inscripción.";
-  }
-  if (code === "23514") {
-    return "El texto no puede contener links.";
-  }
-  if (code === "23505") {
-    return "Ya dejaste una reseña de este curso. Editá la que tenés.";
-  }
-  return fallback;
-}
 
 export async function saveReviewAction(
   courseId: string,
@@ -51,22 +38,20 @@ export async function saveReviewAction(
   const uid = userData.user?.id;
   if (!uid) return { error: "Necesitás iniciar sesión.", success: null };
 
-  // `upsert` sobre la clave (user_id, course_id): una sola reseña por alumna y curso, y editarla
-  // es el mismo camino que crearla. Quien NO tiene inscripcion activa rebota en RLS igual —
-  // este action no vuelve a autorizar nada, solo traduce.
-  const { error } = await supabase
-    .from("course_reviews")
-    .upsert(
-      { course_id: courseId, user_id: uid, rating: parsed.data.rating, body: parsed.data.body || null },
-      { onConflict: "user_id,course_id" },
-    );
+  // RLS decide si puede (inscripción activa); acá solo se elige insert-o-update y se traduce.
+  const { error, created } = await guardarResena(supabase, {
+    courseId,
+    userId: uid,
+    rating: parsed.data.rating,
+    body: parsed.data.body || null,
+  });
 
   if (error) {
-    return { error: traducir(error.code, `No se pudo guardar la reseña: ${error.message}`), success: null };
+    return { error: traducirErrorResena(error, `No se pudo guardar la reseña: ${error.message}`), success: null };
   }
 
   revalidatePath(`/cursos/${slug}`);
-  return { error: null, success: "Gracias por dejar tu reseña." };
+  return { error: null, success: created ? "Gracias por dejar tu reseña." : "Reseña actualizada." };
 }
 
 export async function respondReviewAction(
@@ -86,15 +71,12 @@ export async function respondReviewAction(
   const uid = userData.user?.id;
   if (!uid) return { error: "Necesitás iniciar sesión.", success: null };
 
-  // Quien no es la guía dueña rebota en RLS (`course_reviews_respond_owner`), y si intentara
-  // tocar rating o body lo frena el guard. Acá no se re-autoriza nada.
-  const { error } = await supabase
-    .from("course_reviews")
-    .update({ response: parsed.data, responded_at: new Date().toISOString(), responded_by: uid })
-    .eq("id", reviewId);
+  // Solo el texto: la firma (`responded_by`/`responded_at`) la pone el guard (0026). Una guía
+  // que no es dueña afecta 0 filas y eso vuelve como error, no como éxito.
+  const { error } = await responderResena(supabase, { reviewId, response: parsed.data });
 
   if (error) {
-    return { error: traducir(error.code, `No se pudo responder: ${error.message}`), success: null };
+    return { error: traducirErrorResena(error, `No se pudo responder: ${error.message}`), success: null };
   }
 
   revalidatePath(`/cursos/${slug}`);
