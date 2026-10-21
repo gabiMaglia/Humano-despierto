@@ -29,6 +29,9 @@ weekly drip. Active enrollment grants access to the whole curriculum at once.
 
 ## Commands
 
+### Setup
+`nvm use` (`.nvmrc` = 22) · `cp webApp/.env.example webApp/.env.local` · usuarios de prueba en `README.md`.
+
 ### webApp (Next.js 16, React 19, Tailwind 4)
 ```bash
 cd webApp
@@ -42,7 +45,7 @@ npm run build    # production build (don't run unless asked)
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 96 tests, ~20s, no Docker and no credentials needed
+npm test         # 449 tests, ~20s, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -51,7 +54,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~3.6k LOC.** 11 route files, 24 components, 8 mock modules, `tokens.css`, zustand store. |
-| `webApp/supabase` | **Schema live.** 6 migrations, 9 tables, RLS + per-column grants + guard triggers, 96 mutation tests. |
+| `webApp/supabase` | **Schema live.** 24 migrations, 14 tables, RLS + per-column grants + guard triggers, 449 mutation tests. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
