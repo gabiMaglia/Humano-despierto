@@ -15,8 +15,9 @@ alter table public.profiles
   add column avatar_path text;
 
 alter table public.profiles
+  -- `\(?` porque en Argentina se escribe "(011) 4000-0000"; sin el, empezar con parentesis rebota.
   add constraint profiles_phone_format
-    check (phone is null or phone ~ '^\+?[0-9][0-9 ()-]{5,19}$'),
+    check (phone is null or phone ~ '^\+?\(?[0-9][0-9 ()-]{5,19}$'),
   add constraint profiles_birth_date_range
     check (birth_date is null or (birth_date > date '1900-01-01' and birth_date <= current_date)),
   -- `avatar_path` lo lee `anon` y lo escribe la duena: es de la clase de ADR-009. El regex cierra

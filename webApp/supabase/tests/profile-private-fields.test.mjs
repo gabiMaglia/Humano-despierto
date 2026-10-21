@@ -190,6 +190,16 @@ describe('T-042 · datos privados del perfil', () => {
   });
 
   describe('formato de telefono y fecha', () => {
+    // El espejo zod acepta un codigo de area entre parentesis; si el CHECK no, la persona ve un
+    // 23514 crudo con un telefono que el formulario dio por bueno.
+    test('un telefono con codigo de area entre parentesis entra', async () => {
+      const r = await asTeacher(db, () =>
+        attempt(db, `update public.profiles set phone = '(011) 4000-0000' where id = $1 returning id`, [ID.teacherA]),
+      );
+      assert.equal(r.ok, true, r.message);
+      await sembrarPrivados(db);
+    });
+
     test('un telefono con letras viola el CHECK', async () => {
       const r = await asTeacher(db, () =>
         attempt(db, `update public.profiles set phone = 'llamame al fijo' where id = $1`, [ID.teacherA]),
