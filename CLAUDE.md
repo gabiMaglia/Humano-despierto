@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # ~560 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 561 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
