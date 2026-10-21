@@ -98,6 +98,10 @@ for p in / /cursos /guias /diario /entrar; do
     else echo "  ok     $p nonce distinto por request, $total <script> con nonce"; fi
   fi
 done
+c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/csp-report' \
+  --data '{"csp-report":{"blocked-uri":"inline","violated-directive":"script-src-elem","document-uri":"http://localhost:3000/check-seo"}}' \
+  "$BASE/api/csp-report")
+[ "$c" = "204" ] && echo "  ok     endpoint /api/csp-report 204" || { echo "  FALLA  /api/csp-report respondio '$c'"; fail=1; }
 
 [ "$fail" -eq 0 ] && echo "SEO OK" || echo "SEO CON FALLAS"
 exit "$fail"
