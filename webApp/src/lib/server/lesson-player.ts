@@ -19,6 +19,8 @@ export interface PlayerResource {
   type: string;
   name: string;
   sizeLabel: string | null;
+  /** Ruta del handler que verifica acceso y redirige; nunca el localizador (ADR-003). */
+  href: string;
 }
 
 export interface PlayerNote {
@@ -297,6 +299,7 @@ export const getLessonPlayerData = cache(async function getLessonPlayerData(
       type: r.type,
       name: r.name,
       sizeLabel: r.size_label,
+      href: `/leccion/${row.id}/recurso/${r.id}`,
     })),
     notes: (notesRes.data ?? []).map((n) => ({
       id: n.id,
