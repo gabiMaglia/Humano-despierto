@@ -3,13 +3,20 @@ import UserRoleRow from "@/components/admin/UserRoleRow";
 import CourseStatusRow from "@/components/admin/CourseStatusRow";
 import EnrollmentGrantForm from "@/components/admin/EnrollmentGrantForm";
 import EnrollmentRow from "@/components/admin/EnrollmentRow";
-import { listAllUsers, listAllCourses, listAllEnrollments } from "@/lib/server/admin";
+import EnrollmentRequestRow from "@/components/admin/EnrollmentRequestRow";
+import {
+  listAllUsers,
+  listAllCourses,
+  listAllEnrollments,
+  listPendingEnrollmentRequests,
+} from "@/lib/server/admin";
 
 export default async function AdminPanelPage() {
-  const [users, courses, enrollments] = await Promise.all([
+  const [users, courses, enrollments, requests] = await Promise.all([
     listAllUsers(),
     listAllCourses(),
     listAllEnrollments(),
+    listPendingEnrollmentRequests(),
   ]);
 
   return (
@@ -33,6 +40,20 @@ export default async function AdminPanelPage() {
             <ul className="space-y-3">
               {users.map((u) => (
                 <UserRoleRow key={u.id} user={u} />
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby="solicitudes-pendientes">
+            <h2 id="solicitudes-pendientes" className="mb-5 font-display text-lg tracking-wide text-ink">
+              Solicitudes pendientes <span className="text-ink-faint">({requests.length})</span>
+            </h2>
+            <ul className="space-y-3">
+              {requests.length === 0 && (
+                <li className="font-body text-sm text-ink-faint">No hay solicitudes pendientes.</li>
+              )}
+              {requests.map((r) => (
+                <EnrollmentRequestRow key={r.id} request={r} />
               ))}
             </ul>
           </section>
