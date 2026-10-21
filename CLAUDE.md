@@ -144,8 +144,10 @@ covered by mutation tests that fail loudly if you regress them.
 
 ## External dependencies not yet provisioned
 Two things block work and require the repo owner's accounts:
-- **Supabase project** — the schema has never run against real Postgres. Everything is verified
-  against PGlite, which does **not** run PostgREST, so the HTTP attack surface is unexercised.
+- **Supabase cloud project** does not exist. The schema has only run on PGlite (`npm test`,
+  no PostgREST) and on the local Supabase stack (`supabase start`, where
+  `harness/b1-postgrest-attacks.sh` exercises the HTTP surface). Re-run b1 against the cloud
+  instance before any release (locale-dependent CHECKs, see migration 0012).
 - **YouTube Data API v3 key** (`YOUTUBE_API_KEY`, server-side, no `NEXT_PUBLIC_` prefix) —
   lesson duration is resolved by the server from the video, not typed by the teacher.
 
