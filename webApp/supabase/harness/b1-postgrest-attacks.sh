@@ -554,6 +554,33 @@ x "delete from public.enrollments where user_id='$SOLICITANTE' and course_id='$C
 x "delete from public.courses where slug='curso-borrador-b1';"
 
 echo ""
+echo "── T-033 · guardados: RLS de duena y curso publicado, por HTTP"
+x "delete from public.course_wishlist where user_id in ('$ALUMNA','$SOLICITANTE');
+   insert into public.courses (slug,title,discipline,level,price_cents,teacher_id,status)
+   values ('curso-borrador-b1w','Curso Borrador W','tarot','inicial',10000,'$DOCENTE','draft')
+   on conflict (slug) do update set teacher_id='$DOCENTE', status='draft';"
+BORRADOR_W=$(q "select id from public.courses where slug='curso-borrador-b1w';")
+esperar "(w1) guardar a nombre de otra"            403 POST "course_wishlist" "$ALUMNA_JWT" "{\"user_id\":\"$SOLICITANTE\",\"course_id\":\"$CURSO\"}"
+esperar "(w2) guardar un curso en borrador"        403 POST "course_wishlist" "$ALUMNA_JWT" "{\"user_id\":\"$ALUMNA\",\"course_id\":\"$BORRADOR_W\"}"
+esperar "(w3) anon guarda"                         401 POST "course_wishlist" "$ANON" "{\"user_id\":\"$ALUMNA\",\"course_id\":\"$CURSO\"}"
+esperar "(w4) anon lee la tabla"                   403 GET  "course_wishlist?select=user_id" "$ANON"
+# Control positivo: sin el, un esquema que rechace todo daria verde arriba.
+esperar "(w+) guardado legitimo"                   201 POST "course_wishlist" "$SOLICITANTE_JWT" "{\"user_id\":\"$SOLICITANTE\",\"course_id\":\"$CURSO\"}"
+esperar "(w5) guardar dos veces (23505 -> 409)"    409 POST "course_wishlist" "$SOLICITANTE_JWT" "{\"user_id\":\"$SOLICITANTE\",\"course_id\":\"$CURSO\"}"
+esperar "(w6) no hay UPDATE (robar la fila)"       403 PATCH "course_wishlist?user_id=eq.$SOLICITANTE" "$ALUMNA_JWT" "{\"user_id\":\"$ALUMNA\"}"
+# La RLS filtra en silencio: leer y borrar lo ajeno es 200 con [] / 204 sin efecto. Se afirma la forma y la DB.
+AJENA=$(curl -s "$API/rest/v1/course_wishlist?user_id=eq.$SOLICITANTE" -H "apikey: $ANON" -H "Authorization: Bearer $ALUMNA_JWT")
+if [ "$AJENA" = "[]" ]; then printf '  ok    %-52s %s\n' "(w7) leer la wishlist ajena" "[]"
+else printf '  FALLA %-52s %s\n' "(w7) la wishlist ajena se filtro" "$(head -c 120 <<<"$AJENA")"; fallos=$((fallos+1)); fi
+esperar "(w8) borrar la ajena (204, sin efecto)"   204 DELETE "course_wishlist?user_id=eq.$SOLICITANTE" "$ALUMNA_JWT"
+SIGUE=$(q "select count(*) from public.course_wishlist where user_id='$SOLICITANTE';")
+if [ "$SIGUE" = "1" ]; then printf '  ok    %-52s %s\n' "la fila ajena sigue en la DB" "afirmado, no supuesto"
+else printf '  FALLA la fila ajena cambio: %s\n' "$SIGUE"; fallos=$((fallos+1)); fi
+esperar "(w+) quitar la propia"                    204 DELETE "course_wishlist?user_id=eq.$SOLICITANTE" "$SOLICITANTE_JWT"
+x "delete from public.course_wishlist where user_id in ('$ALUMNA','$SOLICITANTE');
+   delete from public.courses where slug='curso-borrador-b1w';"
+
+echo ""
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"

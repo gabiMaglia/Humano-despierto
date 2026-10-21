@@ -47,7 +47,7 @@ test("c.2 + c.3 · la alumna pide, la ficha dice Solicitud enviada, el panel la 
     ),
   ).toBe("requested:true:null");
 
-  await page.goto("/panel");
+  await page.goto("/panel?tab=solicitados");
   await expect(page.getByRole("region", { name: /Solicitudes enviadas/ })).toContainText("Herbario");
   await expect(page.locator("article", { hasText: "Herbario" })).toHaveCount(0);
 
