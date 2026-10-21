@@ -86,6 +86,12 @@ export default function Nav() {
                 </span>
                 <span>{user?.fullName || user?.email}</span>
               </Link>
+              <Link
+                href="/panel/perfil"
+                className="font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-lila-300"
+              >
+                Mi perfil
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-gold-400 transition-colors"
