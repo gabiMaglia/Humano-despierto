@@ -1,7 +1,9 @@
 import Link from "next/link";
 import Nav from "@/components/layout/Nav";
 import PanelTabs from "@/components/teacher/PanelTabs";
+import TeacherReportList from "@/components/teacher/TeacherReportList";
 import { requireTeacher, listTeacherCourses } from "@/lib/server/teacher";
+import { listOwnReviewReports } from "@/lib/server/reviews-admin";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Borrador",
@@ -13,7 +15,7 @@ const STATUS_LABEL: Record<string, string> = {
 // `teacher_id` con el cliente de sesión (RLS scoped, no hace falta repetirlo acá).
 export default async function TeacherPanelPage() {
   const teacher = await requireTeacher();
-  const courses = await listTeacherCourses(teacher.id);
+  const [courses, reports] = await Promise.all([listTeacherCourses(teacher.id), listOwnReviewReports(teacher.id)]);
 
   return (
     <div className="min-h-screen bg-cosmos-0 text-ink">
@@ -60,6 +62,9 @@ export default async function TeacherPanelPage() {
             </Link>
           ))}
         </div>
+
+        {/* Sin reportes no se dibuja nada: una sección vacía es ruido para quien nunca reportó. */}
+        {reports.length > 0 && <TeacherReportList reports={reports} />}
       </div>
     </div>
   );
