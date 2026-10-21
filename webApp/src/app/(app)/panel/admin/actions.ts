@@ -7,6 +7,8 @@ import { hasLocator } from "@/lib/validation/locator.mjs";
 import { ENROLLMENT_COPY, NO_ROWS, REASON_MAX, translateEnrollmentError } from "@/lib/enrollment/messages";
 import { requireAdmin } from "@/lib/server/admin";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
+import { resolveGrantTarget } from "@/lib/server/enrollment-grant";
+import { normalizeEmail } from "@/lib/admin/email";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import type { AppRole } from "@/lib/stores/useAuthStore";
 
@@ -69,7 +71,7 @@ export async function updateUserRoleAction(
     return { error: `No se pudo actualizar el rol: ${updateError.message}`, success: null };
   }
 
-  revalidatePath("/panel/admin");
+  revalidatePath("/panel/admin", "layout");
   return {
     error: null,
     success: `${target.full_name || "Usuario"} ahora es ${nextRole}.`,
@@ -130,7 +132,7 @@ export async function setEnrollmentAction(
     await notifyEnrollmentActivated({ studentId: userId, courseId });
   }
 
-  revalidatePath("/panel/admin");
+  revalidatePath("/panel/admin", "layout");
   return {
     error: null,
     success: status === "active" ? "Inscripción activada." : "Inscripción dada de baja.",
@@ -164,7 +166,7 @@ export async function setCourseStatusAction(
     return { error: `No se pudo actualizar el curso: ${error.message}`, success: null };
   }
 
-  revalidatePath("/panel/admin");
+  revalidatePath("/panel/admin", "layout");
   revalidatePath("/cursos");
   return { error: null, success: "Estado del curso actualizado." };
 }
@@ -208,7 +210,7 @@ export async function approveEnrollmentRequestAction(
   // la aprobación ni cambia esta respuesta (c.11).
   await notifyEnrollmentActivated({ studentId: row.user_id, courseId: row.course_id });
 
-  revalidatePath("/panel/admin");
+  revalidatePath("/panel/admin", "layout");
   revalidatePath("/cursos/[slug]", "page");
   return { error: null, success: ENROLLMENT_COPY.approved };
 }
@@ -243,7 +245,7 @@ export async function rejectEnrollmentRequestAction(
 
   await notifyEnrollmentRejected({ studentId: row.user_id, courseId: row.course_id, reason: decidedReason });
 
-  revalidatePath("/panel/admin");
+  revalidatePath("/panel/admin", "layout");
   revalidatePath("/cursos/[slug]", "page");
   return { error: null, success: ENROLLMENT_COPY.rejected };
 }
@@ -340,4 +342,28 @@ export async function dismissReportAction(
 
   revalidateModeration();
   return { error: null, success: "Reporte desestimado. La reseña sigue visible." };
+}
+
+const COURSE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** T-049: el formulario ya no recibe todas las cuentas y cursos; resuelve mail y slug en el
+ *  servidor y delega en setEnrollmentAction, que sigue siendo el único que inscribe. */
+export async function grantEnrollmentByEmailAction(
+  prevState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdmin();
+  const email = normalizeEmail(formData.get("email"));
+  const courseSlug = String(formData.get("courseSlug") ?? "").trim().toLowerCase();
+  if (!email || courseSlug.length > 120 || !COURSE_SLUG.test(courseSlug)) {
+    return { error: "Datos inválidos.", success: null };
+  }
+  const target = await resolveGrantTarget({ email, courseSlug });
+  if (!target.ok) return { error: target.error, success: null };
+
+  const delegated = new FormData();
+  delegated.set("userId", target.userId);
+  delegated.set("courseId", target.courseId);
+  delegated.set("status", "active");
+  return setEnrollmentAction(prevState, delegated);
 }
