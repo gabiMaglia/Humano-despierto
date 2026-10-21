@@ -41,7 +41,7 @@ npx tsc --noEmit # typecheck
 npm run build    # production build (don't run unless asked)
 npm test         # Vitest, unit layer only (src/lib/**, Server Actions); no stack, no network
 npm run test:unit # same as npm test
-npm run test:e2e # Playwright; needs `npx supabase start` first (starts `next dev` itself, or reuses :3000)
+npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next dev` on localhost:3101
 ```
 
 ### Database (Postgres/Supabase schema + security tests)
@@ -110,7 +110,12 @@ the user-session client (anon key + JWT, subject to RLS) for everything ordinary
 session is born in `/auth/callback`, which also sends the welcome mail (deduped by `mail_log`).
 `?next=` is sanitised only by `src/lib/auth/safe-next.ts`; without a valid `next` the login
 lands by `profiles.role` (`/panel/admin`, `/panel/docente`, `/panel`). Mail links must be
-opened in the browser that requested them: the PKCE verifier lives in a cookie. Local e2e needs
+opened in the browser that requested them: the PKCE verifier lives in a cookie. Use
+`localhost` (not `127.0.0.1`) in the browser, matching `SITE_URL` and `site_url`.
+Every auth redirect is a trusted origin + `safeNext`: `getSiteUrl()` on the server (never the
+`Origin` header), `window.location.origin` on the client; GoTrue's exact allow-list
+(`additional_redirect_urls`, fixed host and port, `**` only after `/auth/callback`) is the final
+authority. Adding a port means adding its exact entry there. Local e2e needs
 `SMTP_HOST=127.0.0.1` and `SMTP_PORT=54325` in `webApp/.env.local` for the app's own mails.
 
 ### Security rules that are enforced by the schema — do not fight them
