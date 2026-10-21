@@ -56,7 +56,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 
 | Area | State |
 |------|-------|
-| `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, 1 mock module left (`lib/mocks/landing.ts`, scheduled for removal in T-053), `tokens.css`. Real Supabase queries everywhere else. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
+| `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
 | `webApp/supabase` | **Schema live.** 30 migrations (last `0033`), 18 tables, RLS + per-column grants + guard triggers, 664 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
@@ -65,7 +65,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 
 ### Routes that exist
 ```
-/                                   Landing (hero/testimonials still from the last mock)
+/                                   Landing (stats, disciplines, testimonials from the DB; lunar calendar computed)
 /cursos  ·  /cursos/[slug]          Catalogue · course page (objectives, promo video, reviews)
 /guias  ·  /guias/[slug]            Teacher directory + public profile
 /diario  ·  /diario/[slug]          Blog, written by teachers
@@ -189,7 +189,7 @@ covered by mutation tests that fail loudly if you regress them.
 - No comments unless the WHY is non-obvious.
 - `cn()` = `clsx` + `tailwind-merge`.
 - Server Components by default; `'use client'` only for interactivity or animation.
-- The only mock left is `src/lib/mocks/landing.ts` (T-053 removes it). Do not add mocks.
+- There are no mocks left (T-053 removed the last one). Do not add mocks.
 
 ## External dependencies not yet provisioned
 Three things block work and require the repo owner's accounts:
