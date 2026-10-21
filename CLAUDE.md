@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 561 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 656 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~13.9k LOC.** 22 routes (`page.tsx`), 57 files under `components/`, 1 mock module left (`lib/mocks/landing.ts`, scheduled for removal in T-053), `tokens.css`. Real Supabase queries everywhere else. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 27 migrations (last `0030`), 14 tables, RLS + per-column grants + guard triggers, 520 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047); its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 28 migrations (last `0031`), 17 tables, RLS + per-column grants + guard triggers, 656 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -79,7 +79,9 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /panel/perfil                       Own profile, all three roles: name, bio,  [auth]
                                     phone, birth date, avatar
 /leccion/[id]                       Lesson player: YouTube IFrame API,        [auth or preview]
-                                    persisted progress, chapters, notes
+                                    persisted progress, chapters, notes,      [owner teacher and
+                                    Q&A tab (T-030)                            admin open it to
+                                                                              answer and moderate]
 /circulo  ·  /circulo/[curso]       Campus threads                            [auth]
 /panel/docente/**                   Teacher panel: courses, modules, lessons, [teacher]
                                     chapters, resources, diario posts
@@ -164,6 +166,11 @@ covered by mutation tests that fail loudly if you regress them.
    load the duration first.
 6. **Money and time are integers in their smallest unit.** `price_cents`, `duration_seconds`.
    Never float, never string. Formatting belongs to the view.
+7. **Q&A text is read by the whole cohort, so it carries both R-3 halves.** `lesson_questions`
+   and `lesson_answers` have no `anon` grant; their columns live in the "session" class
+   (`columnasConSesion`, `tests/locator-session-class.test.mjs`), not in the anon one. The
+   owner teacher (`teacher_id` **and** `profiles.role = 'teacher'`) and the admin open the player
+   to answer and moderate, but never write progress or notes (ADR-003 as extended by T-030).
 
 ## Design language (hard constraints)
 - Dark theme `Cosmos`: bg `#0a0418` · ink `#ede4ff` · lila `#c4b5fd` · gold `#f5d76e`.

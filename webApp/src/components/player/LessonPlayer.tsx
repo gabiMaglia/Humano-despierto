@@ -16,6 +16,7 @@ import PlayerTabs from "@/components/player/PlayerTabs";
 import CurriculumTab from "@/components/player/CurriculumTab";
 import NotesTab from "@/components/player/NotesTab";
 import ResourcesTab from "@/components/player/ResourcesTab";
+import LessonQA from "@/components/player/qa/LessonQA";
 import EndCard from "@/components/player/EndCard";
 import { resolveClosingHref } from "@/app/leccion/[id]/actions";
 import type { LessonPlayerData } from "@/lib/server/lesson-player";
@@ -34,7 +35,7 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
 
   const progress = useLessonProgress({
     lessonId: data.lessonId,
-    isAuthenticated: data.isAuthenticated,
+    canTrackProgress: data.canTrackProgress,
     initialSecondsWatched: data.initialSecondsWatched,
     initialCompleted: data.completed,
   });
@@ -277,7 +278,6 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
           </div>
         </main>
 
-        {/* T-030 suma "Preguntas" agregando un elemento a `tabs`. */}
         <PlayerTabs
           label="Contenido de la lección"
           initialTabId="notas"
@@ -290,9 +290,17 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
             {
               id: "notas",
               label: "Notas",
-              panel: <NotesTab isAuthenticated={data.isAuthenticated} currentTime={currentTime} api={notesApi} />,
+              panel: (
+                <NotesTab
+                  isAuthenticated={data.isAuthenticated}
+                  canTakeNotes={data.canTrackProgress}
+                  currentTime={currentTime}
+                  api={notesApi}
+                />
+              ),
             },
             { id: "recursos", label: "Recursos", panel: <ResourcesTab resources={data.resources} /> },
+            { id: "preguntas", label: "Preguntas", panel: <LessonQA lessonId={data.lessonId} data={data.qa} /> },
           ]}
         />
       </div>

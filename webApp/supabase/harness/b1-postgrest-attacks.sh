@@ -553,6 +553,128 @@ else printf '  FALLA %-52s %s\n' "(e+c) service_role no pudo aprobar" "$EST_SOL"
 x "delete from public.enrollments where user_id='$SOLICITANTE' and course_id='$CURSO';"
 x "delete from public.courses where slug='curso-borrador-b1';"
 
+echo "── T-030 · Q&A por leccion: solo quien cursa, un voto, la docente destaca, nada pago en el texto"
+# POST con return=representation y devuelve el id (o vacio). Los ataques de edicion, destacado y
+# moderacion necesitan filas reales sobre las que atacar.
+crear() {
+  curl -s -X POST "$API/rest/v1/$1" -H "apikey: $ANON" -H "Authorization: Bearer $2" \
+       -H "Content-Type: application/json" -H "Prefer: return=representation" -d "$3" |
+    python3 -c "import sys,json
+try:
+    d = json.load(sys.stdin)
+    print(d[0]['id'] if isinstance(d, list) and d else '')
+except Exception:
+    print('')" 2>/dev/null
+}
+afirmar() {  # $1 rotulo · $2 obtenido · $3 esperado
+  if [ "$2" = "$3" ]; then printf '  ok    %-52s %s\n' "$1" "$2"
+  else printf '  FALLA %-52s obtuve=%s esperaba=%s\n' "$1" "$2" "$3"; fallos=$((fallos+1)); fi
+}
+# Actoras PROPIAS: b1-alumna tiene que seguir sin inscripcion para (q1) y para el chequeo final.
+alta "b1-preguntona@test.local" '' student
+alta "b1-curiosa@test.local" '' student
+PREG_JWT=$(tok "b1-preguntona@test.local"); CUR_JWT=$(tok "b1-curiosa@test.local")
+PREG=$(q "select id from auth.users where email='b1-preguntona@test.local';")
+CUR=$(q "select id from auth.users where email='b1-curiosa@test.local';")
+for U in "$PREG" "$CUR"; do
+  x "insert into public.enrollments (user_id,course_id,status) values ('$U','$CURSO','active')
+     on conflict (user_id,course_id) do update set status='active';"
+done
+# Idempotencia: la corrida anterior pudo dejar filas. `x` es postgres (service): el guard no frena.
+x "delete from public.lesson_questions where course_id='$CURSO';"
+
+esperar "(q1) preguntar SIN inscripcion"            403 POST "lesson_questions" "$ALUMNA_JWT" \
+  "{\"lesson_id\":\"$LEC\",\"author_id\":\"$ALUMNA\",\"title\":\"No deberia\",\"body\":\"Sin inscripcion\"}"
+esperar "(q2) anon lee preguntas"                   403 GET "lesson_questions?select=id,title" "$ANON"
+esperar "(q2b) anon lee respuestas"                 403 GET "lesson_answers?select=id,body" "$ANON"
+esperar "(q2c) anon lee votos"                      403 GET "lesson_question_votes?select=question_id" "$ANON"
+esperar "(q2d) el cliente elige el curso"           403 POST "lesson_questions" "$PREG_JWT" \
+  "{\"lesson_id\":\"$LEC\",\"course_id\":\"$CURSO\",\"author_id\":\"$PREG\",\"title\":\"Con curso\",\"body\":\"No tiene grant\"}"
+
+PREGUNTA=$(crear lesson_questions "$PREG_JWT" \
+  "{\"lesson_id\":\"$LEC\",\"author_id\":\"$PREG\",\"title\":\"Sobre la leccion\",\"body\":\"No entendi el minuto 12\"}")
+if [ -n "$PREGUNTA" ]; then printf '  ok    %-52s %s\n' "(q3) inscripta pregunta (control positivo, 201)" "$PREGUNTA"
+else printf '  FALLA %-52s\n' "(q3) la inscripta no pudo preguntar"; fallos=$((fallos+1)); fi
+afirmar "(q3b) course_id derivado de la leccion" "$(q "select course_id from public.lesson_questions where id='$PREGUNTA';")" "$CURSO"
+
+esperar "(q4) votar"                                201 POST "lesson_question_votes" "$CUR_JWT" "{\"question_id\":\"$PREGUNTA\",\"user_id\":\"$CUR\"}"
+# 23505 -> 409 en PostgREST.
+esperar "(q4b) votar dos veces"                     409 POST "lesson_question_votes" "$CUR_JWT" "{\"question_id\":\"$PREGUNTA\",\"user_id\":\"$CUR\"}"
+afirmar "(q4c) el contador no cambio" "$(q "select count(*) from public.lesson_question_votes where question_id='$PREGUNTA';")" "1"
+# La curiosa VE la fila (USING ancho) y el guard la rechaza: 403 explicito, no 204 con 0 filas.
+esperar "(q5) editar la pregunta ajena"             403 PATCH "lesson_questions?id=eq.$PREGUNTA" "$CUR_JWT" '{"title":"Secuestrada"}'
+esperar "(q6) mandar is_instructor_answer=true"     403 POST "lesson_answers" "$CUR_JWT" \
+  "{\"question_id\":\"$PREGUNTA\",\"author_id\":\"$CUR\",\"body\":\"Soy docente\",\"is_instructor_answer\":true}"
+
+R_ALUMNA=$(crear lesson_answers "$CUR_JWT" "{\"question_id\":\"$PREGUNTA\",\"author_id\":\"$CUR\",\"body\":\"Creo que es por la inversion\"}")
+R_DOCENTE=$(crear lesson_answers "$DOCENTE_JWT" "{\"question_id\":\"$PREGUNTA\",\"author_id\":\"$DOCENTE\",\"body\":\"La inversion es una pausa\"}")
+if [ -n "$R_ALUMNA" ] && [ -n "$R_DOCENTE" ]; then printf '  ok    %-52s\n' "(q7) alumna y docente responden (control positivo, 201)"
+else printf '  FALLA %-52s alumna=%s docente=%s\n' "(q7) no se pudo responder" "$R_ALUMNA" "$R_DOCENTE"; fallos=$((fallos+1)); fi
+afirmar "(q7b) is_instructor_answer derivado" \
+  "$(q "select string_agg(is_instructor_answer::text, ',' order by created_at) from public.lesson_answers where question_id='$PREGUNTA';")" "false,true"
+
+esperar "(q8) destacar la respuesta de una alumna"  403 PATCH "lesson_answers?id=eq.$R_ALUMNA" "$DOCENTE_JWT" '{"featured_at":"2026-01-01T00:00:00Z"}'
+esperar "(q8b) la alumna destaca"                   403 PATCH "lesson_answers?id=eq.$R_DOCENTE" "$CUR_JWT" '{"featured_at":"2026-01-01T00:00:00Z"}'
+esperar "(q9) la docente destaca la suya"           204 PATCH "lesson_answers?id=eq.$R_DOCENTE" "$DOCENTE_JWT" '{"featured_at":"2026-01-01T00:00:00Z"}'
+afirmar "(q9b) el guard firmo el destacado" "$(q "select featured_by from public.lesson_answers where id='$R_DOCENTE';")" "$DOCENTE"
+esperar "(q9c) firmar el destacado a mano"          403 PATCH "lesson_answers?id=eq.$R_DOCENTE" "$DOCENTE_JWT" "{\"featured_by\":\"$CUR\"}"
+
+# ADR-009 mitad exacta: el video_id real del curso lo frena el trigger (42501 -> 403), no el CHECK.
+esperar "(q10) video_id real en la pregunta"        403 POST "lesson_questions" "$PREG_JWT" \
+  "{\"lesson_id\":\"$LEC\",\"author_id\":\"$PREG\",\"title\":\"Una duda\",\"body\":\"Mira SECRETVIDEO\"}"
+esperar "(q10b) video_id real en una respuesta"     403 POST "lesson_answers" "$CUR_JWT" \
+  "{\"question_id\":\"$PREGUNTA\",\"author_id\":\"$CUR\",\"body\":\"Esta en SECRETVIDEO\"}"
+# Mitad de forma: el CHECK (23514 -> 400).
+esperar "(q11) forma de link en la pregunta"        400 POST "lesson_questions" "$PREG_JWT" \
+  "{\"lesson_id\":\"$LEC\",\"author_id\":\"$PREG\",\"title\":\"Una duda\",\"body\":\"drive.google.com/file/d/LEAKED123\"}"
+
+esperar "(q12) DELETE fisico, docente duena"        403 DELETE "lesson_questions?id=eq.$PREGUNTA" "$DOCENTE_JWT"
+esperar "(q13) course_open_questions, una alumna"   403 POST "rpc/course_open_questions" "$CUR_JWT" "{\"p_course_id\":\"$CURSO\"}"
+esperar "(q13b) course_open_questions, la duena"    200 POST "rpc/course_open_questions" "$DOCENTE_JWT" "{\"p_course_id\":\"$CURSO\"}"
+esperar "(q14) borrar sin motivo"                   403 PATCH "lesson_questions?id=eq.$PREGUNTA" "$DOCENTE_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$DOCENTE\",\"deleted_reason\":\"   \"}"
+esperar "(q14b) la duena modera con motivo"         204 PATCH "lesson_questions?id=eq.$PREGUNTA" "$DOCENTE_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$DOCENTE\",\"deleted_reason\":\"control positivo\"}"
+
+# E1 (D-26) · el motivo de moderacion del Campus tambien lo lee toda la cohorte del hilo.
+POST_E1=$(crear_post "$CURSO" "$PREG_JWT" "$PREG" "Mensaje para moderar")
+esperar "(q15) video_id real en el motivo de Campus"  403 PATCH "campus_posts?id=eq.$POST_E1" "$DOCENTE_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$DOCENTE\",\"deleted_reason\":\"Copia SECRETVIDEO\"}"
+esperar "(q15b) motivo de Campus en prosa"            204 PATCH "campus_posts?id=eq.$POST_E1" "$DOCENTE_JWT" \
+  "{\"deleted_at\":\"$(date -u +%FT%TZ)\",\"deleted_by\":\"$DOCENTE\",\"deleted_reason\":\"Repite el video de la clase\"}"
+
+# Limpieza: la tabla y las inscripciones como estaban. Cascada a respuestas y votos.
+x "delete from public.lesson_questions where course_id='$CURSO';"
+x "delete from public.campus_posts where author_id in ('$PREG','$CUR');"
+x "delete from public.enrollments where user_id in ('$PREG','$CUR') and course_id='$CURSO';"
+
+echo ""
+echo "── T-048 · la docente DUENA del curso no lee progreso ni certificados de sus alumnas por PostgREST"
+# Van por service_role tras assertOwnsCourse en el servidor; por HTTP la RLS devuelve 200 con [].
+# replica: los guards derivan `completed` y limitan el ritmo; aca solo hace falta que la fila exista.
+x "set session_replication_role = replica;
+   insert into public.lesson_progress (user_id,course_id,lesson_id,seconds_watched,completed,completed_at)
+   values ('$ALUMNA','$CURSO','$LEC',3138,true,now())
+   on conflict (user_id,lesson_id) do update set seconds_watched = 3138, completed = true;
+   insert into public.enrollments (user_id,course_id,status) values ('$ALUMNA','$CURSO','active')
+   on conflict (user_id,course_id) do update set status='active';
+   insert into public.certificates (user_id,course_id,student_name,course_title,teacher_name,completed_at)
+   select '$ALUMNA','$CURSO','x','x','x',now()
+   where not exists (select 1 from public.certificates where user_id='$ALUMNA' and course_id='$CURSO');"
+filas_ajenas() {  # $1 rotulo · $2 tabla · $3 filas reales sembradas
+  local n
+  n=$(curl -s "$API/rest/v1/$2?course_id=eq.$CURSO&select=user_id" -H "apikey: $ANON" -H "Authorization: Bearer $DOCENTE_JWT" |
+      python3 -c "import sys,json;print(len(json.load(sys.stdin)))" 2>/dev/null || echo "?")
+  if [ "$n" = "0" ] && [ "$3" -ge 1 ]; then printf '  ok    %-52s %s fila(s) visibles, %s existen\n' "$1" "$n" "$3"
+  else printf '  FALLA %-52s visibles=%s existentes=%s\n' "$1" "$n" "$3"; fallos=$((fallos+1)); fi
+}
+filas_ajenas "(t48a) docente duena lee lesson_progress ajeno" lesson_progress "$(q "select count(*) from public.lesson_progress where course_id='$CURSO' and user_id='$ALUMNA';")"
+filas_ajenas "(t48b) docente duena lee certificates ajenos"   certificates   "$(q "select count(*) from public.certificates where course_id='$CURSO' and user_id='$ALUMNA';")"
+x "set session_replication_role = replica;
+   delete from public.certificates where user_id='$ALUMNA' and course_id='$CURSO';
+   delete from public.lesson_progress where user_id='$ALUMNA' and course_id='$CURSO';
+   delete from public.enrollments where user_id='$ALUMNA' and course_id='$CURSO';"
+
 echo ""
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"

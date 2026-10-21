@@ -65,15 +65,20 @@ function NoteItem({ note, api }: { note: PlayerNote; api: LessonNotes }) {
 
 interface Props {
   isAuthenticated: boolean;
+  /** Falso para la dueña y el admin: ven el player sin cursarlo (T-030). */
+  canTakeNotes: boolean;
   currentTime: number;
   api: LessonNotes;
 }
 
-export default function NotesTab({ isAuthenticated, currentTime, api }: Props) {
+export default function NotesTab({ isAuthenticated, canTakeNotes, currentTime, api }: Props) {
   const [draft, setDraft] = useState("");
 
   if (!isAuthenticated) {
     return <p className="font-body text-xs italic text-ink-faint">Iniciá sesión para tomar notas en esta lección.</p>;
+  }
+  if (!canTakeNotes) {
+    return <p className="font-body text-xs italic text-ink-faint">Las notas son de quien cursa esta lección.</p>;
   }
 
   async function add() {

@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { progressPercent as progressPercentOf } from "@/lib/utils/progress";
 
 export interface StudentCourseAccess {
   hasAccess: boolean;
@@ -289,7 +290,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
 
       const completedLessons = progress.filter((p) => p.completed).length;
       const totalLessons = publishedLessons.length;
-      const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      const progressPercent = progressPercentOf(completedLessons, totalLessons);
 
       const lastProgress = [...progress].sort(
         (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getCourseRoster } from "@/lib/server/teacher-metrics";
 import Nav from "@/components/layout/Nav";
 import { requireTeacher, getTeacherCourseDetail } from "@/lib/server/teacher";
 import CourseForm from "@/components/teacher/CourseForm";
@@ -23,6 +25,7 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
   const course = await getTeacherCourseDetail(courseId, teacher.id);
 
   if (!course) notFound();
+  const roster = await getCourseRoster(course.id, teacher.id);
 
   // Firma con la SESION de la duena (policy uploads_covers_select_own): el editor ve la portada
   // aunque el curso sea borrador, y nunca pasa por service_role (c.6).
@@ -45,6 +48,21 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
         </header>
 
         <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 md:px-12">
+          <section>
+            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Alumnas</h2>
+            <Link
+              href={`/panel/docente/cursos/${course.id}/alumnas`}
+              className="cosmos-card flex flex-wrap items-center gap-4 p-4 transition-colors hover:border-lila-300/40"
+            >
+              <span className="font-body text-sm text-ink-soft">
+                {roster
+                  ? `${roster.summary.active} activa${roster.summary.active === 1 ? "" : "s"} · ${roster.summary.completed} completada${roster.summary.completed === 1 ? "" : "s"}`
+                  : "Ver alumnas y avance"}
+              </span>
+              <span className="ml-auto font-display text-eyebrow tracking-cosmic text-lila-300">Ver todas →</span>
+            </Link>
+          </section>
+
           <section>
             <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Datos del curso</h2>
             <CourseForm course={course} />
