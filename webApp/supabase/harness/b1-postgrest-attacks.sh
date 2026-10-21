@@ -148,18 +148,48 @@ esperar "(s5c) video_id exacto en subtitle"    403 PATCH "courses?id=eq.$CURSO" 
 esperar "(s5d) video_id en un objetivo"        403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"learning_objectives":["Ver SECRETVIDEO"]}'
 esperar "(s5e) video_id en un requisito"       403 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"prerequisites":["Haber visto SECRETVIDEO"]}'
 # Control positivo: sin esto, un guard que rechace TODO tambien daria verde arriba.
-# ── T-028 · resenas: escribir exige inscripcion activa, y la guia responde pero no manda
+esperar "(s5+) ficha legitima"                 204 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"description":"Cada leccion es un video corto.","learning_objectives":["Leer los 22 arcanos"],"prerequisites":["Ninguno"],"language":"es"}'
+
+echo ""
+echo "── T-028 · resenas: escribir exige inscripcion activa, y la guia responde pero no manda"
+# Actora PROPIA e inscripta: b1-alumna tiene que seguir SIN inscripcion para los ataques de arriba.
+alta "b1-resenadora@test.local" '' student
+RESENADORA_JWT=$(tok "b1-resenadora@test.local")
+RESENADORA=$(q "select id from auth.users where email='b1-resenadora@test.local';")
+x "insert into public.enrollments (user_id,course_id,status)
+   select '$RESENADORA','$CURSO','active'
+   where not exists (select 1 from public.enrollments where user_id='$RESENADORA' and course_id='$CURSO');"
+x "update public.enrollments set status='active' where user_id='$RESENADORA' and course_id='$CURSO';"
+# Idempotencia: la corrida anterior dejo su resena, y el (r5) es justamente CREARLA.
+x "delete from public.course_reviews where user_id='$RESENADORA' and course_id='$CURSO';"
+RESENA_DE="course_reviews?user_id=eq.$RESENADORA&course_id=eq.$CURSO"
+
 esperar "(r1) resenar sin inscripcion"         403 POST  "course_reviews" "$ALUMNA_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$ALUMNA\",\"rating\":5}"
 esperar "(r2) resenar a nombre de un tercero"  403 POST  "course_reviews" "$ALUMNA_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$DOCENTE\",\"rating\":5}"
-# (r3)/(r4) esperan 400 y no 403 A PROPOSITO, y es la respuesta MAS fuerte de las dos:
-# `hidden_at`/`hidden_reason` no estan en NINGUN grant de cliente, asi que Postgres ni llega a
-# evaluar RLS -- devuelve "permission denied for table" (42501) y PostgREST lo mapea a 400. Un
-# 403 significaria "no podes en ESTA fila"; el 400 significa "esa columna no existe para vos".
-# Ocultar una resena es de service_role y de nadie mas.
-esperar "(r3) la guia no oculta resenas"       400 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" \'{"hidden_at":"2026-01-01T00:00:00Z"}\'
-esperar "(r4) hidden_reason no existe para el cliente" 400 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" \'{"hidden_reason":"no me gusto"}\'
-
-esperar "(s5+) ficha legitima"                 204 PATCH "courses?id=eq.$CURSO" "$DOCENTE_JWT" '{"description":"Cada leccion es un video corto.","learning_objectives":["Leer los 22 arcanos"],"prerequisites":["Ninguno"],"language":"es"}'
+# Control positivo: sin el, un RLS que rechace TODO tambien daria verde en (r1)/(r2).
+esperar "(r5) resena legitima, inscripta activa" 201 POST "course_reviews" "$RESENADORA_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$RESENADORA\",\"rating\":4,\"body\":\"Muy claro.\"}"
+# 23505 -> 409 en PostgREST.
+esperar "(r6) resenar dos veces el mismo curso" 409 POST "course_reviews" "$RESENADORA_JWT" "{\"course_id\":\"$CURSO\",\"user_id\":\"$RESENADORA\",\"rating\":1}"
+# Editar una ajena: RLS FILTRA la fila, no la rechaza -> 204 con 0 filas. El status no alcanza
+# para afirmarlo, asi que se mira la base: el texto tiene que seguir siendo el original.
+esperar "(r7) editar la resena ajena (204, 0 filas)" 204 PATCH "$RESENA_DE" "$ALUMNA_JWT" '{"body":"secuestrada"}'
+BODY=$(q "select body from public.course_reviews where user_id='$RESENADORA' and course_id='$CURSO';")
+if [ "$BODY" = "Muy claro." ]; then printf '  ok    %-52s body intacto\n' "(r7b) la resena ajena no cambio"
+else printf '  FALLA %-52s body=%s\n' "(r7b) la resena ajena CAMBIO" "$BODY"; fallos=$((fallos+1)); fi
+# ADR-009 mitad exacta: el video_id real del curso. Lo detiene el guard (42501 -> 403), no el CHECK.
+esperar "(r8) video_id real en el body"        403 PATCH "$RESENA_DE" "$RESENADORA_JWT" '{"body":"La mejor clase: SECRETVIDEO"}'
+# (r3)/(r4)/(r10): columnas SIN grant de cliente. Postgres corta con "permission denied for table"
+# (42501) antes de evaluar RLS, y PostgREST mapea el 42501 de un usuario autenticado a 403.
+# Ocultar es de service_role; firmar la respuesta es del guard (0026).
+esperar "(r3) la guia no oculta resenas"       403 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" '{"hidden_at":"2026-01-01T00:00:00Z"}'
+esperar "(r4) hidden_reason no existe para el cliente" 403 PATCH "course_reviews?course_id=eq.$CURSO" "$DOCENTE_JWT" '{"hidden_reason":"no me gusto"}'
+# Control positivo: la guia dueña responde mandando SOLO el texto.
+esperar "(r9) la guia dueña responde"          204 PATCH "$RESENA_DE" "$DOCENTE_JWT" '{"response":"Gracias por contarlo."}'
+FIRMA=$(q "select responded_by from public.course_reviews where user_id='$RESENADORA' and course_id='$CURSO';")
+if [ "$FIRMA" = "$DOCENTE" ]; then printf '  ok    %-52s responded_by=guia\n' "(r9b) el guard firmo la respuesta"
+else printf '  FALLA %-52s responded_by=%s\n' "(r9b) la firma no es de la guia" "$FIRMA"; fallos=$((fallos+1)); fi
+esperar "(r10) la guia firma como otra persona" 403 PATCH "$RESENA_DE" "$DOCENTE_JWT" "{\"responded_by\":\"$ALUMNA\"}"
+esperar "(r11) la autora borra la respuesta"   403 PATCH "$RESENA_DE" "$RESENADORA_JWT" '{"response":null}'
 
 echo ""
 echo "── T-035 · el localizador EXACTO en el resto del catalogo (ADR-010)"

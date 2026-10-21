@@ -39,13 +39,14 @@ async function maybeNotifyCourseCompleted(
 
     const { data: course } = await supabase
       .from("courses")
-      .select("title")
+      .select("title, slug")
       .eq("id", courseId)
       .maybeSingle();
 
     await notifyCourseCompleted({
       userId,
       courseTitle: course?.title ?? "tu curso",
+      courseSlug: course?.slug ?? null,
       certificateCode: code,
     });
   } catch (err) {

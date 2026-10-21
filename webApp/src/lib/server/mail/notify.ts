@@ -3,6 +3,7 @@ import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import { sendMail } from "@/lib/server/mail/send";
 import { renderEnrollmentGrantedMail } from "@/lib/server/mail/templates/enrollment-granted";
 import { renderCourseCompletedMail } from "@/lib/server/mail/templates/course-completed";
+import { reviewAnchorPath } from "@/lib/reviews/links.mjs";
 import { renderWelcomeMail } from "@/lib/server/mail/templates/welcome";
 import { renderTeacherNewStudentMail } from "@/lib/server/mail/templates/teacher-new-student";
 import { getSiteUrl } from "@/lib/server/site-url";
@@ -311,6 +312,7 @@ export async function notifyWelcome(input: { userId: string }): Promise<void> {
 export async function notifyCourseCompleted(input: {
   userId: string;
   courseTitle: string;
+  courseSlug: string | null;
   certificateCode: string;
 }): Promise<void> {
   try {
@@ -325,6 +327,8 @@ export async function notifyCourseCompleted(input: {
       studentName: student.name,
       courseTitle: input.courseTitle,
       certificateUrl: `${getSiteUrl()}/certificado/${input.certificateCode}`,
+      // Sin slug (la lectura del curso falló) el link va al panel: mejor que un ancla rota.
+      reviewUrl: `${getSiteUrl()}${input.courseSlug ? reviewAnchorPath(input.courseSlug) : "/panel"}`,
     });
     const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
     if (result.ok) await confirmMailSent(claim);

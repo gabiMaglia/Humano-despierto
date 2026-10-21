@@ -1,6 +1,7 @@
 import "server-only";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 import { createClient } from "@/lib/supabase/server";
+import { elegirDestacada } from "@/lib/reviews/featured.mjs";
 
 export interface CourseReview {
   id: string;
@@ -27,6 +28,10 @@ export interface CourseReviewsData {
   own: CourseReview | null;
   /** Si puede reseñar: inscripción activa. Lo decide RLS igual; esto es solo para la UI. */
   canReview: boolean;
+  /** La reseña destacada (c.4): la más reciente con 4-5 estrellas y texto. Null si no hay. */
+  featured: CourseReview | null;
+  /** Quien mira es la guía dueña: ve el formulario para responder. RLS y el guard deciden igual. */
+  viewerIsOwner: boolean;
 }
 
 interface ReviewRow {
@@ -70,7 +75,7 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
   if (error) {
     // Una ficha de curso no se cae porque la sección de reseñas falle.
     console.error(`[reviews] no se pudieron leer las reseñas de ${courseId}: ${error.message}`);
-    return { summary: EMPTY_SUMMARY, reviews: [], own: null, canReview: false };
+    return { summary: EMPTY_SUMMARY, reviews: [], own: null, canReview: false, featured: null, viewerIsOwner: false };
   }
 
   const rows = (data ?? []) as unknown as ReviewRow[];
@@ -101,6 +106,7 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
   // Quién mira y si ya reseñó. Con el cliente de sesión, no el público.
   let own: CourseReview | null = null;
   let canReview = false;
+  let viewerIsOwner = false;
   try {
     const sesion = await createClient();
     const { data: userData } = await sesion.auth.getUser();
@@ -115,10 +121,16 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
         .eq("user_id", uid)
         .eq("status", "active");
       canReview = (count ?? 0) > 0;
+      const { data: curso } = await sesion
+        .from("courses")
+        .select("teacher_id")
+        .eq("id", courseId)
+        .maybeSingle();
+      viewerIsOwner = curso?.teacher_id === uid;
     }
   } catch {
     // Sin sesión no hay reseña propia ni permiso — el estado por defecto ya es ese.
   }
 
-  return { summary, reviews, own, canReview };
+  return { summary, reviews, own, canReview, featured: elegirDestacada(reviews), viewerIsOwner };
 }

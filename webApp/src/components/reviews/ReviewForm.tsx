@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveReviewAction, type ReviewActionState } from "@/app/(marketing)/cursos/[slug]/actions";
+import ActionFeedback from "@/components/reviews/ActionFeedback";
 import { cn } from "@/lib/utils/cn";
 import type { CourseReview } from "@/lib/server/reviews";
 
@@ -61,8 +62,7 @@ export default function ReviewForm({
         className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/40"
       />
 
-      {state.error && <p className="mt-3 font-body text-sm text-gold-400">{state.error}</p>}
-      {state.success && <p className="mt-3 font-body text-sm text-lila-300">{state.success}</p>}
+      <ActionFeedback state={state} />
 
       <button
         type="submit"

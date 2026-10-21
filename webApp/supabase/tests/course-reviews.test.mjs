@@ -89,9 +89,18 @@ describe('T-028 · resenas y rating', () => {
 
   // ---------------------------------------------------------------- dominio
   describe('el rating vive en 1..5 y el texto es opcional', () => {
-    test('rating 6 es rechazado', async () => {
-      const r = await review(db, asStudent, ID.courseB, ID.student, 6);
-      assert.notEqual(r.ok, true);
+    // Con inscripcion ACTIVA en courseA y como la propia alumna: RLS deja pasar, y lo unico que
+    // puede rechazarlo es el CHECK. La version anterior apuntaba a courseB (sin inscripcion) y
+    // afirmaba solo "no paso" -- la rechazaba RLS y el CHECK podia no existir.
+    test('rating 6 es rechazado por el CHECK, no por RLS', async () => {
+      const r = await asStudent(db, () =>
+        attempt(db, `update public.course_reviews set rating = 6 where user_id = $1 and course_id = $2`, [
+          ID.student,
+          ID.courseA,
+        ]),
+      );
+      assert.equal(r.ok, false, 'un rating 6 entro');
+      assert.equal(r.code, CHECK_VIOLATION, `lo rechazo otra capa: ${r.message}`);
     });
 
     test('rating 0 es rechazado', async () => {
@@ -169,17 +178,71 @@ describe('T-028 · resenas y rating', () => {
 
   // ---------------------------------------------------------------- Q-11
   describe('Q-11 · la guia responde, NO oculta', () => {
-    test('la guia dueña puede responder en publico', async () => {
+    // La guia manda SOLO el texto. Quien firma y cuando lo estampa el guard (0026): un
+    // `responded_by` que viene del cliente es una firma que el cliente eligio.
+    test('la guia dueña puede responder en publico y el servidor firma', async () => {
       const r = await asOwnerTeacher(db, () =>
         attempt(
           db,
-          `update public.course_reviews
-              set response = $1, responded_at = now(), responded_by = $2
-            where user_id = $3 and course_id = $4`,
-          ['Gracias por la devolucion.', ID.teacherA, ID.student, ID.courseA],
+          `update public.course_reviews set response = $1
+            where user_id = $2 and course_id = $3 returning id`,
+          ['Gracias por la devolucion.', ID.student, ID.courseA],
         ),
       );
       assert.equal(r.ok, true, `la guia no pudo responder: ${r.message}`);
+      assert.equal(r.rows.length, 1);
+      // `responded_by` no esta en el grant de SELECT del cliente: se lee como owner.
+      const [firma] = await owner(db, `select responded_by, responded_at from public.course_reviews where id = $1`, [r.rows[0].id]);
+      assert.equal(firma.responded_by, ID.teacherA);
+      assert.notEqual(firma.responded_at, null);
+    });
+
+    test('la guia NO firma con el nombre de otra persona', async () => {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(db, `update public.course_reviews set responded_by = $1 where user_id = $2 and course_id = $3`, [
+          ID.admin,
+          ID.student,
+          ID.courseA,
+        ]),
+      );
+      assert.equal(r.ok, false, 'la guia re-atribuyo la respuesta');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('la guia NO antedata su respuesta', async () => {
+      const r = await asOwnerTeacher(db, () =>
+        attempt(db, `update public.course_reviews set responded_at = '2000-01-01' where user_id = $1 and course_id = $2`, [
+          ID.student,
+          ID.courseA,
+        ]),
+      );
+      assert.equal(r.ok, false, 'la guia antedato la respuesta');
+      assert.equal(r.code, PRIV_DENIED);
+    });
+
+    test('la autora NO borra la respuesta de la guia (solo editar su resena la limpia)', async () => {
+      const soloTexto = await asStudent(db, () =>
+        attempt(db, `update public.course_reviews set response = null where user_id = $1 and course_id = $2`, [
+          ID.student,
+          ID.courseA,
+        ]),
+      );
+      assert.equal(soloTexto.ok, false, 'la autora borro la respuesta');
+      assert.equal(soloTexto.code, PRIV_DENIED);
+
+      const losTres = await asStudent(db, () =>
+        attempt(
+          db,
+          `update public.course_reviews set response = null, responded_at = null, responded_by = null
+            where user_id = $1 and course_id = $2`,
+          [ID.student, ID.courseA],
+        ),
+      );
+      assert.equal(losTres.ok, false, 'la autora borro la respuesta con el trio completo');
+      assert.equal(losTres.code, PRIV_DENIED);
+
+      const sigue = await owner(db, `select response from public.course_reviews where user_id = $1 and course_id = $2`, [ID.student, ID.courseA]);
+      assert.equal(sigue[0].response, 'Gracias por la devolucion.');
     });
 
     test('la guia dueña NO puede ocultar una resena de su propio curso', async () => {
@@ -306,6 +369,21 @@ describe('T-028 · resenas y rating', () => {
       assert.equal(despues[0].response, null, 'la respuesta quedo colgando de un texto que ya cambio');
       assert.equal(despues[0].responded_at, null);
       assert.equal(despues[0].responded_by, null);
+    });
+
+    // Hostile (f) de QA r1: con service_role `auth.uid()` es null, y el guard viejo tomaba ese
+    // null como "es la autora" y rechazaba la respuesta. Un camino de servidor tiene que poder
+    // escribirla (p.ej. una migracion de datos) sin hacerse pasar por nadie.
+    test('service_role puede escribir una respuesta firmada', async () => {
+      await db.exec(`reset role;`);
+      const r = await attempt(
+        db,
+        `update public.course_reviews set response = $1, responded_at = now(), responded_by = $2
+          where user_id = $3 and course_id = $4 returning responded_by`,
+        ['Respuesta cargada por el servidor.', ID.teacherA, ID.student, ID.courseA],
+      );
+      assert.equal(r.ok, true, `service_role no pudo escribir la respuesta: ${r.message}`);
+      assert.equal(r.rows[0].responded_by, ID.teacherA);
     });
   });
 });
