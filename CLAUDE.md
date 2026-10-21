@@ -19,7 +19,7 @@ high-fidelity static shell with no application layer. Phase 2 turns it into a pr
 **Courses are 100% on-demand** (ADR-004). No cohorts, no start dates, no live sessions, no
 weekly drip. Active enrollment grants access to the whole curriculum at once.
 
-**Payments are out of scope.** Enrollment is granted manually by an admin.
+**Payments are out of scope.** A student requests a course from its page; the row is born `requested` and an admin approves or rejects it in `/panel/admin` (T-043, D2).
 
 ## Where the project state lives
 `engram/` (gitignored) is the source of truth for state, decisions and backlog:
@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 477 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 511 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -74,7 +74,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /entrar/nueva-clave                 Choose a new password                     [link session]
 /auth/callback                      GoTrue code exchange (confirmation, recovery)
 /certificado/[code]                 Public certificate verification
-/inscribirme/[curso]                Checkout MOCK: no handlers, replaced by T-043 (request + admin approval)
+/inscribirme/[curso]                308 -> /cursos/[curso] (T-043; enrollment is requested from the course page)
 /panel                              Student dashboard                         [auth]
 /leccion/[id]                       Lesson player: YouTube IFrame API,        [auth or preview]
                                     persisted progress, chapters, notes
