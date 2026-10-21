@@ -1,6 +1,14 @@
-import { LUNAR_DAYS } from "@/lib/mocks/landing";
+import type { LunarDay, LunarPhaseName as Phase } from "@/lib/lunar";
 
-type Phase = (typeof LUNAR_DAYS)[number]["phase"];
+const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+const LABELS = ["sembrar", "iniciar", "crecer", "culminar", "liberar", "integrar", "soltar", "descansar"];
+
+// Etiqueta de la fecha: el primer dia y los cambios de mes llevan mes, el resto solo numero.
+function dateLabel(d: LunarDay, prev: LunarDay | undefined) {
+  const day = d.date.getUTCDate();
+  const month = MESES[d.date.getUTCMonth()];
+  return !prev || prev.date.getUTCMonth() !== d.date.getUTCMonth() ? `${day} ${month}` : String(day);
+}
 
 function Moon({ phase, today }: { phase: Phase; today?: boolean }) {
   const base: React.CSSProperties = {
@@ -31,7 +39,7 @@ function Moon({ phase, today }: { phase: Phase; today?: boolean }) {
   );
 }
 
-export default function LunarCalendar() {
+export default function LunarCalendar({ days }: { days: LunarDay[] }) {
   return (
     <section
       className="border-b border-t border-lila-300/18 px-6 py-24 md:px-12"
@@ -55,11 +63,11 @@ export default function LunarCalendar() {
 
         {/* Moon phases */}
         <div className="flex flex-wrap justify-around gap-6">
-          {LUNAR_DAYS.map((d) => (
-            <div key={d.date} className="relative flex flex-col items-center gap-3 text-center cursor-pointer transition-transform hover:-translate-y-1">
-              <Moon phase={d.phase} today={"today" in d && d.today} />
-              <span className="font-display text-[11px] tracking-[0.2em] text-ink">{d.date}</span>
-              <span className="font-quote italic text-sm text-ink-soft">{d.label}</span>
+          {days.map((d, i) => (
+            <div key={d.date.toISOString()} className="relative flex flex-col items-center gap-3 text-center cursor-pointer transition-transform hover:-translate-y-1">
+              <Moon phase={d.phase} today={d.today} />
+              <span className="font-display text-[11px] tracking-[0.2em] text-ink">{dateLabel(d, days[i - 1])}</span>
+              <span className="font-quote italic text-sm text-ink-soft">{LABELS[i]}</span>
             </div>
           ))}
         </div>

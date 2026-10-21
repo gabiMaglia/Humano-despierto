@@ -1,6 +1,7 @@
-import { TESTIMONIALS } from "@/lib/mocks/landing";
+import type { LandingTestimonial } from "@/lib/server/landing";
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ testimonials }: { testimonials: LandingTestimonial[] }) {
+  if (testimonials.length === 0) return null;
   return (
     <section className="px-6 py-24 md:px-12">
       <div className="mx-auto max-w-7xl">
@@ -15,18 +16,13 @@ export default function TestimonialsSection() {
         <h2 className="mb-4 text-center font-display text-4xl tracking-wider text-ink">
           Quienes han <em className="font-quote italic text-lila-300">cruzado</em>
         </h2>
-        <p className="mx-auto mb-2 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
+        <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
           Lo que dicen las iniciadas que sostienen consultas hoy.
-        </p>
-        {/* T-017 criterio 3: sin tabla de reviews en el esquema, esta seccion queda como
-            placeholder VISIBLE en vez de simular un dato real. */}
-        <p className="mx-auto mb-14 text-center font-display text-[10px] uppercase tracking-[0.2em] text-ink-faint">
-          — testimonios ilustrativos —
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {TESTIMONIALS.map((t) => (
-            <blockquote key={t.who} className="cosmos-card relative p-8">
+          {testimonials.map((t) => (
+            <blockquote key={t.id} className="cosmos-card relative p-8">
               {/* Decorative quote mark */}
               <span
                 className="pointer-events-none absolute left-4 top-1 select-none font-quote text-[80px] leading-none text-lila-300/30"

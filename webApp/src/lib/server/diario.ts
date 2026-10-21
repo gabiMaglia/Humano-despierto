@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 
-// T-022 · Diario — reemplaza `src/lib/mocks/blog.ts`. Lectura pública (sin sesión, `getPublicSupabaseClient`)
+// T-022 · Diario — reemplaza el mock `blog.ts`. Lectura pública (sin sesión, `getPublicSupabaseClient`)
 // y lectura/escritura del panel docente (cliente de sesión, RLS `diario_posts_*`, migración 0018)
 // conviven en el mismo módulo — mismo criterio que `lib/server/campus.ts` (un solo dominio).
 
