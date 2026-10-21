@@ -6,6 +6,9 @@ import ModuleBlock from "@/components/teacher/ModuleBlock";
 import NewModuleForm from "@/components/teacher/NewModuleForm";
 import PublishCourseControl from "@/components/teacher/PublishCourseControl";
 import DangerZone from "@/components/teacher/DangerZone";
+import CoverForm from "@/components/teacher/CoverForm";
+import { createClient } from "@/lib/supabase/server";
+import { signUploadUrl } from "@/lib/server/uploads";
 
 interface Props {
   params: Promise<{ courseId: string }>;
@@ -20,6 +23,10 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
   const course = await getTeacherCourseDetail(courseId, teacher.id);
 
   if (!course) notFound();
+
+  // Firma con la SESION de la duena (policy uploads_covers_select_own): el editor ve la portada
+  // aunque el curso sea borrador, y nunca pasa por service_role (c.6).
+  const coverUrl = await signUploadUrl(await createClient(), course.coverPath);
 
   return (
     <div className="min-h-screen bg-cosmos-0 text-ink">
@@ -42,6 +49,8 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
             <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Datos del curso</h2>
             <CourseForm course={course} />
           </section>
+
+          <CoverForm courseId={course.id} coverUrl={coverUrl} courseTitle={course.title} />
 
           <section>
             <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Módulos y lecciones</h2>
