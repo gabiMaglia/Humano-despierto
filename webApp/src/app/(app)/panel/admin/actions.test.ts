@@ -14,7 +14,14 @@ vi.mock("@/lib/server/supabase-admin", () => ({ getAdminSupabaseClient }));
 vi.mock("@/lib/server/mail/notify", () => ({ notifyEnrollmentActivated, notifyEnrollmentRejected }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 
-import { approveEnrollmentRequestAction, rejectEnrollmentRequestAction, setEnrollmentAction } from "./actions";
+import {
+  approveEnrollmentRequestAction,
+  dismissReportAction,
+  hideReviewAction,
+  rejectEnrollmentRequestAction,
+  setEnrollmentAction,
+  unhideReviewAction,
+} from "./actions";
 
 const ADMIN = { id: "d0000000-0000-4000-8000-000000000001", role: "admin" };
 const ENROLLMENT = "a0430000-0000-4000-8000-000000000001";
@@ -121,5 +128,110 @@ describe("setEnrollmentAction", () => {
     const r = await setEnrollmentAction(INICIAL, form({ userId: STUDENT, courseId: COURSE, status: "active" }));
     expect(r.error).toBeNull();
     expect(argsOf(calls, "upsert")?.[0]).toMatchObject({ status: "active", decided_reason: null, granted_by: ADMIN.id });
+  });
+});
+
+// ---------------------------------------------------------------- T-037 · moderación de reseñas
+const REVIEW = "47b62602-7ab4-4bc1-83f9-c1998d46bc87";
+const REPORT = "5a0e3c1d-2b4f-4c6a-9d8e-7f1a2b3c4d5e";
+
+function rpcReturning(result: unknown) {
+  const rpc = vi.fn().mockResolvedValue(result);
+  getAdminSupabaseClient.mockReturnValue({ rpc });
+  return rpc;
+}
+
+describe("hideReviewAction", () => {
+  it.each([[null], [{ ...ADMIN, role: "teacher" }]])("sin admin lanza y no toca la base (%#)", async (user) => {
+    getCurrentUser.mockResolvedValue(user);
+    await expect(hideReviewAction(REVIEW, INICIAL, form({ reason: "spam" }))).rejects.toThrow(/No autorizado/);
+    expect(getAdminSupabaseClient).not.toHaveBeenCalled();
+  });
+
+  it.each([["   "], ["x".repeat(1001)]])("motivo inválido no llega a la base (%#)", async (reason) => {
+    const out = await hideReviewAction(REVIEW, INICIAL, form({ reason }));
+    expect(out.error).toBeTruthy();
+    expect(getAdminSupabaseClient).not.toHaveBeenCalled();
+  });
+
+  it("un id que no es uuid no llega a la base", async () => {
+    const out = await hideReviewAction("x", INICIAL, form({ reason: "spam" }));
+    expect(out.error).toBeTruthy();
+    expect(getAdminSupabaseClient).not.toHaveBeenCalled();
+  });
+
+  it("oculta con el id del admin de la sesión y revalida ficha, catálogo y cola", async () => {
+    const rpc = rpcReturning({ data: 2, error: null });
+    const out = await hideReviewAction(REVIEW, INICIAL, form({ reason: "  Datos de un tercero  ", adminId: "otro" }));
+    expect(rpc).toHaveBeenCalledWith("moderate_hide_review", {
+      p_review_id: REVIEW,
+      p_admin_id: ADMIN.id,
+      p_reason: "Datos de un tercero",
+    });
+    expect(out).toEqual({ error: null, success: "Reseña oculta. Se resolvieron 2 reportes." });
+    expect(revalidatePath).toHaveBeenCalledWith("/cursos/[slug]", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/cursos");
+    expect(revalidatePath).toHaveBeenCalledWith("/panel/admin/resenas");
+  });
+
+  it.each([
+    [0, "Reseña oculta."],
+    [1, "Reseña oculta. Se resolvió 1 reporte."],
+  ])("mensaje con %i reportes", async (n, msg) => {
+    rpcReturning({ data: n, error: null });
+    expect((await hideReviewAction(REVIEW, INICIAL, form({ reason: "spam" }))).success).toBe(msg);
+  });
+
+  it.each([
+    ["P0002", /ya no existe/],
+    ["42501", /No autorizado/],
+    ["22023", /1 a 1000/],
+    ["XX000", /No se pudo ocultar/],
+  ])("el error %s se traduce sin detalle técnico", async (code, msg) => {
+    rpcReturning({ data: null, error: { code, message: "detalle interno" } });
+    const out = await hideReviewAction(REVIEW, INICIAL, form({ reason: "spam" }));
+    expect(out.error).toMatch(msg);
+    expect(out.error).not.toMatch(/detalle interno/);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("unhideReviewAction", () => {
+  it("vuelve a mostrar", async () => {
+    const rpc = rpcReturning({ data: true, error: null });
+    const out = await unhideReviewAction(REVIEW, INICIAL, form({}));
+    expect(rpc).toHaveBeenCalledWith("moderate_unhide_review", { p_review_id: REVIEW, p_admin_id: ADMIN.id });
+    expect(out.success).toBe("La reseña vuelve a estar visible.");
+  });
+
+  it("si no estaba oculta lo dice", async () => {
+    rpcReturning({ data: false, error: null });
+    expect((await unhideReviewAction(REVIEW, INICIAL, form({}))).error).toBe("La reseña no estaba oculta.");
+  });
+
+  it("sin admin lanza", async () => {
+    getCurrentUser.mockResolvedValue(null);
+    await expect(unhideReviewAction(REVIEW, INICIAL, form({}))).rejects.toThrow(/No autorizado/);
+    expect(getAdminSupabaseClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("dismissReportAction", () => {
+  it("desestima", async () => {
+    const rpc = rpcReturning({ data: true, error: null });
+    const out = await dismissReportAction(REPORT, INICIAL, form({}));
+    expect(rpc).toHaveBeenCalledWith("moderate_dismiss_report", { p_report_id: REPORT, p_admin_id: ADMIN.id });
+    expect(out.success).toBe("Reporte desestimado. La reseña sigue visible.");
+  });
+
+  it("un reporte ya resuelto no se resuelve dos veces", async () => {
+    rpcReturning({ data: false, error: null });
+    expect((await dismissReportAction(REPORT, INICIAL, form({}))).error).toBe("Ese reporte ya estaba resuelto.");
+  });
+
+  it("sin admin lanza", async () => {
+    getCurrentUser.mockResolvedValue({ ...ADMIN, role: "teacher" });
+    await expect(dismissReportAction(REPORT, INICIAL, form({}))).rejects.toThrow(/No autorizado/);
+    expect(getAdminSupabaseClient).not.toHaveBeenCalled();
   });
 });

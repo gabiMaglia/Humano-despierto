@@ -1,6 +1,7 @@
 import "server-only";
+import { getCurrentUser } from "@/lib/server/auth";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
-import type { AppRole } from "@/lib/stores/useAuthStore";
+import type { AppRole, AuthUser } from "@/lib/stores/useAuthStore";
 
 // `AdminActionState` / `ADMIN_ACTION_INITIAL_STATE` viven en
 // `@/lib/admin/action-state` (sin `server-only`): los componentes cliente
@@ -8,6 +9,20 @@ import type { AppRole } from "@/lib/stores/useAuthStore";
 // arrastra el sentinel `server-only` al bundle del browser. Los tipos de
 // abajo son solo forma de datos (sin secretos) — los componentes cliente los
 // importan con `import type`, que no genera un import en runtime.
+
+/**
+ * Puerta única de todo lo de admin: Server Actions y Server Components que leen con service_role.
+ * El rol sale de `profiles` (ADR-006), nunca del claim del JWT: un admin recién degradado cuyo
+ * token todavía dice "admin" no pasa. Vive acá y no en `actions.ts` porque un archivo "use server"
+ * expone como acción todo lo que exporta.
+ */
+export async function requireAdmin(): Promise<AuthUser> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "admin") {
+    throw new Error("No autorizado: se requiere rol admin.");
+  }
+  return user;
+}
 
 export interface AdminUserRow {
   id: string;
