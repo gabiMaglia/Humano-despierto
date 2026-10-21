@@ -103,5 +103,35 @@ c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application
   "$BASE/api/csp-report")
 [ "$c" = "204" ] && echo "  ok     endpoint /api/csp-report 204" || { echo "  FALLA  /api/csp-report respondio '$c'"; fail=1; }
 
+echo "== og:image en las publicas (E-02) =="
+og_check() {
+  local p=$1 url path code
+  url=$(curl -s "$BASE$p" | grep -o '<meta property="og:image" content="[^"]*"' | head -1 | sed 's/.*content="//; s/"$//; s/&amp;/\&/g')
+  if [ -z "$url" ]; then echo "  FALLA  $p sin og:image"; fail=1; return; fi
+  # La URL es absoluta con SITE_URL; se pide el mismo path contra BASE.
+  path="/${url#*://*/}"
+  code=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$BASE$path")
+  if [ "$code" = "200 image/png" ]; then echo "  ok     $p -> $path"
+  else echo "  FALLA  $p -> $path respondio '$code'"; fail=1; fi
+}
+for p in / /cursos /guias /diario /entrar; do og_check "$p"; done
+for ruta in /cursos /guias /diario; do
+  s=$(slugs_de "$ruta" | sed -n 1p)
+  if [ -n "$s" ]; then og_check "$ruta/$s"
+  # Una base sin publicados es un estado legitimo, pero no es un ok: se dice que no se miro.
+  else echo "  aviso  $ruta/<slug> NO VERIFICADO: sin publicados en el sitemap"; fi
+done
+# Bajo un segmento dinamico la imagen vive en opengraph-image-<hash>: el path pelado da 404 por
+# falta de ruta. Se toma la URL real de un curso publicado y se cambia solo el slug.
+s=$(slugs_de /cursos | sed -n 1p)
+og=$(curl -s "$BASE/cursos/$s" | grep -o '<meta property="og:image" content="[^"]*"' | head -1 | sed 's/.*content="//; s/"$//; s/&amp;/\&/g')
+if [ -z "$s" ] || [ -z "$og" ]; then echo "  FALLA  sin curso publicado con og:image para probar el 404"; fail=1
+else
+  path="/${og#*://*/}"
+  ajeno=$(printf '%s' "$path" | sed "s|^/cursos/$s/|/cursos/no-existe-t052/|")
+  c=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$ajeno")
+  [ "$c" = "404" ] && echo "  ok     OG de curso inexistente 404" || { echo "  FALLA  OG de curso inexistente '$c'"; fail=1; }
+fi
+
 [ "$fail" -eq 0 ] && echo "SEO OK" || echo "SEO CON FALLAS"
 exit "$fail"
