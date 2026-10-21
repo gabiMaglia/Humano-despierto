@@ -15,6 +15,8 @@ export const ID = {
   chapterPreview: '80000000-0000-4000-8000-00000000000b',
   postA:      '90000000-0000-4000-8000-00000000000a',
   postDraftB: '90000000-0000-4000-8000-00000000000b',
+  questionA:  'b1000000-0000-4000-8000-00000000000a',
+  answerA:    'b2000000-0000-4000-8000-00000000000a',
 };
 
 /** Valores centinela: si aparecen en una respuesta de cliente, hubo fuga. */
@@ -79,5 +81,15 @@ export async function seed(db) {
     insert into public.diario_posts (id, teacher_id, slug, title, body, status, published_at) values
       ('${ID.postDraftB}', '${ID.teacherB}', 'borrador-de-luna', 'Borrador sin publicar',
        'Todavia lo estoy escribiendo.', 'draft', null);
+
+    -- T-030 · una pregunta y una respuesta de la docente en courseA. Se siembran como owner: el
+    -- trigger de alcance completa lesson_id/course_id y marca la respuesta como de docente desde
+    -- author_id.
+    insert into public.lesson_questions (id, lesson_id, course_id, author_id, title, body) values
+      ('${ID.questionA}', '${ID.lessonA}', '${ID.courseA}', '${ID.student}',
+       'Sobre el Loco invertido', 'En el minuto 12 no entiendo por que no es un mal augurio.');
+    insert into public.lesson_answers (id, question_id, author_id, body) values
+      ('${ID.answerA}', '${ID.questionA}', '${ID.teacherA}',
+       'Porque el Loco invertido habla de una pausa, no de una caida.');
   `);
 }
