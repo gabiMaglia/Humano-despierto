@@ -3,7 +3,6 @@ import Link from "next/link";
 export default function CertificadoNoEncontrado() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-fondo px-6 text-center text-tinta">
-      <span className="text-4xl text-miel-800">✦</span>
       <p className="font-display text-eyebrow tracking-[0.25em] text-suave">— Nada por acá —</p>
       <h1 className="max-w-md font-display text-display-md text-tinta">
         No encontramos ningún <em className="font-quote italic text-miel-800">certificado</em> con ese código

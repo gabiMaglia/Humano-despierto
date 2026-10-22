@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Icon from "@/components/atoms/Icon";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { setWishlistAction } from "@/app/(marketing)/cursos/actions";
@@ -24,7 +25,7 @@ export default function WishlistButton({ courseId, saved: initial, loginHref, cl
   if (loginHref) {
     return (
       <Link href={loginHref} aria-label="Guardar curso" className={cn(BASE, "text-miel-800", className)}>
-        <span aria-hidden>✧</span>
+        <Icon name="bookmark" />
       </Link>
     );
   }
@@ -45,9 +46,9 @@ export default function WishlistButton({ courseId, saved: initial, loginHref, cl
       disabled={pending}
       aria-pressed={saved}
       aria-label={saved ? "Quitar de guardados" : "Guardar curso"}
-      className={cn(BASE, saved ? "text-miel-800" : "text-miel-800", className)}
+      className={cn(BASE, saved ? "text-miel-800" : "text-bosque", className)}
     >
-      <span aria-hidden>{saved ? "✦" : "✧"}</span>
+      <Icon name="bookmark" filled={saved} />
     </button>
   );
 }

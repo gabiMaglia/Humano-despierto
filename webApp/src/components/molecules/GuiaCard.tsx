@@ -30,7 +30,7 @@ export default function GuiaCard({
           )}
           <h3 className="mb-0.5 font-display text-xl tracking-wide text-tinta group-hover:text-bosque transition-colors">{fullName}</h3>
           {location && (
-            <p className="mb-4 font-display text-eyebrow tracking-wide text-suave">✦ {location}</p>
+            <p className="mb-4 font-display text-eyebrow tracking-wide text-suave">{location}</p>
           )}
 
           {(yearsPractice != null || discipline) && (

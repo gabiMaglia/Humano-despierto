@@ -2,21 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import LessonStateIcon from "@/components/atoms/LessonStateIcon";
 import { formatDurationSeconds } from "@/lib/utils/format";
 import type { CourseDetailModule } from "@/lib/server/courses";
 
 type LessonState = "done" | "current" | "pending" | "preview" | "locked";
-
-// Mismo set de glifos que leccion/[id]/page.tsx:7 (STATE_ICON) — se extiende, no se
-// reinventa: "preview" y "pending" toman glifos ya aprobados en 01_requirements.md §4
-// (✦ y ○), nunca badges/raster estilo Udemy.
-const STATE_ICON: Record<LessonState, string> = {
-  done: "✓",
-  current: "▶",
-  pending: "○",
-  preview: "✦",
-  locked: "⌗",
-};
 
 // X-01 · §4 transmite el estado de la leccion CON el glifo, asi que el glifo carga informacion
 // y no puede quedar mudo: un lector de pantalla no dice nada util frente a "⌗". El glifo va
@@ -27,14 +17,6 @@ const STATE_LABEL: Record<LessonState, string> = {
   pending: "Pendiente",
   preview: "Vista previa gratuita",
   locked: "Requiere inscripción",
-};
-
-const STATE_ICON_CLASS: Record<LessonState, string> = {
-  done: "text-miel-800",
-  current: "text-miel-800",
-  pending: "text-suave",
-  preview: "text-miel-800",
-  locked: "text-suave",
 };
 
 const STATE_TITLE_CLASS: Record<LessonState, string> = {
@@ -117,7 +99,7 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                       <p className="mb-2 font-body text-sm text-suave leading-relaxed">{m.description}</p>
                     )}
                     <span className="font-display text-eyebrow tracking-wide text-miel-800">
-                      <span aria-hidden="true">☾ </span>
+                      
                       {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
                     </span>
                   </div>
@@ -145,12 +127,7 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                       );
                       const content = (
                         <>
-                          <span
-                            aria-hidden="true"
-                            className={cn("font-display text-xs flex-none", STATE_ICON_CLASS[state])}
-                          >
-                            {STATE_ICON[state]}
-                          </span>
+                          <LessonStateIcon state={state} />
                           <span className="sr-only">{STATE_LABEL[state]}</span>
                           <span className={cn("flex-1 min-w-0 truncate font-body text-sm", STATE_TITLE_CLASS[state])}>
                             {lesson.title}

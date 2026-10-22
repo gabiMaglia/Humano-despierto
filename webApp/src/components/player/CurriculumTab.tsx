@@ -1,14 +1,7 @@
 import { cn } from "@/lib/utils/cn";
+import LessonStateIcon from "@/components/atoms/LessonStateIcon";
 import { formatDurationSeconds } from "@/lib/utils/format";
 import type { PlayerLessonState, PlayerModule } from "@/lib/server/lesson-player";
-
-const STATE_ICON: Record<PlayerLessonState, string> = {
-  done: "✓",
-  current: "▶",
-  pending: "○",
-  preview: "✦",
-  locked: "⌗",
-};
 
 const STATE_LABEL: Record<PlayerLessonState, string> = {
   done: "Completada",
@@ -16,14 +9,6 @@ const STATE_LABEL: Record<PlayerLessonState, string> = {
   pending: "Pendiente",
   preview: "Vista previa",
   locked: "Bloqueada",
-};
-
-const STATE_ICON_CLASS: Record<PlayerLessonState, string> = {
-  done: "text-miel-800",
-  current: "text-miel-800",
-  pending: "text-suave",
-  preview: "text-miel-800",
-  locked: "text-suave",
 };
 
 interface Props {
@@ -78,9 +63,8 @@ export default function CurriculumTab({ modules, currentCompleted }: Props) {
                       <span
                         role="img"
                         aria-label={STATE_LABEL[shown]}
-                        className={cn("font-display text-[9px]", STATE_ICON_CLASS[shown])}
-                      >
-                        {STATE_ICON[shown]}
+                        className="inline-flex">
+                        <LessonStateIcon state={shown} />
                       </span>
                       <span className="font-display text-[9px] text-suave w-4">{l.position}</span>
                       <span

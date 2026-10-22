@@ -32,7 +32,6 @@ export default async function DiarioPage() {
         {posts.length === 0 ? (
           // Criterio 5: estado vacío digno, no roto.
           <div className="tarjeta p-10 text-center">
-            <div className="mb-4 text-3xl text-miel-800">✦</div>
             <p className="mb-1 font-display text-base tracking-wide text-tinta">
               Todavía no hay anotaciones publicadas.
             </p>

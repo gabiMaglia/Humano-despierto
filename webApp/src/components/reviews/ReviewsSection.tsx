@@ -79,7 +79,7 @@ export default function ReviewsSection({
             className="mt-12 rounded-md border border-miel bg-papel p-6"
           >
             <p className="mb-3 font-display text-eyebrow tracking-wide text-miel-800">
-              <span aria-hidden="true">✦ </span>Destacado
+              Destacado
             </p>
             <ReviewItem
               review={featured}

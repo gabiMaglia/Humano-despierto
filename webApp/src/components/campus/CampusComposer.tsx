@@ -39,7 +39,7 @@ export default function CampusComposer({ courseId, courseSlug, authorGlyph, plac
           disabled={isPending}
           className="btn btn-primary flex-none disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "…" : "✦ Publicar"}
+          {isPending ? "…" : "Publicar"}
         </button>
       </div>
       {state.error && (

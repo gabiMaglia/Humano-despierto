@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Icon from "@/components/atoms/Icon";
 import { cn } from "@/lib/utils/cn";
 import { featureAnswer, moderateAnswer } from "@/app/leccion/[id]/actions";
 import type { QaAnswerView } from "@/lib/lesson-qa/types";
@@ -22,8 +23,8 @@ export default function AnswerItem({ lessonId, answer, canModerate }: Props) {
     <li className={cn("border-l-2 pl-3", answer.isFeatured ? "border-miel" : "border-linea")}>
       <div className="mb-1 flex items-center gap-2">
         {answer.isFeatured && (
-          <span role="img" aria-label="Respuesta destacada" className="font-display text-miel-800">
-            ✦
+          <span role="img" aria-label="Respuesta destacada" className="inline-flex text-miel-800">
+            <Icon name="star" className="h-3.5 w-3.5" />
           </span>
         )}
         <span className="font-display text-eyebrow tracking-wide text-suave">{answer.author.name}</span>

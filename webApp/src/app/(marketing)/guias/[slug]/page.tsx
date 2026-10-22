@@ -45,7 +45,7 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
             <p className="mb-1 font-display text-eyebrow tracking-[0.2em] text-suave uppercase">{M.headline}</p>
           )}
           {M.location && (
-            <p className="mb-8 font-display text-eyebrow tracking-wide text-suave">✦ {M.location}</p>
+            <p className="mb-8 font-display text-eyebrow tracking-wide text-suave">{M.location}</p>
           )}
 
           <div className="mb-8 flex flex-wrap gap-6 md:gap-10">

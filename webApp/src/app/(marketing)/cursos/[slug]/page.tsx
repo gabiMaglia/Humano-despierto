@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Icon from "@/components/atoms/Icon";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
@@ -105,7 +106,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           </svg>
         </div>
 
-        <p className="mb-3 font-display text-eyebrow tracking-[0.2em] text-miel-800">✦ {course.discipline} · {course.level}</p>
+        <p className="mb-3 font-display text-eyebrow tracking-[0.2em] text-miel-800">{course.discipline} · {course.level}</p>
         <h1 className="font-display text-display-md text-tinta mb-3">
           {course.title}
           {course.titleEm && (
@@ -121,7 +122,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
         <div className="flex items-center justify-center gap-3.5 mb-8">
           <div className="h-px flex-1 max-w-[160px] bg-salvia" />
-          <span className="font-display text-eyebrow tracking-[0.25em] text-suave">☾  ✦  ☉</span>
+          <Icon name="leaf" className="h-5 w-5 text-musgo" />
           <div className="h-px flex-1 max-w-[160px] bg-salvia" />
         </div>
 
@@ -155,7 +156,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         {/* ADR-004: `updated_at` es una fecha PASADA. Redactado sin ambiguedad para que no se
             confunda con una fecha de inicio, que este producto no tiene. */}
         <p className="mt-8 font-display text-eyebrow tracking-wide text-suave">
-          <span aria-hidden="true">☾ </span>
+          
           Última actualización: {formatCertificateDate(course.updatedAt)}
           <span className="text-miel-800"> · </span>
           Idioma: {LANGUAGE_LABEL[course.language] ?? course.language}
@@ -240,7 +241,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <div className="grid gap-3 sm:grid-cols-2">
               {course.learningObjectives.map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <span aria-hidden="true" className="mt-0.5 flex-none text-miel-800 text-sm">◐</span>
+                  <Icon name="check" className="mt-1.5 text-musgo" />
                   <span className="font-body text-sm text-suave">{item}</span>
                 </div>
               ))}
@@ -257,7 +258,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <ul className="space-y-3">
               {course.prerequisites.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <span aria-hidden="true" className="mt-0.5 flex-none text-suave text-sm">○</span>
+                  <Icon name="circle" className="mt-1.5 text-musgo" />
                   <span className="font-body text-sm text-suave">{item}</span>
                 </li>
               ))}
@@ -293,7 +294,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <div className="grid gap-3 sm:grid-cols-2">
               {course.includes.map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex-none text-miel-800 text-sm">✦</span>
                   <span className="font-body text-sm text-suave">{item}</span>
                 </div>
               ))}

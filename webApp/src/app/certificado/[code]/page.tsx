@@ -40,60 +40,52 @@ export default async function CertificadoPage({ params }: PageProps) {
 
       <PrintButton />
 
-      <main className="relative mx-auto max-w-2xl overflow-hidden rounded-lg border border-linea bg-papel px-8 py-14 shadow-card print:max-w-none print:rounded-none print:border-2 print:border-[#c9a44c] print:bg-white print:px-16 print:py-14 print:shadow-none">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 flex select-none items-center justify-center font-display text-[220px] leading-none text-bosque print:text-[#c9a44c]/10"
-        >
-          ✦
-        </span>
+      <main className="relative mx-auto max-w-2xl overflow-hidden rounded-lg border border-linea bg-papel px-8 py-14 shadow-card print:max-w-none print:rounded-none print:border-2 print:border-miel print:bg-white print:px-16 print:py-14 print:shadow-none">
 
         <div className="relative flex flex-col items-center gap-7 text-center">
-          <p className="font-display text-eyebrow uppercase tracking-[0.3em] text-miel-800 print:text-[#8a6520]">
-            ☉ Humano Despierto ☽
+          <p className="font-display text-eyebrow uppercase tracking-[0.3em] text-miel-800">
+            Humano Despierto
           </p>
 
-          <div className="flex items-center gap-3 text-miel-800 print:text-[#5b2a86]">
-            <span aria-hidden>✧</span>
+          <div className="flex items-center gap-3 text-miel-800">
             <p className="font-display text-eyebrow uppercase tracking-[0.25em]">
               Certificado de finalización
             </p>
-            <span aria-hidden>✧</span>
           </div>
 
-          <p className="font-quote text-lg italic text-suave print:text-[#5a4570]">
+          <p className="font-quote text-lg italic text-suave">
             Se certifica que
           </p>
 
-          <h1 className="font-quote text-4xl italic text-tinta print:text-[#1f1430] md:text-5xl">
+          <h1 className="font-quote text-4xl italic text-tinta md:text-5xl">
             {certificate.studentName}
           </h1>
 
-          <p className="max-w-md font-body text-sm text-suave print:text-[#5a4570]">
+          <p className="max-w-md font-body text-sm text-suave">
             completó el recorrido completo del curso
           </p>
 
-          <h2 className="font-display text-2xl tracking-wide text-miel-800 print:text-[#8a6520]">
+          <h2 className="font-display text-2xl tracking-wide text-miel-800">
             {certificate.courseTitle}
           </h2>
 
-          <p className="max-w-md font-body text-xs text-suave print:text-[#5a4570]">
+          <p className="max-w-md font-body text-xs text-suave">
             Este certificado acredita el recorrido completo del curso, no una evaluación.
           </p>
 
-          <div className="flex flex-col items-center gap-1 font-body text-sm text-suave print:text-[#5a4570]">
+          <div className="flex flex-col items-center gap-1 font-body text-sm text-suave">
             <p>
               Guiado por{" "}
-              <span className="font-quote text-base text-tinta print:text-[#1f1430]">
+              <span className="font-quote text-base text-tinta">
                 {certificate.teacherName}
               </span>
             </p>
             <p>{formatCertificateDate(certificate.completedAt)}</p>
           </div>
 
-          <div className="mt-3 h-px w-24 bg-salvia print:bg-[#c9a44c]" />
+          <div className="mt-3 h-px w-24 bg-salvia print:bg-miel" />
 
-          <p className="max-w-sm font-body text-xs text-suave print:text-[#9888a8]">
+          <p className="max-w-sm font-body text-xs text-suave">
             Verificable abriendo esta misma dirección · código{" "}
             <span className="font-mono">{code}</span>
           </p>

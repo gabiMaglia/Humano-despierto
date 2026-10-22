@@ -9,7 +9,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
     <html lang="es">
       <body className="bg-fondo text-tinta antialiased">
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-          <p className="font-display text-eyebrow tracking-wide text-miel-800">✧ Algo se cortó</p>
+          <p className="eyebrow">Algo se cortó</p>
           <h1 className="font-display text-lg text-tinta">No pudimos mostrar esta página.</h1>
           <p className="max-w-md font-body text-sm text-suave">
             Puede ser un problema pasajero. Si vuelve a pasar, contanos este código de referencia.

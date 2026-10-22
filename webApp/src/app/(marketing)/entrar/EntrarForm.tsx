@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { fullNameSchema } from "@/lib/validation/profile";
 import { AUTH_COPY, authErrorMessage } from "@/lib/auth/messages";
@@ -13,17 +13,11 @@ import AuthField from "@/components/molecules/AuthField";
 import SubmitButton from "@/components/atoms/SubmitButton";
 import { postLoginDestinationAction } from "./actions";
 import GoogleButton from "./GoogleButton";
-import type { SolidType } from "@/components/cosmos/PlatonicSolid";
+import { PLACEHOLDER_PHOTOS, unsplashUrl } from "@/content/placeholder-photos";
 
-const PlatonicSolid = dynamic(() => import("@/components/cosmos/PlatonicSolid"), { ssr: false });
-
-const SOLIDS: { type: SolidType; name: string; element: string; tagline: string }[] = [
-  { type: "tetrahedron",  name: "Tetraedro",   element: "Fuego",  tagline: "La chispa que inicia todo camino." },
-  { type: "cube",         name: "Hexaedro",     element: "Tierra", tagline: "La base sobre la que todo se construye." },
-  { type: "octahedron",   name: "Octaedro",     element: "Aire",   tagline: "El movimiento que conecta cielo y tierra." },
-  { type: "dodecahedron", name: "Dodecaedro",   element: "Éter",   tagline: "El quinto elemento. La forma del cosmos." },
-  { type: "icosahedron",  name: "Icosaedro",    element: "Agua",   tagline: "La fluidez que moldea todo lo que toca." },
-];
+// PLACEHOLDER (ADR-015): foto de muestra en el panel derecho, donde antes estaba el canvas three.js.
+// T-062 decide la imagen definitiva.
+const LOGIN_PHOTO = PLACEHOLDER_PHOTOS.find((p) => p.id === "1470252649378-9c29740c9fa8")!;
 
 type Tab = "entrar" | "registro";
 
@@ -35,11 +29,6 @@ interface Props {
 
 export default function EntrarForm({ next, linkError }: Props) {
   const [tab, setTab] = useState<Tab>("entrar");
-  // Fijo en SSR y en el primer render del cliente (hidratan igual); recién
-  // después de montar se sortea. Sortear en el useState inicial rompía la
-  // hidratación (server/client HTML distinto) y React remontaba todo el
-  // árbol del formulario, borrando lo que la persona ya había tecleado.
-  const [solidInfo, setSolidInfo] = useState(SOLIDS[0]);
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,13 +37,6 @@ export default function EntrarForm({ next, linkError }: Props) {
   const [sent, setSent] = useState(false);
 
   const router = useRouter();
-
-  useEffect(() => {
-    // Un solo set, ligado a mount ([]), no hay cascada: es el patrón
-    // documentado de React para "solo aleatorio en el cliente".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSolidInfo(SOLIDS[Math.floor(Math.random() * SOLIDS.length)]);
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -263,39 +245,15 @@ export default function EntrarForm({ next, linkError }: Props) {
         )}
       </div>
 
-      {/* ── Right — Platonic solid ──────────────────────────────────────── */}
-      <div
-        className="relative hidden flex-1 flex-col items-center justify-center overflow-hidden lg:flex"
-        style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(196,181,253,0.08) 0%, transparent 65%), #0a0418" }}
-      >
-        {/* Glow behind the solid */}
-        <div
-          className="pointer-events-none absolute inset-[20%] rounded-full blur-[80px]"
-          style={{ background: "radial-gradient(ellipse, rgba(196,181,253,0.18) 0%, transparent 70%)" }}
+      {/* ── Derecha — foto ─────────────────────────────────────────────── */}
+      <div className="relative hidden flex-1 overflow-hidden bg-salvia lg:block">
+        <Image
+          src={unsplashUrl(LOGIN_PHOTO.id)}
+          alt={LOGIN_PHOTO.alt}
+          fill
+          sizes="50vw"
+          className="object-cover"
         />
-
-        {/* Three.js canvas — fills the panel */}
-        <div className="absolute inset-0">
-          <PlatonicSolid solid={solidInfo.type} />
-        </div>
-
-        {/* Floating sigils */}
-        {[
-          { icon: "✦", cls: "top-12 left-[14%] text-miel-800 text-xs opacity-50" },
-          { icon: "☉", cls: "top-[28%] right-[10%] text-miel-800 text-sm opacity-35" },
-          { icon: "◐", cls: "bottom-[28%] left-[8%]  text-miel-800 text-xs opacity-35" },
-          { icon: "✧", cls: "bottom-12 right-[16%] text-miel-800 text-[10px] opacity-45" },
-        ].map(({ icon, cls }) => (
-          <span key={icon} className={`pointer-events-none absolute font-display ${cls}`}>{icon}</span>
-        ))}
-
-        {/* Label — changes with each random solid */}
-        <div className="absolute bottom-10 left-0 right-0 text-center">
-          <p className="mb-1 font-display text-eyebrow tracking-wide text-suave">
-            {solidInfo.name} · {solidInfo.element}
-          </p>
-          <p className="font-quote italic text-sm text-suave">{solidInfo.tagline}</p>
-        </div>
       </div>
 
     </div>

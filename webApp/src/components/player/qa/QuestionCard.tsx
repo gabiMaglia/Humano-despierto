@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Icon from "@/components/atoms/Icon";
 import { moderateQuestion, resolveQuestion, voteQuestion } from "@/app/leccion/[id]/actions";
 import type { QaQuestionView } from "@/lib/lesson-qa/types";
 import AnswerComposer from "./AnswerComposer";
@@ -31,7 +32,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
           disabled={!canAsk || q.isDeleted || pending}
           onClick={() => run(() => voteQuestion(lessonId, q.id, !q.hasVoted))}
         >
-          {q.hasVoted ? "✦" : "✧"} {q.votes}
+          <Icon name="arrow-up" className="h-3.5 w-3.5" /> {q.votes}
         </QaTextButton>
         <div className="min-w-0 flex-1">
           <h3 id={titleId} className="font-display text-sm tracking-wide text-tinta">

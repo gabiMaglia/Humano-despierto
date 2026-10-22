@@ -1,4 +1,7 @@
-import ZodiacWheel from "@/components/cosmos/ZodiacWheel";
+import Image from "next/image";
+import { ButtonLink } from "@/components/atoms/Button";
+import LeafIllustration from "@/components/atoms/LeafIllustration";
+import { HERO_PHOTO, unsplashUrl } from "@/content/placeholder-photos";
 import type { HeroStat } from "@/lib/landing";
 
 const HERO = {
@@ -6,16 +9,15 @@ const HERO = {
   h1: { pre: "Una escuela para", em: "oficios sutiles", post: "del alma humana" },
   sub: "Astrología, tarot, herbalismo y reiki enseñados por guías con linaje. Formación profesional para terapeutas que buscan profundidad, no atajos.",
   ctas: [
-    { label: "Cruzar el umbral ↦", href: "/cursos" },
-    { label: "Ver el catálogo", href: "/cursos" },
+    { label: "Ver los cursos", href: "/cursos" },
+    { label: "Conocé a las guías", href: "/guias" },
   ],
 } as const;
 
 export default function HeroSection({ stats }: { stats: HeroStat[] }) {
   return (
     <section
-      className="relative overflow-hidden px-6 pb-24 pt-24 md:px-12 md:pb-32 md:pt-32 min-h-screen"
-      style={{ backgroundImage: "radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 30%, rgba(10,4,24,0.6) 70%, #0a0418 100%)" }}
+      className="relative overflow-hidden px-6 pb-20 pt-28 md:px-12 md:pb-28 md:pt-32"
     >
       <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-[1.05fr_1fr]">
 
@@ -24,17 +26,14 @@ export default function HeroSection({ stats }: { stats: HeroStat[] }) {
 
         {/* Badge */}
         <div className="mb-8 inline-flex items-center gap-2 rounded-pill border border-linea px-3.5 py-1.5">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-miel"
-            style={{ animation: "pulse-gold 2s ease-in-out infinite", boxShadow: "0 0 8px #f5d76e" }}
-          />
-          <span className="font-display text-[9px] uppercase tracking-[0.22em] text-bosque">
+          <span className="h-1.5 w-1.5 rounded-full bg-miel" aria-hidden="true" />
+          <span className="font-display text-xs uppercase tracking-[0.08em] text-bosque">
             {HERO.badge}
           </span>
         </div>
 
         {/* H1 */}
-        <h1 className="mb-6 font-display text-display-lg leading-[1.05] tracking-wide text-tinta text-balance">
+        <h1 className="mb-6 font-display text-display-lg leading-[1.05] tracking-tight text-bosque text-balance">
           {HERO.h1.pre}<br />
           <em className="font-quote text-miel-800">{HERO.h1.em}</em><br />
           {HERO.h1.post}
@@ -47,12 +46,12 @@ export default function HeroSection({ stats }: { stats: HeroStat[] }) {
 
         {/* CTAs */}
         <div className="mb-14 flex flex-wrap gap-3.5">
-          <a href={HERO.ctas[0].href} className="btn btn-primary">
+          <ButtonLink href={HERO.ctas[0].href} arrow>
             {HERO.ctas[0].label}
-          </a>
-          <a href={HERO.ctas[1].href} className="btn btn-outline">
+          </ButtonLink>
+          <ButtonLink href={HERO.ctas[1].href} variant="outline">
             {HERO.ctas[1].label}
-          </a>
+          </ButtonLink>
         </div>
 
         {/* Stats */}
@@ -68,39 +67,23 @@ export default function HeroSection({ stats }: { stats: HeroStat[] }) {
         )}
       </div>
 
-      {/* ── Zodiac wheel ─────────────────────────────────────────────────── */}
-      <div className="relative hidden items-center justify-end md:flex">
-        <div className="relative aspect-square w-full max-w-[560px]">
-          {/* Glow */}
-          <div className="pointer-events-none absolute inset-[10%] rounded-full bg-salvia-100 blur-[40px]" />
-          <ZodiacWheel size={560} />
-          {/* Floating sigils */}
-          {[
-            { icon: "✦", pos: "-top-3 right-[18%]",  delay: "0s"   },
-            { icon: "☾", pos: "bottom-[6%] -left-2",  delay: "1.5s" },
-            { icon: "☉", pos: "top-[40%] -right-3.5", delay: "3s"   },
-          ].map(({ icon, pos, delay }) => (
-            <span
-              key={icon}
-              className={`absolute ${pos} font-display text-sm text-miel-800`}
-              style={{ animation: `float 6s ease-in-out ${delay} infinite` }}
-            >
-              {icon}
-            </span>
-          ))}
+      {/* ── Foto (PLACEHOLDER, ADR-015) ─────────────────────────────────── T-061 rehace el hero */}
+      <div className="relative">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-salvia shadow-lift">
+          <Image
+            src={unsplashUrl(HERO_PHOTO.id)}
+            alt={HERO_PHOTO.alt}
+            fill
+            priority
+            sizes="(min-width: 768px) 45vw, 100vw"
+            className="object-cover"
+          />
         </div>
+        <LeafIllustration className="absolute -bottom-8 -left-12 hidden md:block" />
       </div>
 
       </div>{/* /mx-auto grid */}
 
-      {/* Scroll cue */}
-      <div className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-1.5 md:flex">
-        <span className="font-display text-[9px] uppercase tracking-[0.25em] text-suave">Desplazar</span>
-        <div
-          className="h-8 w-px bg-gradient-to-b to-transparent"
-          style={{ animation: "scrollDrop 2s ease-in-out infinite" }}
-        />
-      </div>
     </section>
   );
 }
