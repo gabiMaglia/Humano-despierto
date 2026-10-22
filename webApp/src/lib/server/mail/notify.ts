@@ -83,7 +83,11 @@ const IDEMPOTENCY_KEY_MAX = 256;
  * prod ni un 409. Sin clave el mail sale igual: es lo que pasaba antes de T-054.
  */
 export function mailIdempotencyKey(type: MailType, recipientUserId: string, scopeKey: string): string | undefined {
-  const key = `${new URL(getSiteUrl()).host}/${type}/${recipientUserId}/${scopeKey}`;
+  return hostScopedKey(type, `${recipientUserId}/${scopeKey}`);
+}
+
+function hostScopedKey(type: string, rest: string): string | undefined {
+  const key = `${new URL(getSiteUrl()).host}/${type}/${rest}`;
   if (key.length > IDEMPOTENCY_KEY_MAX) {
     console.warn("mail_idempotency_key_too_long", { mail_type: type, length: key.length });
     return undefined;
@@ -534,6 +538,7 @@ export async function notifyAnnouncementPublished(input: { announcementId: strin
  * Devuelve si el envío se confirmó para que el admin sepa si tiene que reenviar; nunca tira.
  */
 export async function notifyTeacherInvitation(input: {
+  invitationId: string;
   email: string;
   inviterName: string;
   acceptUrl: string;
@@ -545,7 +550,9 @@ export async function notifyTeacherInvitation(input: {
       acceptUrl: input.acceptUrl,
       expiresOn: formatCertificateDate(input.expiresAt),
     });
-    const result = await sendMail({ to: { email: input.email }, subject, html, text });
+    // D-43: nunca el token (viaja en claro en el link); el id basta y cambia en cada reenvío.
+    const idempotencyKey = hostScopedKey("teacher_invitation", input.invitationId);
+    const result = await sendMail({ to: { email: input.email }, subject, html, text, idempotencyKey });
     return result.ok;
   } catch (err) {
     // Sin `input`: lleva el token en claro.

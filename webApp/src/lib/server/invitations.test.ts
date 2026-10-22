@@ -69,7 +69,7 @@ describe("inviteTeacher", () => {
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(sha(token)).toBe(row.token_hash);
     expect(JSON.stringify(row)).not.toContain(token);
-    expect(arg).toMatchObject({ email: "nueva@mail.com", inviterName: "Admin", expiresAt: EXPIRES });
+    expect(arg).toMatchObject({ email: "nueva@mail.com", inviterName: "Admin", expiresAt: EXPIRES, invitationId: "inv-1" });
   });
 
   it("el mail no salió: la invitación queda creada y lo dice (lección T-020)", async () => {

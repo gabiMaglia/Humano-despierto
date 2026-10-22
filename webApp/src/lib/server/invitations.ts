@@ -40,6 +40,7 @@ export async function inviteTeacher(input: InviteInput): Promise<InviteOutcome> 
   if (error || !data) throw new Error(`No se pudo crear la invitación: ${error?.message ?? "sin fila"}`);
 
   const mailSent = await notifyTeacherInvitation({
+    invitationId: data.id,
     email: input.email,
     inviterName: input.adminName || "El equipo de Humano Despierto",
     acceptUrl: `${getSiteUrl()}${invitationPath(token)}`,
