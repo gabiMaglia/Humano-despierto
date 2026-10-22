@@ -13,6 +13,7 @@ import {
   firstIssueMessage,
 } from "@/lib/validation/teacher";
 import type { TeacherActionState } from "@/lib/teacher/action-state";
+import { log } from "@/lib/server/log";
 
 function readCourseForm(formData: FormData) {
   return courseFormSchema.safeParse({
@@ -186,7 +187,7 @@ export async function deleteCourseAction(
       const { error: removeError } = await createServiceRoleClient()
         .storage.from(UPLOADS_BUCKET)
         .remove([current.cover_path]);
-      if (removeError) console.error("[T-047] portada de curso borrado sin limpiar", current.cover_path, removeError.message);
+      if (removeError) log.error("cover_storage_orphan", { reason: "course_deleted", path: current.cover_path, message: removeError.message });
     }
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo borrar el curso.", success: null };

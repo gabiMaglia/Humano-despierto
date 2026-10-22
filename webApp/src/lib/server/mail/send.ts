@@ -3,6 +3,7 @@ import { getMailConfig } from "@/lib/server/env";
 import { HARD_CAP_MS, TRANSPORT_TIMEOUT_MS } from "@/lib/server/mail/limits";
 import { MailTransportError, SmtpTransport, type MailTransport, type MailMessage } from "@/lib/server/mail/transport";
 import { ResendTransport } from "@/lib/server/mail/transport-resend";
+import { log } from "@/lib/server/log";
 
 // T-020 criterio 2: "el envío no puede romper la operación". Este módulo es el ÚNICO choke
 // point de mail de toda la app — cada `notify*` de `notify.ts` llama a `sendMail`, nunca al
@@ -80,7 +81,7 @@ export async function sendMail(input: SendMailInput): Promise<SendResult> {
     const error = err instanceof Error ? err.message : String(err);
     const providerError = err instanceof MailTransportError ? err : null;
     // Nunca la dirección del destinatario en un log.
-    console.error("mail_send_failed", {
+    await log.error("mail_send_failed", {
       error,
       permanent: providerError?.permanent ?? false,
       status: providerError?.status,

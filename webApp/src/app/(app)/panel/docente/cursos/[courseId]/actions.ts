@@ -30,6 +30,7 @@ import {
   SIN_FILAS,
 } from "@/lib/announcements/write.mjs";
 import { notifyAnnouncementPublished } from "@/lib/server/mail/notify";
+import { log } from "@/lib/server/log";
 
 const TEMP_POSITION = 999999;
 
@@ -781,7 +782,7 @@ export async function uploadCourseCoverAction(
     // Si falla queda un objeto sin referencia; no justifica revertir una portada que ya se ve bien.
     if (current?.cover_path) {
       const { error: removeError } = await supabase.storage.from(UPLOADS_BUCKET).remove([current.cover_path]);
-      if (removeError) console.error("[T-047] portada anterior sin referencia", current.cover_path, removeError.message);
+      if (removeError) log.error("cover_storage_orphan", { reason: "replaced", path: current.cover_path, message: removeError.message });
     }
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo subir la portada.", success: null };
@@ -810,7 +811,7 @@ export async function removeCourseCoverAction(
 
     // Con la sesion: la policy `uploads_covers_delete_own` alcanza y no hace falta saltear RLS.
     const { error: removeError } = await supabase.storage.from(UPLOADS_BUCKET).remove([current.cover_path]);
-    if (removeError) console.error("[T-047] portada quitada sin borrar en Storage", current.cover_path, removeError.message);
+    if (removeError) log.error("cover_storage_orphan", { reason: "removed", path: current.cover_path, message: removeError.message });
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo quitar la portada.", success: null };
   }
@@ -859,7 +860,7 @@ export async function saveAnnouncementDraft(
       ? await editarBorrador(supabase, { id: announcementId, courseId, ...parsed.data })
       : await crearBorrador(supabase, { courseId, authorId: teacher.id, ...parsed.data });
     if (error) {
-      console.error("[anuncios] escritura rechazada:", error.code, error.message);
+      log.error("announcement_write_rejected", { pg_code: error.code, message: error.message });
       return announcementFail(traducirErrorAnuncio(error, GENERIC_ANNOUNCEMENT_ERROR));
     }
   } catch (err) {
@@ -885,7 +886,7 @@ export async function publishAnnouncement(
     await assertOwnsCourse(courseId, teacher.id);
     const { error, id } = await publicar(createServiceRoleClient(), { id: announcementId, courseId });
     if (error || !id) {
-      if (error && error.code !== SIN_FILAS) console.error("[anuncios] publicar falló:", error.code, error.message);
+      if (error && error.code !== SIN_FILAS) log.error("announcement_publish_failed", { pg_code: error.code, message: error.message });
       return announcementFail(traducirErrorAnuncio(error, GENERIC_ANNOUNCEMENT_ERROR));
     }
     publishedId = id;
@@ -918,7 +919,7 @@ export async function withdrawAnnouncement(
     const supabase = await createClient();
     const { error } = await retirar(supabase, { id: announcementId, moderatorId: teacher.id, reason: parsed.data.reason });
     if (error) {
-      console.error("[anuncios] retiro rechazado:", error.code, error.message);
+      log.error("announcement_withdraw_rejected", { pg_code: error.code, message: error.message });
       return announcementFail(traducirErrorAnuncio(error, "No se pudo retirar el anuncio."));
     }
   } catch (err) {

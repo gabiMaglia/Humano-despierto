@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { idSchema, reasonSchema as announcementReasonSchema } from "@/lib/announcements/validation";
 import { retirar, traducirErrorAnuncio } from "@/lib/announcements/write.mjs";
 import type { AppRole } from "@/lib/stores/useAuthStore";
+import { log } from "@/lib/server/log";
 
 const ROLES: AppRole[] = ["student", "teacher", "admin"];
 const COURSE_STATUSES = ["draft", "published", "archived"] as const;
@@ -293,7 +294,7 @@ export async function hideReviewAction(
     p_reason: reason,
   });
   if (error) {
-    console.error(`[moderacion] ocultar ${reviewId}: ${error.code}`);
+    log.error("review_hide_failed", { review_id: reviewId, pg_code: error.code });
     return { error: moderationError(error.code, "No se pudo ocultar la reseña."), success: null };
   }
 
@@ -316,7 +317,7 @@ export async function unhideReviewAction(
     p_admin_id: admin.id,
   });
   if (error) {
-    console.error(`[moderacion] desocultar ${reviewId}: ${error.code}`);
+    log.error("review_unhide_failed", { review_id: reviewId, pg_code: error.code });
     return { error: moderationError(error.code, "No se pudo volver a mostrar la reseña."), success: null };
   }
   if (data !== true) return { error: "La reseña no estaba oculta.", success: null };
@@ -338,7 +339,7 @@ export async function dismissReportAction(
     p_admin_id: admin.id,
   });
   if (error) {
-    console.error(`[moderacion] desestimar ${reportId}: ${error.code}`);
+    log.error("review_report_dismiss_failed", { report_id: reportId, pg_code: error.code });
     return { error: moderationError(error.code, "No se pudo desestimar el reporte."), success: null };
   }
   if (data !== true) return { error: "Ese reporte ya estaba resuelto.", success: null };
@@ -364,7 +365,7 @@ export async function moderateAnnouncement(
   const supabase = await createClient();
   const { error } = await retirar(supabase, { id: announcementId, moderatorId: admin.id, reason: parsed.data.reason });
   if (error) {
-    console.error("[anuncios] moderación rechazada:", error.code, error.message);
+    log.error("announcement_moderation_rejected", { pg_code: error.code, message: error.message });
     return { error: traducirErrorAnuncio(error, "No se pudo retirar el anuncio."), success: null };
   }
 

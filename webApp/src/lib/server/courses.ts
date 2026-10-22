@@ -2,6 +2,7 @@ import "server-only";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 import { aggregateRatings } from "@/lib/reviews/rating";
 import { signPublicUploadUrls } from "@/lib/server/uploads";
+import { log } from "@/lib/server/log";
 
 export interface PublishedCourseSummary {
   id: string;
@@ -184,7 +185,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       .from("course_reviews")
       .select("course_id, rating")
       .in("course_id", rows.map((r) => r.id));
-    if (rvError) console.error(`[courses] no se pudo leer el rating del catalogo: ${rvError.message}`);
+    if (rvError) log.error("catalog_rating_read_failed", { message: rvError.message });
     else for (const [id, agg] of aggregateRatings(rv ?? [])) ratings.set(id, agg);
   }
 

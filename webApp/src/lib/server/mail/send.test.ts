@@ -5,6 +5,8 @@ import { HARD_CAP_MS } from "./limits";
 import { __setTransportForTests, sendMail } from "./send";
 import { MailTransportError, type MailMessage, type MailTransport } from "./transport";
 
+vi.mock("next/headers", () => ({ headers: () => Promise.reject(new Error("fuera de request")) }));
+
 const INPUT = {
   to: { email: "alumna@test.local", name: "Alumna" },
   subject: "Hola",
@@ -121,6 +123,16 @@ describe("sendMail propaga si la falla es permanente", () => {
     }));
     await sendMail(INPUT);
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain("alumna@test.local");
+  });
+
+  it("un transporte caido deja UNA linea JSON mail_send_failed en stderr con request_id y err", async () => {
+    __setTransportForTests(fakeTransport(async () => {
+      throw new Error("SMTP caido");
+    }));
+    await sendMail(INPUT);
+    const lines = vi.mocked(console.error).mock.calls.map((c) => JSON.parse(String(c[0])));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ level: "error", event: "mail_send_failed", request_id: null, error: "SMTP caido" });
   });
 
   it("un transporte que nunca resuelve no cuelga: el tope sigue vivo", async () => {
