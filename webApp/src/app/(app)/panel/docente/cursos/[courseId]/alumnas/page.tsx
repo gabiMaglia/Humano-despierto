@@ -18,9 +18,9 @@ interface Props {
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="cosmos-card p-4">
-      <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">{label}</p>
-      <div className="mt-1 font-body text-ink">{children}</div>
+    <div className="tarjeta p-4">
+      <p className="font-display text-eyebrow tracking-wide text-suave uppercase">{label}</p>
+      <div className="mt-1 font-body text-tinta">{children}</div>
     </div>
   );
 }
@@ -36,18 +36,18 @@ export default async function CourseRosterPage({ params }: Props) {
   const rating = formatRating(summary.ratingAverage, summary.ratingTotal);
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
+    <div className="min-h-screen bg-fondo text-tinta">
       <Nav />
       <div className="pt-16">
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
+        <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
           <Link
             href={`/panel/docente/cursos/${courseId}`}
-            className="mb-2 inline-block font-display text-eyebrow tracking-[0.25em] text-ink-faint hover:text-lila-300"
+            className="mb-2 inline-block font-display text-eyebrow tracking-[0.25em] text-suave hover:text-bosque"
           >
             ← {roster.courseTitle}
           </Link>
-          <h1 className="font-display text-display-md text-ink">
-            <em className="font-quote italic text-lila-300">Alumnas</em> del curso
+          <h1 className="font-display text-display-md text-tinta">
+            <em className="font-quote italic text-miel-800">Alumnas</em> del curso
           </h1>
         </header>
 
@@ -60,7 +60,7 @@ export default async function CourseRosterPage({ params }: Props) {
                 ? `${summary.requested} pendiente${summary.requested === 1 ? "" : "s"}`
                 : "Ninguna pendiente"}
               {summary.rejected > 0 && (
-                <span className="block text-xs text-ink-faint">
+                <span className="block text-xs text-suave">
                   {summary.rejected} no aprobada{summary.rejected === 1 ? "" : "s"}
                 </span>
               )}
@@ -72,31 +72,31 @@ export default async function CourseRosterPage({ params }: Props) {
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Inscriptas</h2>
+            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Inscriptas</h2>
             {rows.length === 0 ? (
-              <p className="cosmos-card p-6 font-body text-sm text-ink-faint">
+              <p className="tarjeta p-6 font-body text-sm text-suave">
                 Todavía no hay alumnas inscriptas en este curso. Cuando se apruebe la primera
                 solicitud, la vas a ver acá con su avance.
               </p>
             ) : (
               <ul className="space-y-2">
                 {rows.map((r) => (
-                  <li key={r.userId} className="cosmos-card flex flex-wrap items-center gap-4 p-4">
+                  <li key={r.userId} className="tarjeta flex flex-wrap items-center gap-4 p-4">
                     <div className="min-w-0 flex-1">
-                      <p className="font-display text-sm tracking-wide text-ink">{r.name}</p>
-                      <p className="font-body text-xs text-ink-faint">
+                      <p className="font-display text-sm tracking-wide text-tinta">{r.name}</p>
+                      <p className="font-body text-xs text-suave">
                         Inscripta el {formatCertificateDate(r.enrolledAt)}
                       </p>
                     </div>
-                    <p className="font-body text-sm text-ink-soft">
+                    <p className="font-body text-sm text-suave">
                       {r.progressPercent} % · {r.completedLessons} de {r.totalLessons}
                     </p>
                     {r.certificateCode ? (
-                      <Link href={`/certificado/${r.certificateCode}`} className="font-body text-sm text-lila-300 hover:underline">
+                      <Link href={`/certificado/${r.certificateCode}`} className="font-body text-sm text-miel-800 hover:underline">
                         Certificado
                       </Link>
                     ) : (
-                      <span className="font-body text-sm text-ink-faint">Sin certificado</span>
+                      <span className="font-body text-sm text-suave">Sin certificado</span>
                     )}
                   </li>
                 ))}
@@ -104,9 +104,9 @@ export default async function CourseRosterPage({ params }: Props) {
             )}
           </section>
 
-          <p className="font-body text-xs text-ink-faint">
+          <p className="font-body text-xs text-suave">
             Tus datos básicos (nombre, bio, foto) se editan en{" "}
-            <Link href="/panel/perfil" className="text-lila-300 hover:underline">
+            <Link href="/panel/perfil" className="text-miel-800 hover:underline">
               tu perfil
             </Link>
             .

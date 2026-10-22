@@ -8,7 +8,7 @@ export default function PrintButton() {
       <button
         type="button"
         onClick={() => window.print()}
-        className="btn-ritual btn-ritual-ghost rounded-pill"
+        className="btn btn-outline"
       >
         Imprimir ↦
       </button>

@@ -22,7 +22,7 @@ export default async function AdminUsersPage({
   return (
     <AdminShell active="usuarios">
       <section aria-labelledby="usuarios-titulo">
-        <h2 id="usuarios-titulo" className="mb-5 font-display text-lg tracking-wide text-ink">
+        <h2 id="usuarios-titulo" className="mb-5 font-display text-lg tracking-wide text-tinta">
           Usuarios y roles
         </h2>
         <AdminPagedList

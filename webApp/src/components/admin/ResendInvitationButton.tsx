@@ -13,7 +13,7 @@ export default function ResendInvitationButton({ email, label }: { email: string
       <button
         type="submit"
         disabled={isPending}
-        className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-outline text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "…" : label}
       </button>

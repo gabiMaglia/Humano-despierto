@@ -14,7 +14,7 @@ interface Props {
 }
 
 const BASE =
-  "flex h-9 w-9 items-center justify-center rounded-pill border border-lila-300/30 bg-cosmos-0/70 font-display text-base transition-colors hover:border-gold-400/60";
+  "flex h-9 w-9 items-center justify-center rounded-pill border border-linea bg-papel font-display text-base transition-colors hover:border-miel";
 
 /** T-033 · guardar un curso. Hermano de la card, no hijo: un botón dentro de un <a> es HTML inválido. */
 export default function WishlistButton({ courseId, saved: initial, loginHref, className }: Props) {
@@ -23,7 +23,7 @@ export default function WishlistButton({ courseId, saved: initial, loginHref, cl
 
   if (loginHref) {
     return (
-      <Link href={loginHref} aria-label="Guardar curso" className={cn(BASE, "text-lila-300", className)}>
+      <Link href={loginHref} aria-label="Guardar curso" className={cn(BASE, "text-miel-800", className)}>
         <span aria-hidden>✧</span>
       </Link>
     );
@@ -45,7 +45,7 @@ export default function WishlistButton({ courseId, saved: initial, loginHref, cl
       disabled={pending}
       aria-pressed={saved}
       aria-label={saved ? "Quitar de guardados" : "Guardar curso"}
-      className={cn(BASE, saved ? "text-gold-400" : "text-lila-300", className)}
+      className={cn(BASE, saved ? "text-miel-800" : "text-miel-800", className)}
     >
       <span aria-hidden>{saved ? "✦" : "✧"}</span>
     </button>

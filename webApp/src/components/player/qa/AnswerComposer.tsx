@@ -15,7 +15,7 @@ export default function AnswerComposer({ lessonId, questionId }: { lessonId: str
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="mt-3 border-t border-lila-300/10 pt-2">
+    <form ref={formRef} action={formAction} className="mt-3 border-t border-linea pt-2">
       <textarea
         name="body"
         aria-label="Tu respuesta"
@@ -23,7 +23,7 @@ export default function AnswerComposer({ lessonId, questionId }: { lessonId: str
         maxLength={4000}
         rows={2}
         placeholder="Responder…"
-        className="w-full resize-none bg-transparent font-body text-xs text-ink placeholder:text-ink-faint outline-none"
+        className="w-full resize-none bg-transparent font-body text-xs text-tinta placeholder:text-suave outline-none"
       />
       <div className="flex justify-end">
         <QaTextButton type="submit" disabled={pending}>

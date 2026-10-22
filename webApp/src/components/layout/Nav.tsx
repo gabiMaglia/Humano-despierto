@@ -23,22 +23,22 @@ export default function Nav() {
   }
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 border-b border-lila-300/20 bg-cosmos-0/80 backdrop-blur-md">
+    <nav className="fixed top-0 inset-x-0 z-50 border-b border-linea bg-papel backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-10 py-3.5">
 
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2.5">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none stroke-lila-300 fill-none" strokeWidth={1} aria-hidden>
+          <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none stroke-musgo fill-none" strokeWidth={1} aria-hidden>
             <circle cx={12} cy={12} r={10} />
             <path d="M12 2 L12 22 M2 12 L22 12 M5 5 L19 19 M19 5 L5 19" />
-            <circle cx={12} cy={12} r={3} fill="currentColor" className="text-lila-300" />
+            <circle cx={12} cy={12} r={3} fill="currentColor" className="text-miel-800" />
           </svg>
           <div className="flex flex-col leading-none">
-            <span className="font-display text-[13px] tracking-[0.22em] text-ink uppercase">
+            <span className="font-display text-[13px] tracking-[0.22em] text-tinta uppercase">
               Humano{" "}
-              <span className="font-quote italic text-lila-300 normal-case tracking-normal">Despierto</span>
+              <span className="font-quote italic text-miel-800 normal-case tracking-normal">Despierto</span>
             </span>
-            <span className="font-body text-[7px] tracking-[0.2em] text-ink-faint uppercase mt-0.5">
+            <span className="font-body text-[7px] tracking-[0.2em] text-suave uppercase mt-0.5">
               Escuela holística
             </span>
           </div>
@@ -50,7 +50,7 @@ export default function Nav() {
             <Link
               key={label}
               href={href}
-              className={`font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-ink${hidden ? " hidden xl:block" : ""}`}
+              className={`font-display text-eyebrow tracking-wide text-suave transition-colors hover:text-tinta${hidden ? " hidden xl:block" : ""}`}
             >
               {label}
             </Link>
@@ -64,7 +64,7 @@ export default function Nav() {
               {user?.role === "teacher" && (
                 <Link
                   href="/panel/docente"
-                  className="hidden font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-lila-300 lg:block"
+                  className="hidden font-display text-eyebrow tracking-wide text-suave transition-colors hover:text-bosque lg:block"
                 >
                   Panel docente
                 </Link>
@@ -72,29 +72,29 @@ export default function Nav() {
               {user?.role === "admin" && (
                 <Link
                   href="/panel/admin"
-                  className="hidden font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-lila-300 lg:block"
+                  className="hidden font-display text-eyebrow tracking-wide text-suave transition-colors hover:text-bosque lg:block"
                 >
                   Panel admin
                 </Link>
               )}
               <Link
                 href="/panel"
-                className="hidden md:flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors"
+                className="hidden md:flex items-center gap-2 font-display text-eyebrow tracking-wide text-suave hover:text-bosque transition-colors"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-lila-300/40 bg-lila-300/10 text-sm text-lila-300">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-linea bg-salvia-100 text-sm text-miel-800">
                   {user?.glyph || "☉"}
                 </span>
                 <span>{user?.fullName || user?.email}</span>
               </Link>
               <Link
                 href="/panel/perfil"
-                className="font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-lila-300"
+                className="font-display text-eyebrow tracking-wide text-suave transition-colors hover:text-bosque"
               >
                 Mi perfil
               </Link>
               <button
                 onClick={handleSignOut}
-                className="font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-gold-400 transition-colors"
+                className="font-display text-eyebrow tracking-wide text-suave hover:text-miel-800 transition-colors"
               >
                 Salir
               </button>
@@ -103,11 +103,11 @@ export default function Nav() {
             <>
               <Link
                 href="/entrar"
-                className="hidden font-display text-eyebrow tracking-cosmic text-ink-soft transition-colors hover:text-lila-300 md:block"
+                className="hidden font-display text-eyebrow tracking-wide text-suave transition-colors hover:text-bosque md:block"
               >
                 Entrar
               </Link>
-              <Link href="/entrar" className="btn-ritual btn-ritual-ghost hidden rounded-pill md:inline-flex">
+              <Link href="/entrar" className="btn btn-outline hidden md:inline-flex">
                 Inscribirme
               </Link>
             </>

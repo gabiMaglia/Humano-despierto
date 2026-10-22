@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { formatDurationSeconds } from "@/lib/utils/format";
-import { toRoman } from "@/lib/utils/roman";
 import type { CourseDetailModule } from "@/lib/server/courses";
 
 type LessonState = "done" | "current" | "pending" | "preview" | "locked";
@@ -31,19 +30,19 @@ const STATE_LABEL: Record<LessonState, string> = {
 };
 
 const STATE_ICON_CLASS: Record<LessonState, string> = {
-  done: "text-lila-300",
-  current: "text-gold-400",
-  pending: "text-ink-faint",
-  preview: "text-gold-400",
-  locked: "text-ink-faint",
+  done: "text-miel-800",
+  current: "text-miel-800",
+  pending: "text-suave",
+  preview: "text-miel-800",
+  locked: "text-suave",
 };
 
 const STATE_TITLE_CLASS: Record<LessonState, string> = {
-  done: "text-ink-soft",
-  current: "text-gold-400",
-  pending: "text-ink-soft",
-  preview: "text-ink",
-  locked: "text-ink-faint",
+  done: "text-suave",
+  current: "text-miel-800",
+  pending: "text-suave",
+  preview: "text-tinta",
+  locked: "text-suave",
 };
 
 interface Props {
@@ -92,15 +91,15 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
 
   return (
     <div className="relative">
-      <div className="absolute left-[19px] top-0 bottom-0 w-px bg-lila-300/18" />
+      <div className="absolute left-[19px] top-0 bottom-0 w-px bg-salvia" />
       <div className="space-y-0">
         {modules.map((m) => {
           const isOpen = openPosition === m.position;
           return (
             <article key={m.position} className="flex gap-6 pb-8">
               <div className="relative z-10 flex flex-col items-center gap-1.5 flex-none">
-                <span className="h-10 w-10 rounded-full border border-lila-300/40 bg-cosmos-surface flex items-center justify-center font-display text-sm text-lila-300">
-                  {toRoman(m.position)}
+                <span className="h-10 w-10 rounded-full border border-linea bg-papel flex items-center justify-center font-display text-sm text-bosque">
+                  {String(m.position)}
                 </span>
               </div>
               <div className="flex-1 min-w-0 pt-2 pb-4">
@@ -113,16 +112,16 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                   className="flex w-full items-start justify-between gap-3 text-left"
                 >
                   <div className="min-w-0 flex-1">
-                    <h4 className="mb-1.5 font-display text-lg tracking-wide text-ink">{m.title}</h4>
+                    <h4 className="mb-1.5 font-display text-lg tracking-wide text-tinta">{m.title}</h4>
                     {m.description && (
-                      <p className="mb-2 font-body text-sm text-ink-soft leading-relaxed">{m.description}</p>
+                      <p className="mb-2 font-body text-sm text-suave leading-relaxed">{m.description}</p>
                     )}
-                    <span className="font-display text-eyebrow tracking-cosmic text-gold-400">
+                    <span className="font-display text-eyebrow tracking-wide text-miel-800">
                       <span aria-hidden="true">☾ </span>
                       {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
                     </span>
                   </div>
-                  <span aria-hidden="true" className="mt-1 flex-none font-display text-sm text-ink-faint">
+                  <span aria-hidden="true" className="mt-1 flex-none font-display text-sm text-suave">
                     {isOpen ? "▾" : "▸"}
                   </span>
                 </button>
@@ -138,10 +137,10 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                       const state = lessonStates.get(lesson.id) ?? "locked";
                       const clickable = state !== "locked";
                       const rowClass = cn(
-                        "flex items-center gap-3 rounded-ritual px-3 py-2 transition-colors min-w-0",
-                        state === "current" && "bg-gold-400/10 border border-gold-400/20",
-                        state === "preview" && "border border-gold-400/15",
-                        clickable && "hover:bg-cosmos-surface cursor-pointer",
+                        "flex items-center gap-3 rounded-md px-3 py-2 transition-colors min-w-0",
+                        state === "current" && "bg-miel-100 border border-miel",
+                        state === "preview" && "border border-miel",
+                        clickable && "hover:bg-papel cursor-pointer",
                         !clickable && "opacity-60"
                       );
                       const content = (
@@ -157,11 +156,11 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                             {lesson.title}
                           </span>
                           {state === "preview" && (
-                            <span className="flex-none font-display text-[9px] tracking-cosmic uppercase text-gold-400 border border-gold-400/40 rounded px-1.5 py-0.5">
+                            <span className="flex-none font-display text-[9px] tracking-wide uppercase text-miel-800 border border-miel rounded px-1.5 py-0.5">
                               Vista previa
                             </span>
                           )}
-                          <span className="flex-none font-display text-xs text-ink-faint">
+                          <span className="flex-none font-display text-xs text-suave">
                             {formatDurationSeconds(lesson.durationSeconds)}
                           </span>
                         </>
@@ -181,7 +180,7 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
                 )}
 
                 {isOpen && m.lessons.length === 0 && (
-                  <p className="mt-2 font-body text-xs italic text-ink-faint">
+                  <p className="mt-2 font-body text-xs italic text-suave">
                     Currículum en preparación para este módulo.
                   </p>
                 )}

@@ -13,7 +13,7 @@ export default function AuthField({ id, label, aside, className, ...input }: Pro
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <label htmlFor={id} className="font-display text-eyebrow tracking-cosmic text-ink-soft">
+        <label htmlFor={id} className="font-display text-eyebrow tracking-wide text-suave">
           {label}
         </label>
         {aside}
@@ -22,7 +22,7 @@ export default function AuthField({ id, label, aside, className, ...input }: Pro
         id={id}
         {...input}
         className={cn(
-          "w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-4 py-3 font-body text-sm text-ink placeholder:text-ink-faint outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0",
+          "w-full rounded-md border border-linea bg-papel px-4 py-3 font-body text-sm text-tinta placeholder:text-suave outline-none transition-colors focus:border-linea focus:bg-fondo",
           className,
         )}
       />

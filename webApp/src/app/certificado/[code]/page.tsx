@@ -29,7 +29,7 @@ export default async function CertificadoPage({ params }: PageProps) {
   if (!certificate) notFound();
 
   return (
-    <div className="min-h-screen bg-cosmos-0 px-6 py-16 text-ink print:min-h-0 print:bg-white print:px-0 print:py-0">
+    <div className="min-h-screen bg-fondo px-6 py-16 text-tinta print:min-h-0 print:bg-white print:px-0 print:py-0">
       {/* Criterio 5: que se vea bien impresa. Apaisado — un certificado se lee ancho, no alto — */}
       {/* y sin la barra lateral de fecha/hora que Chrome agrega por defecto en la impresión. */}
       <style>{`
@@ -40,20 +40,20 @@ export default async function CertificadoPage({ params }: PageProps) {
 
       <PrintButton />
 
-      <main className="relative mx-auto max-w-2xl overflow-hidden rounded-scroll border border-lila-300/25 bg-cosmos-surface px-8 py-14 shadow-cosmos-card print:max-w-none print:rounded-none print:border-2 print:border-[#c9a44c] print:bg-white print:px-16 print:py-14 print:shadow-none">
+      <main className="relative mx-auto max-w-2xl overflow-hidden rounded-lg border border-linea bg-papel px-8 py-14 shadow-card print:max-w-none print:rounded-none print:border-2 print:border-[#c9a44c] print:bg-white print:px-16 print:py-14 print:shadow-none">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 flex select-none items-center justify-center font-display text-[220px] leading-none text-lila-300/[0.05] print:text-[#c9a44c]/10"
+          className="pointer-events-none absolute inset-0 flex select-none items-center justify-center font-display text-[220px] leading-none text-bosque print:text-[#c9a44c]/10"
         >
           ✦
         </span>
 
         <div className="relative flex flex-col items-center gap-7 text-center">
-          <p className="font-display text-eyebrow uppercase tracking-[0.3em] text-gold-400 print:text-[#8a6520]">
+          <p className="font-display text-eyebrow uppercase tracking-[0.3em] text-miel-800 print:text-[#8a6520]">
             ☉ Humano Despierto ☽
           </p>
 
-          <div className="flex items-center gap-3 text-lila-300 print:text-[#5b2a86]">
+          <div className="flex items-center gap-3 text-miel-800 print:text-[#5b2a86]">
             <span aria-hidden>✧</span>
             <p className="font-display text-eyebrow uppercase tracking-[0.25em]">
               Certificado de finalización
@@ -61,39 +61,39 @@ export default async function CertificadoPage({ params }: PageProps) {
             <span aria-hidden>✧</span>
           </div>
 
-          <p className="font-quote text-lg italic text-ink-soft print:text-[#5a4570]">
+          <p className="font-quote text-lg italic text-suave print:text-[#5a4570]">
             Se certifica que
           </p>
 
-          <h1 className="font-quote text-4xl italic text-ink print:text-[#1f1430] md:text-5xl">
+          <h1 className="font-quote text-4xl italic text-tinta print:text-[#1f1430] md:text-5xl">
             {certificate.studentName}
           </h1>
 
-          <p className="max-w-md font-body text-sm text-ink-soft print:text-[#5a4570]">
+          <p className="max-w-md font-body text-sm text-suave print:text-[#5a4570]">
             completó el recorrido completo del curso
           </p>
 
-          <h2 className="font-display text-2xl tracking-wide text-gold-400 print:text-[#8a6520]">
+          <h2 className="font-display text-2xl tracking-wide text-miel-800 print:text-[#8a6520]">
             {certificate.courseTitle}
           </h2>
 
-          <p className="max-w-md font-body text-xs text-ink-soft print:text-[#5a4570]">
+          <p className="max-w-md font-body text-xs text-suave print:text-[#5a4570]">
             Este certificado acredita el recorrido completo del curso, no una evaluación.
           </p>
 
-          <div className="flex flex-col items-center gap-1 font-body text-sm text-ink-soft print:text-[#5a4570]">
+          <div className="flex flex-col items-center gap-1 font-body text-sm text-suave print:text-[#5a4570]">
             <p>
               Guiado por{" "}
-              <span className="font-quote text-base text-ink print:text-[#1f1430]">
+              <span className="font-quote text-base text-tinta print:text-[#1f1430]">
                 {certificate.teacherName}
               </span>
             </p>
             <p>{formatCertificateDate(certificate.completedAt)}</p>
           </div>
 
-          <div className="mt-3 h-px w-24 bg-lila-300/30 print:bg-[#c9a44c]" />
+          <div className="mt-3 h-px w-24 bg-salvia print:bg-[#c9a44c]" />
 
-          <p className="max-w-sm font-body text-xs text-ink-faint print:text-[#9888a8]">
+          <p className="max-w-sm font-body text-xs text-suave print:text-[#9888a8]">
             Verificable abriendo esta misma dirección · código{" "}
             <span className="font-mono">{code}</span>
           </p>

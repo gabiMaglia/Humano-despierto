@@ -24,22 +24,22 @@ export default async function TeacherDiarioEditorPage({ params }: Props) {
   if (!post) notFound();
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
+    <div className="min-h-screen bg-fondo text-tinta">
       <Nav />
       <div className="pt-16">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">
           <div>
-            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">
+            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">
               — /diario/{post.slug} —
             </p>
-            <h1 className="font-display text-display-md text-ink">{post.title}</h1>
+            <h1 className="font-display text-display-md text-tinta">{post.title}</h1>
           </div>
           <PublishPostControl postId={post.id} status={post.status} />
         </header>
 
         <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 md:px-12">
           <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">El post</h2>
+            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">El post</h2>
             <PostForm post={post} />
           </section>
 

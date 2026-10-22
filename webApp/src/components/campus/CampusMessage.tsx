@@ -59,19 +59,19 @@ export default function CampusMessage({
 
   if (post.isDeleted) {
     return (
-      <article className="border-b border-lila-300/18 px-5 py-4 opacity-60">
+      <article className="border-b border-linea px-5 py-4 opacity-60">
         <div className="flex items-start gap-3">
           <Avatar glyph={post.authorGlyph ?? "·"} size="sm" />
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
+            <div className="mb-1 flex items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
               <span>{post.authorName}</span>
-              <span className="text-lila-300/30">·</span>
+              <span className="text-miel-800">·</span>
               <span>{formatRelativeTime(post.createdAt)}</span>
             </div>
-            <p className="font-body text-sm italic text-ink-faint line-through decoration-lila-300/40">
+            <p className="font-body text-sm italic text-suave line-through decoration-miel-800/40">
               {post.body}
             </p>
-            <p className="mt-1.5 font-body text-xs text-ink-faint">
+            <p className="mt-1.5 font-body text-xs text-suave">
               Borrado por {post.deletedByName ?? "moderación"}
               {post.deletedReason ? ` — motivo: "${post.deletedReason}"` : ""}
             </p>
@@ -82,16 +82,16 @@ export default function CampusMessage({
   }
 
   return (
-    <article className="border-b border-lila-300/18 px-5 py-4">
+    <article className="border-b border-linea px-5 py-4">
       <div className="flex items-start gap-3">
         <Avatar glyph={post.authorGlyph ?? post.authorName[0]} size="sm" />
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex flex-wrap items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-            <span className="text-ink">{post.authorName}</span>
-            <span className="text-lila-300/60">{ROLE_LABEL[post.authorRole]}</span>
-            <span className="text-lila-300/30">·</span>
+          <div className="mb-1 flex flex-wrap items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
+            <span className="text-tinta">{post.authorName}</span>
+            <span className="text-miel-800">{ROLE_LABEL[post.authorRole]}</span>
+            <span className="text-miel-800">·</span>
             <span>{formatRelativeTime(post.createdAt)}</span>
-            {post.updatedAt !== post.createdAt && <span className="text-ink-faint">(editado)</span>}
+            {post.updatedAt !== post.createdAt && <span className="text-suave">(editado)</span>}
           </div>
 
           {isEditing ? (
@@ -104,10 +104,10 @@ export default function CampusMessage({
                 maxLength={4000}
                 defaultValue={post.body}
                 rows={2}
-                className="w-full resize-y rounded-ritual border border-lila-300/30 bg-cosmos-0/60 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/50"
+                className="w-full resize-y rounded-md border border-linea bg-papel px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
               />
               <div className="mt-1.5 flex items-center gap-2">
-                <button type="submit" disabled={isEditPending} className="btn-ritual btn-ritual-primary rounded-pill text-[10px] disabled:opacity-60">
+                <button type="submit" disabled={isEditPending} className="btn btn-primary text-[10px] disabled:opacity-60">
                   {isEditPending ? "…" : "Guardar"}
                 </button>
                 <button
@@ -116,7 +116,7 @@ export default function CampusMessage({
                     setEditError(null);
                     setIsEditing(false);
                   }}
-                  className="font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-ink-soft"
+                  className="font-display text-eyebrow tracking-wide text-suave hover:text-suave"
                 >
                   Cancelar
                 </button>
@@ -124,13 +124,13 @@ export default function CampusMessage({
               {editError && <p role="alert" className="mt-1 font-body text-xs text-red-400">{editError}</p>}
             </form>
           ) : (
-            <p className="whitespace-pre-wrap font-body text-sm text-ink-soft leading-relaxed">{post.body}</p>
+            <p className="whitespace-pre-wrap font-body text-sm text-suave leading-relaxed">{post.body}</p>
           )}
 
           {!isEditing && (post.isOwn || post.canModerate) && (
-            <div className="mt-2 flex items-center gap-3 font-display text-eyebrow tracking-cosmic text-ink-faint">
+            <div className="mt-2 flex items-center gap-3 font-display text-eyebrow tracking-wide text-suave">
               {post.isOwn && (
-                <button onClick={() => setIsEditing(true)} className="hover:text-lila-300 transition-colors">
+                <button onClick={() => setIsEditing(true)} className="hover:text-miel-800 transition-colors">
                   Editar
                 </button>
               )}
@@ -156,12 +156,12 @@ export default function CampusMessage({
                 name="reason"
                 required
                 placeholder="Motivo del borrado (obligatorio)"
-                className="min-w-[220px] flex-1 rounded-ritual border border-red-400/30 bg-cosmos-0/60 px-3 py-1.5 font-body text-xs text-ink placeholder:text-ink-faint outline-none focus:border-red-400/60"
+                className="min-w-[220px] flex-1 rounded-md border border-red-400/30 bg-papel px-3 py-1.5 font-body text-xs text-tinta placeholder:text-suave outline-none focus:border-red-400/60"
               />
               <button
                 type="submit"
                 disabled={isModPending}
-                className="rounded-pill border border-red-400/40 bg-red-400/10 px-3 py-1.5 font-display text-eyebrow tracking-cosmic text-red-400 hover:bg-red-400/20 transition-colors disabled:opacity-60"
+                className="rounded-pill border border-red-400/40 bg-red-400/10 px-3 py-1.5 font-display text-eyebrow tracking-wide text-red-400 hover:bg-red-400/20 transition-colors disabled:opacity-60"
               >
                 {isModPending ? "…" : "Confirmar borrado"}
               </button>

@@ -18,10 +18,10 @@ export default function CourseStatusRow({ course }: { course: AdminCourseRow }) 
   );
 
   return (
-    <li className="cosmos-card flex flex-wrap items-center gap-4 p-4">
+    <li className="tarjeta flex flex-wrap items-center gap-4 p-4">
       <div className="min-w-0 flex-1">
-        <p className="font-display text-sm tracking-wide text-ink">{course.title}</p>
-        <p className="font-body text-xs text-ink-faint">
+        <p className="font-display text-sm tracking-wide text-tinta">{course.title}</p>
+        <p className="font-body text-xs text-suave">
           {course.teacherName} · /cursos/{course.slug}
         </p>
       </div>
@@ -31,7 +31,7 @@ export default function CourseStatusRow({ course }: { course: AdminCourseRow }) 
         <select
           name="status"
           defaultValue={course.status}
-          className="rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2 font-body text-xs text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0"
+          className="rounded-md border border-linea bg-papel px-3 py-2 font-body text-xs text-tinta outline-none transition-colors focus:border-linea focus:bg-fondo"
         >
           {(Object.keys(STATUS_LABEL) as CourseStatus[]).map((status) => (
             <option key={status} value={status}>
@@ -42,7 +42,7 @@ export default function CourseStatusRow({ course }: { course: AdminCourseRow }) 
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-outline text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "…" : "Guardar"}
         </button>
@@ -54,7 +54,7 @@ export default function CourseStatusRow({ course }: { course: AdminCourseRow }) 
         </p>
       )}
       {state.success && (
-        <p className="w-full font-body text-xs text-lila-300">{state.success}</p>
+        <p className="w-full font-body text-xs text-miel-800">{state.success}</p>
       )}
     </li>
   );

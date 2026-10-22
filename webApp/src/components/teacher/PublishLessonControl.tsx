@@ -33,14 +33,14 @@ export default function PublishLessonControl({
           disabled={isPending}
           className={
             isPublished
-              ? "btn-ritual btn-ritual-ghost rounded-pill disabled:opacity-60"
-              : "btn-ritual btn-ritual-primary rounded-pill disabled:opacity-60"
+              ? "btn btn-outline disabled:opacity-60"
+              : "btn btn-primary disabled:opacity-60"
           }
         >
           {isPending ? "…" : isPublished ? "Ocultar lección" : "Publicar lección"}
         </button>
         {state.error && <p className="font-body text-xs text-red-400">{state.error}</p>}
-        {state.success && <p className="font-body text-xs text-lila-300">{state.success}</p>}
+        {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
       </form>
 
       <form

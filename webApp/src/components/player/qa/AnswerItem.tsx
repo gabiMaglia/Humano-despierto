@@ -19,21 +19,21 @@ export default function AnswerItem({ lessonId, answer, canModerate }: Props) {
   const moderate = useMemo(() => moderateAnswer.bind(null, lessonId, answer.id), [lessonId, answer.id]);
 
   return (
-    <li className={cn("border-l-2 pl-3", answer.isFeatured ? "border-gold-400" : "border-lila-300/30")}>
+    <li className={cn("border-l-2 pl-3", answer.isFeatured ? "border-miel" : "border-linea")}>
       <div className="mb-1 flex items-center gap-2">
         {answer.isFeatured && (
-          <span role="img" aria-label="Respuesta destacada" className="font-display text-gold-400">
+          <span role="img" aria-label="Respuesta destacada" className="font-display text-miel-800">
             ✦
           </span>
         )}
-        <span className="font-display text-eyebrow tracking-cosmic text-ink-soft">{answer.author.name}</span>
+        <span className="font-display text-eyebrow tracking-wide text-suave">{answer.author.name}</span>
         {answer.isInstructorAnswer && (
-          <span className="font-display text-eyebrow tracking-cosmic text-gold-400">Docente</span>
+          <span className="font-display text-eyebrow tracking-wide text-miel-800">Docente</span>
         )}
       </div>
-      <p className="whitespace-pre-line font-body text-xs leading-relaxed text-ink-soft">{answer.body}</p>
+      <p className="whitespace-pre-line font-body text-xs leading-relaxed text-suave">{answer.body}</p>
       {answer.isDeleted && (
-        <p className="mt-1 font-body text-xs italic text-ink-faint">
+        <p className="mt-1 font-body text-xs italic text-suave">
           Borrada por {answer.deletedByName ?? "moderación"}: {answer.deletedReason}
         </p>
       )}

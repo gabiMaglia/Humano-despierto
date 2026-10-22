@@ -14,11 +14,11 @@ export default async function GuiasPage() {
   const disciplinas = [...new Set(guias.map((g) => g.discipline).filter((d): d is string => !!d))];
 
   return (
-    <div className="min-h-screen bg-cosmos-0">
+    <div className="min-h-screen bg-fondo">
 
       <PageHeader
         badge={`${guias.length} guías · ${disciplinas.length} disciplinas`}
-        title={<>Quienes <em className="font-quote italic text-lila-300">sostienen</em> el camino</>}
+        title={<>Quienes <em className="font-quote italic text-miel-800">sostienen</em> el camino</>}
         subtitle="Cada guía llegó al oficio por una grieta distinta. Todos comparten una misma convicción: el conocimiento no se transmite, se despierta."
       />
 
@@ -33,7 +33,7 @@ export default async function GuiasPage() {
         </div>
 
         {guias.length === 0 && (
-          <p className="py-16 text-center font-body text-sm text-ink-soft">
+          <p className="py-16 text-center font-body text-sm text-suave">
             Todavía no hay guías con cursos publicados.
           </p>
         )}

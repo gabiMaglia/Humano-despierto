@@ -22,17 +22,17 @@ export default async function AdminReviewsPage() {
       active="resenas"
       heading={
         <>
-          Moderación de <em className="font-quote italic text-lila-300">reseñas</em>
+          Moderación de <em className="font-quote italic text-miel-800">reseñas</em>
         </>
       }
     >
       <section aria-labelledby="cola-titulo">
-        <h2 id="cola-titulo" className="mb-5 font-display text-lg tracking-wide text-ink">
+        <h2 id="cola-titulo" className="mb-5 font-display text-lg tracking-wide text-tinta">
           Reportes pendientes
         </h2>
         {pending.length === 0 ? (
           // ADR-012 c.9: la cola vacía es el estado normal y tiene que verse deliberada.
-          <p className="cosmos-card p-6 font-body text-sm text-ink-faint">
+          <p className="tarjeta p-6 font-body text-sm text-suave">
             <span aria-hidden="true">✧ </span>No hay reportes pendientes. Cuando una guía reporte una reseña,
             aparece acá con el texto completo.
           </p>
@@ -40,18 +40,18 @@ export default async function AdminReviewsPage() {
           <ul className="space-y-4">
             {pending.map((p) => (
               <li key={p.id}>
-                <article aria-label={`Reporte de ${p.reporterName}`} className="cosmos-card p-6">
-                  <p className="mb-1 font-display text-eyebrow tracking-cosmic text-gold-400">
+                <article aria-label={`Reporte de ${p.reporterName}`} className="tarjeta p-6">
+                  <p className="mb-1 font-display text-eyebrow tracking-wide text-miel-800">
                     Reportó {p.reporterName} · {formatCertificateDate(p.createdAt)}
                   </p>
-                  <p className="mb-4 font-body text-sm text-ink">{p.reason}</p>
+                  <p className="mb-4 font-body text-sm text-tinta">{p.reason}</p>
                   {p.review ? (
                     <>
                       <ModerationReviewCard review={p.review} />
                       {p.review.hiddenAt ? null : <HideReviewForm reviewId={p.review.id} />}
                     </>
                   ) : (
-                    <p className="font-body text-sm italic text-ink-faint">La reseña ya no existe.</p>
+                    <p className="font-body text-sm italic text-suave">La reseña ya no existe.</p>
                   )}
                   <DismissReportButton reportId={p.id} />
                 </article>
@@ -62,17 +62,17 @@ export default async function AdminReviewsPage() {
       </section>
 
       <section aria-labelledby="recientes-titulo">
-        <h2 id="recientes-titulo" className="mb-5 font-display text-lg tracking-wide text-ink">
+        <h2 id="recientes-titulo" className="mb-5 font-display text-lg tracking-wide text-tinta">
           Reseñas recientes
         </h2>
         {recent.length === 0 ? (
-          <p className="font-body text-sm text-ink-faint">Todavía no hay reseñas.</p>
+          <p className="font-body text-sm text-suave">Todavía no hay reseñas.</p>
         ) : (
           <ul className="space-y-4">
             {recent.map((r) => (
-              <li key={r.id} className="cosmos-card p-6">
+              <li key={r.id} className="tarjeta p-6">
                 {r.hiddenAt && (
-                  <p className="mb-2 font-display text-eyebrow tracking-cosmic text-gold-400">
+                  <p className="mb-2 font-display text-eyebrow tracking-wide text-miel-800">
                     Oculta · {r.hiddenReason}
                   </p>
                 )}

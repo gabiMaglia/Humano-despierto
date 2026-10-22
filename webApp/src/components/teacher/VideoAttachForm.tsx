@@ -39,35 +39,35 @@ export default function VideoAttachForm({ courseId, lessonId, durationSeconds, p
   }, [state.success]);
 
   return (
-    <div className="cosmos-card space-y-4 p-6">
-      <h3 className="font-display text-sm tracking-wide text-ink">Video de YouTube</h3>
+    <div className="tarjeta space-y-4 p-6">
+      <h3 className="font-display text-sm tracking-wide text-tinta">Video de YouTube</h3>
 
       {durationSeconds > 0 ? (
-        <p className="font-body text-xs text-lila-300">
+        <p className="font-body text-xs text-miel-800">
           Cargado — duración {formatDuration(durationSeconds)}.
         </p>
       ) : (
-        <p className="font-body text-xs text-ink-faint">Todavía no tiene video cargado.</p>
+        <p className="font-body text-xs text-suave">Todavía no tiene video cargado.</p>
       )}
 
       <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-3">
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
         <div className="min-w-[260px] flex-1">
-          <label className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">
+          <label className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
             Link de YouTube (watch, youtu.be o embed)
           </label>
           <input
             name="url"
             required
             placeholder="https://www.youtube.com/watch?v=…"
-            className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink outline-none focus:border-lila-300/50 focus:bg-cosmos-0"
+            className="w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none focus:border-linea focus:bg-fondo"
           />
         </div>
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-primary rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Consultando YouTube…" : durationSeconds > 0 ? "Reemplazar video" : "Cargar video"}
         </button>
@@ -78,14 +78,14 @@ export default function VideoAttachForm({ courseId, lessonId, durationSeconds, p
           {state.error}
         </p>
       )}
-      {state.success && <p className="font-body text-xs text-lila-300">{state.success}</p>}
+      {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
 
       {preview && (
         <div>
-          <p className="mb-2 font-display text-eyebrow tracking-cosmic text-ink-soft">
+          <p className="mb-2 font-display text-eyebrow tracking-wide text-suave">
             Vista previa (solo la ves vos, como dueña de la lección)
           </p>
-          <div className="aspect-video w-full overflow-hidden rounded-ritual border border-lila-300/20">
+          <div className="aspect-video w-full overflow-hidden rounded-md border border-linea">
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${preview.videoId}`}
               title="Vista previa de la lección"

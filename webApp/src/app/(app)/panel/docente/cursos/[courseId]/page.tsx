@@ -32,21 +32,21 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
   const coverUrl = await signUploadUrl(await createClient(), course.coverPath);
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
+    <div className="min-h-screen bg-fondo text-tinta">
       <Nav />
       <div className="pt-16">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">
           <div>
-            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">
+            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">
               — /cursos/{course.slug} —
             </p>
-            <h1 className="font-display text-display-md text-ink">{course.title}</h1>
+            <h1 className="font-display text-display-md text-tinta">{course.title}</h1>
           </div>
           <div className="flex flex-col items-end gap-3">
             <PublishCourseControl courseId={course.id} status={course.status} />
             <Link
               href={`/panel/docente/anuncios?curso=${course.id}`}
-              className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors"
+              className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors"
             >
               Anuncios del curso ↦
             </Link>
@@ -55,29 +55,29 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
 
         <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 md:px-12">
           <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Alumnas</h2>
+            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Alumnas</h2>
             <Link
               href={`/panel/docente/cursos/${course.id}/alumnas`}
-              className="cosmos-card flex flex-wrap items-center gap-4 p-4 transition-colors hover:border-lila-300/40"
+              className="tarjeta flex flex-wrap items-center gap-4 p-4 transition-colors hover:border-linea"
             >
-              <span className="font-body text-sm text-ink-soft">
+              <span className="font-body text-sm text-suave">
                 {roster
                   ? `${roster.summary.active} activa${roster.summary.active === 1 ? "" : "s"} · ${roster.summary.completed} completada${roster.summary.completed === 1 ? "" : "s"}`
                   : "Ver alumnas y avance"}
               </span>
-              <span className="ml-auto font-display text-eyebrow tracking-cosmic text-lila-300">Ver todas →</span>
+              <span className="ml-auto font-display text-eyebrow tracking-wide text-bosque">Ver todas →</span>
             </Link>
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Datos del curso</h2>
+            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Datos del curso</h2>
             <CourseForm course={course} />
           </section>
 
           <CoverForm courseId={course.id} coverUrl={coverUrl} courseTitle={course.title} />
 
           <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Módulos y lecciones</h2>
+            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Módulos y lecciones</h2>
             <div className="space-y-4">
               {course.modules.map((mod, i) => (
                 <ModuleBlock
@@ -89,7 +89,7 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
                 />
               ))}
               {course.modules.length === 0 && (
-                <p className="cosmos-card p-5 font-body text-sm text-ink-faint">
+                <p className="tarjeta p-5 font-body text-sm text-suave">
                   Sin módulos todavía — creá el primero abajo.
                 </p>
               )}

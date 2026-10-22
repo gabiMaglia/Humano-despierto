@@ -16,7 +16,7 @@ export default async function LandingPage() {
   const days = lunarDays(new Date());
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-cosmos-0 text-ink">
+    <div className="min-h-screen overflow-x-hidden bg-fondo text-tinta">
       <Starfield />
       <Nav />
       <main>

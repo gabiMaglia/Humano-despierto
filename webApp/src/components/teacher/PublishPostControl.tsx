@@ -18,8 +18,8 @@ export default function PublishPostControl({ postId, status }: { postId: string;
           disabled={isPending}
           className={
             isPublished
-              ? "btn-ritual btn-ritual-ghost rounded-pill disabled:opacity-60"
-              : "btn-ritual btn-ritual-primary rounded-pill disabled:opacity-60"
+              ? "btn btn-outline disabled:opacity-60"
+              : "btn btn-primary disabled:opacity-60"
           }
         >
           {isPending ? "…" : isPublished ? "Pasar a borrador" : "Publicar post"}
@@ -30,7 +30,7 @@ export default function PublishPostControl({ postId, status }: { postId: string;
           {state.error}
         </p>
       )}
-      {state.success && <p className="font-body text-xs text-lila-300">{state.success}</p>}
+      {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
     </div>
   );
 }

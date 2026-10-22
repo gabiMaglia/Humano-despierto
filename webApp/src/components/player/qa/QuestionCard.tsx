@@ -22,7 +22,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
   const titleId = `qa-q-${q.id}`;
 
   return (
-    <article aria-labelledby={titleId} className="rounded-ritual border border-lila-300/18 p-3">
+    <article aria-labelledby={titleId} className="rounded-md border border-linea p-3">
       <div className="flex items-start gap-3">
         <QaTextButton
           variant={q.hasVoted ? "active" : "default"}
@@ -34,16 +34,16 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
           {q.hasVoted ? "✦" : "✧"} {q.votes}
         </QaTextButton>
         <div className="min-w-0 flex-1">
-          <h3 id={titleId} className="font-display text-sm tracking-wide text-ink">
+          <h3 id={titleId} className="font-display text-sm tracking-wide text-tinta">
             {q.title}
           </h3>
-          <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">
+          <p className="font-display text-eyebrow tracking-wide text-suave">
             {q.author.name}
-            {q.isResolved && <span className="text-gold-400"> · ✓ Resuelta</span>}
+            {q.isResolved && <span className="text-miel-800"> · ✓ Resuelta</span>}
           </p>
-          <p className="mt-2 whitespace-pre-line font-body text-xs leading-relaxed text-ink-soft">{q.body}</p>
+          <p className="mt-2 whitespace-pre-line font-body text-xs leading-relaxed text-suave">{q.body}</p>
           {q.isDeleted && (
-            <p className="mt-1 font-body text-xs italic text-ink-faint">
+            <p className="mt-1 font-body text-xs italic text-suave">
               Borrada por {q.deletedByName ?? "moderación"}: {q.deletedReason}
             </p>
           )}

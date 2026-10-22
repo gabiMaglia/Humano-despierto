@@ -14,7 +14,7 @@ export function HideReviewForm({ reviewId }: { reviewId: string }) {
   const fieldId = useId();
   return (
     <form action={formAction} className="mt-4">
-      <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-faint">
+      <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
         Motivo para ocultar
       </label>
       <textarea
@@ -23,13 +23,13 @@ export function HideReviewForm({ reviewId }: { reviewId: string }) {
         rows={2}
         maxLength={1000}
         required
-        className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/40"
+        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
       />
       <ActionFeedback state={state} />
       <button
         type="submit"
         disabled={isPending}
-        className="btn-ritual btn-ritual-primary mt-3 rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-primary mt-3 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Ocultando…" : "Ocultar reseña"}
       </button>
@@ -48,7 +48,7 @@ export function DismissReportButton({ reportId }: { reportId: string }) {
       <button
         type="submit"
         disabled={isPending}
-        className="btn-ritual btn-ritual-ghost rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-outline disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Desestimando…" : "Desestimar reporte"}
       </button>
@@ -67,7 +67,7 @@ export function UnhideReviewButton({ reviewId }: { reviewId: string }) {
       <button
         type="submit"
         disabled={isPending}
-        className="btn-ritual btn-ritual-ghost rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-outline disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Mostrando…" : "Volver a mostrar"}
       </button>

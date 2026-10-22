@@ -116,23 +116,23 @@ export default function EntrarForm({ next, linkError }: Props) {
     <div className="flex h-full">
 
       {/* ── Left — Form ────────────────────────────────────────────────── */}
-      <div className="flex w-full flex-col justify-center bg-cosmos-surface px-8 py-6 md:px-14 lg:max-w-[520px]">
+      <div className="flex w-full flex-col justify-center bg-papel px-8 py-6 md:px-14 lg:max-w-[520px]">
 
         <AuthBrand />
 
         {sent ? (
           <div role="status" className="space-y-4">
-            <h1 className="mb-1.5 font-display text-2xl tracking-wide text-ink">
-              Revisá tu <em className="font-quote italic text-lila-300 normal-case">mail</em>
+            <h1 className="mb-1.5 font-display text-2xl tracking-wide text-tinta">
+              Revisá tu <em className="font-quote italic text-miel-800 normal-case">mail</em>
             </h1>
-            <p className="font-body text-sm text-ink-faint">{AUTH_COPY.checkEmail}</p>
+            <p className="font-body text-sm text-suave">{AUTH_COPY.checkEmail}</p>
             <button
               type="button"
               onClick={() => {
                 setSent(false);
                 setTab("entrar");
               }}
-              className="text-lila-300 transition-colors hover:text-gold-400 font-body text-xs"
+              className="text-miel-800 transition-colors hover:text-miel-800 font-body text-xs"
             >
               Volver a entrar
             </button>
@@ -140,13 +140,13 @@ export default function EntrarForm({ next, linkError }: Props) {
         ) : (
           <>
           {/* Tab toggle */}
-          <div className="mb-5 flex rounded-pill border border-lila-300/20 bg-cosmos-0/40 p-1">
+          <div className="mb-5 flex rounded-pill border border-linea bg-papel p-1">
             {(["entrar", "registro"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 rounded-pill py-2 font-display text-eyebrow tracking-cosmic transition-colors ${
-                  tab === t ? "bg-lila-300/15 text-ink" : "text-ink-faint hover:text-ink-soft"
+                className={`flex-1 rounded-pill py-2 font-display text-eyebrow tracking-wide transition-colors ${
+                  tab === t ? "bg-salvia-100 text-tinta" : "text-suave hover:text-suave"
                 }`}
               >
                 {t === "entrar" ? "Entrar" : "Crear cuenta"}
@@ -156,14 +156,14 @@ export default function EntrarForm({ next, linkError }: Props) {
 
           {/* Heading */}
           <div className="mb-5">
-            <h1 className="mb-1.5 font-display text-2xl tracking-wide text-ink">
+            <h1 className="mb-1.5 font-display text-2xl tracking-wide text-tinta">
               {tab === "entrar" ? (
-                <>Bienvenida <em className="font-quote italic text-lila-300 normal-case">de nuevo</em></>
+                <>Bienvenida <em className="font-quote italic text-miel-800 normal-case">de nuevo</em></>
               ) : (
-                <>Empezá tu <em className="font-quote italic text-lila-300 normal-case">camino</em></>
+                <>Empezá tu <em className="font-quote italic text-miel-800 normal-case">camino</em></>
               )}
             </h1>
-            <p className="font-body text-sm text-ink-faint">
+            <p className="font-body text-sm text-suave">
               {tab === "entrar"
                 ? "Ingresá con tu cuenta para continuar."
                 : "Creá tu cuenta y accedé al círculo."}
@@ -217,7 +217,7 @@ export default function EntrarForm({ next, linkError }: Props) {
                 tab === "entrar" && (
                   <Link
                     href={RECOVER_PATH}
-                    className="font-display text-eyebrow tracking-cosmic text-ink-faint transition-colors hover:text-lila-300"
+                    className="font-display text-eyebrow tracking-wide text-suave transition-colors hover:text-bosque"
                   >
                     ¿Olvidaste la clave?
                   </Link>
@@ -236,24 +236,24 @@ export default function EntrarForm({ next, linkError }: Props) {
 
           {/* Divider */}
           <div className="my-4 flex items-center gap-4">
-            <div className="h-px flex-1 bg-lila-300/18" />
-            <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">o continuá con</span>
-            <div className="h-px flex-1 bg-lila-300/18" />
+            <div className="h-px flex-1 bg-salvia" />
+            <span className="font-display text-eyebrow tracking-wide text-suave">o continuá con</span>
+            <div className="h-px flex-1 bg-salvia" />
           </div>
 
           <GoogleButton next={next} disabled={loading} onError={setError} />
 
           {/* Footer note */}
-          <p className="mt-5 text-center font-body text-xs text-ink-faint">
+          <p className="mt-5 text-center font-body text-xs text-suave">
             {tab === "entrar" ? (
               <>¿No tenés cuenta?{" "}
-                <button onClick={() => setTab("registro")} className="text-lila-300 hover:text-gold-400 transition-colors">
+                <button onClick={() => setTab("registro")} className="text-miel-800 hover:text-miel-800 transition-colors">
                   Registrate
                 </button>
               </>
             ) : (
               <>¿Ya tenés cuenta?{" "}
-                <button onClick={() => setTab("entrar")} className="text-lila-300 hover:text-gold-400 transition-colors">
+                <button onClick={() => setTab("entrar")} className="text-miel-800 hover:text-miel-800 transition-colors">
                   Ingresá
                 </button>
               </>
@@ -281,20 +281,20 @@ export default function EntrarForm({ next, linkError }: Props) {
 
         {/* Floating sigils */}
         {[
-          { icon: "✦", cls: "top-12 left-[14%] text-gold-400 text-xs opacity-50" },
-          { icon: "☉", cls: "top-[28%] right-[10%] text-lila-300 text-sm opacity-35" },
-          { icon: "◐", cls: "bottom-[28%] left-[8%]  text-lila-300 text-xs opacity-35" },
-          { icon: "✧", cls: "bottom-12 right-[16%] text-gold-400 text-[10px] opacity-45" },
+          { icon: "✦", cls: "top-12 left-[14%] text-miel-800 text-xs opacity-50" },
+          { icon: "☉", cls: "top-[28%] right-[10%] text-miel-800 text-sm opacity-35" },
+          { icon: "◐", cls: "bottom-[28%] left-[8%]  text-miel-800 text-xs opacity-35" },
+          { icon: "✧", cls: "bottom-12 right-[16%] text-miel-800 text-[10px] opacity-45" },
         ].map(({ icon, cls }) => (
           <span key={icon} className={`pointer-events-none absolute font-display ${cls}`}>{icon}</span>
         ))}
 
         {/* Label — changes with each random solid */}
         <div className="absolute bottom-10 left-0 right-0 text-center">
-          <p className="mb-1 font-display text-eyebrow tracking-cosmic text-ink-faint">
+          <p className="mb-1 font-display text-eyebrow tracking-wide text-suave">
             {solidInfo.name} · {solidInfo.element}
           </p>
-          <p className="font-quote italic text-sm text-ink-faint/60">{solidInfo.tagline}</p>
+          <p className="font-quote italic text-sm text-suave">{solidInfo.tagline}</p>
         </div>
       </div>
 

@@ -18,10 +18,10 @@ export default async function CampusGeneralPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-lila-300/18 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-linea p-5">
         <div>
-          <h2 className="font-display text-lg tracking-wide text-ink">{thread.title}</h2>
-          <p className="font-body text-xs text-ink-faint">Lo que se conversa sin necesidad de estar cursando nada en particular</p>
+          <h2 className="font-display text-lg tracking-wide text-tinta">{thread.title}</h2>
+          <p className="font-body text-xs text-suave">Lo que se conversa sin necesidad de estar cursando nada en particular</p>
         </div>
       </div>
 
@@ -34,9 +34,9 @@ export default async function CampusGeneralPage() {
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
-          <span className="text-3xl text-lila-300">✦</span>
-          <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">— Todavía nadie escribió acá —</p>
-          <p className="max-w-sm font-body text-sm text-ink-soft">
+          <span className="text-3xl text-miel-800">✦</span>
+          <p className="font-display text-eyebrow tracking-wide text-suave">— Todavía nadie escribió acá —</p>
+          <p className="max-w-sm font-body text-sm text-suave">
             El hilo general recién arranca. Un espacio nuevo, no uno abandonado.
           </p>
         </div>

@@ -15,10 +15,10 @@ export default function RecuperarForm() {
     // arrastrar el del link.
     return (
       <div className="space-y-4">
-        <p role="status" className="font-body text-sm text-ink-soft">
+        <p role="status" className="font-body text-sm text-suave">
           {state.message}
         </p>
-        <Link href="/entrar" className="font-body text-xs text-lila-300 transition-colors hover:text-gold-400">
+        <Link href="/entrar" className="font-body text-xs text-miel-800 transition-colors hover:text-miel-800">
           Volver a entrar
         </Link>
       </div>

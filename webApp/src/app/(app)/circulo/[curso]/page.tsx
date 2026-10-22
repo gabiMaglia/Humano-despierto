@@ -23,12 +23,12 @@ export default async function CampusCoursePage({ params }: PageProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-lila-300/18 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-linea p-5">
         <div>
-          <h2 className="font-display text-lg tracking-wide text-ink">
+          <h2 className="font-display text-lg tracking-wide text-tinta">
             {thread.glyph} {thread.title}
           </h2>
-          <p className="font-body text-xs text-ink-faint">{thread.subtitle}</p>
+          <p className="font-body text-xs text-suave">{thread.subtitle}</p>
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export default async function CampusCoursePage({ params }: PageProps) {
           placeholder="Compartí una pregunta, una observación, algo del módulo..."
         />
       ) : (
-        <p className="border-b border-lila-300/18 px-5 py-4 font-body text-xs text-ink-faint">
+        <p className="border-b border-linea px-5 py-4 font-body text-xs text-suave">
           Estás viendo este hilo con permiso de moderación — escribir acá exige inscripción activa
           en el curso o ser la docente dueña.
         </p>
@@ -48,9 +48,9 @@ export default async function CampusCoursePage({ params }: PageProps) {
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
-          <span className="text-3xl text-lila-300">{thread.glyph}</span>
-          <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">— Este hilo recién empieza —</p>
-          <p className="max-w-sm font-body text-sm text-ink-soft">
+          <span className="text-3xl text-miel-800">{thread.glyph}</span>
+          <p className="font-display text-eyebrow tracking-wide text-suave">— Este hilo recién empieza —</p>
+          <p className="max-w-sm font-body text-sm text-suave">
             Todavía nadie escribió en el hilo de este curso. Un espacio nuevo, no uno abandonado.
           </p>
         </div>

@@ -16,7 +16,7 @@ export default function InvitacionInvalidaPage() {
       accent="no es válida o venció"
       lead="Pedile a quien te invitó que te mande una nueva, o entrá con el mail al que te llegó."
     >
-      <Link href="/entrar" className="btn-ritual btn-ritual-ghost rounded-pill text-[10px]">
+      <Link href="/entrar" className="btn btn-outline text-[10px]">
         Ir a entrar
       </Link>
     </AuthShell>

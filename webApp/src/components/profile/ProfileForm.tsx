@@ -13,15 +13,15 @@ export interface ProfileFormFields {
 }
 
 const inputClass =
-  "w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0";
-const labelClass = "mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft";
+  "w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none transition-colors focus:border-linea focus:bg-fondo";
+const labelClass = "mb-1.5 block font-display text-eyebrow tracking-wide text-suave";
 
 export default function ProfileForm({ profile, today }: { profile: ProfileFormFields; today: string }) {
   const [saveState, saveAction, saving] = useActionState(updateProfileAction, ACTION_INITIAL_STATE);
   const [clearState, clearAction, clearing] = useActionState(clearBirthDateAction, ACTION_INITIAL_STATE);
 
   return (
-    <form action={saveAction} className="cosmos-card grid gap-4 p-6">
+    <form action={saveAction} className="tarjeta grid gap-4 p-6">
       <div>
         <label htmlFor="fullName" className={labelClass}>Nombre</label>
         <input id="fullName" name="fullName" defaultValue={profile.fullName} required maxLength={120} autoComplete="name" className={inputClass} />
@@ -30,7 +30,7 @@ export default function ProfileForm({ profile, today }: { profile: ProfileFormFi
         <label htmlFor="bio" className={labelClass}>Bio</label>
         <textarea id="bio" name="bio" defaultValue={profile.bio ?? ""} rows={5} maxLength={4000} className={inputClass} />
       </div>
-      <p className="font-body text-xs text-ink-faint">
+      <p className="font-body text-xs text-suave">
         El teléfono y la fecha de nacimiento son privados: no aparecen en ninguna página ni los ve nadie más.
       </p>
       <div>
@@ -42,11 +42,11 @@ export default function ProfileForm({ profile, today }: { profile: ProfileFormFi
         <input id="birthDate" name="birthDate" type="date" min="1900-01-02" max={today} autoComplete="bday" defaultValue={profile.birthDate ?? ""} className={inputClass} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={saving} className="btn-ritual btn-ritual-primary rounded-pill">
+        <button type="submit" disabled={saving} className="btn btn-primary">
           {saving ? "Guardando…" : "Guardar perfil"}
         </button>
         {profile.birthDate && (
-          <button type="submit" formAction={clearAction} formNoValidate disabled={clearing} className="btn-ritual btn-ritual-ghost rounded-pill">
+          <button type="submit" formAction={clearAction} formNoValidate disabled={clearing} className="btn btn-outline">
             Borrar fecha
           </button>
         )}

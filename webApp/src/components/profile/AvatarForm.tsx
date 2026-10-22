@@ -20,11 +20,11 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
   const [tooBig, setTooBig] = useState(false);
 
   return (
-    <section aria-labelledby="avatar-title" className="cosmos-card flex flex-col items-center gap-4 p-6">
-      <h2 id="avatar-title" className="font-display text-eyebrow tracking-cosmic text-ink-soft">Imagen</h2>
+    <section aria-labelledby="avatar-title" className="tarjeta flex flex-col items-center gap-4 p-6">
+      <h2 id="avatar-title" className="font-display text-eyebrow tracking-wide text-suave">Imagen</h2>
       <Avatar size="xl" glyph={glyph} src={avatarUrl} alt={`Imagen de ${fullName}`} />
       <form action={uploadAction} className="flex flex-col items-center gap-3">
-        <label htmlFor="avatar" className="font-body text-xs text-ink-soft">
+        <label htmlFor="avatar" className="font-body text-xs text-suave">
           Elegir imagen (JPG, PNG o WEBP, hasta 2 MB)
         </label>
         <input
@@ -34,17 +34,17 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
           accept={AVATAR_ACCEPT}
           required
           onChange={(e) => setTooBig(exceedsAvatarLimit(e.currentTarget.files?.[0]?.size ?? 0))}
-          className="max-w-full font-body text-xs text-ink-soft"
+          className="max-w-full font-body text-xs text-suave"
         />
         {tooBig && <p role="alert" className="font-body text-xs text-red-400">La imagen pesa más de 2 MB.</p>}
-        <button type="submit" disabled={uploading || tooBig} className="btn-ritual btn-ritual-primary rounded-pill">
+        <button type="submit" disabled={uploading || tooBig} className="btn btn-primary">
           {uploading ? "Subiendo…" : "Subir imagen"}
         </button>
         <FormStatus state={uploadState} />
       </form>
       {avatarUrl && (
         <form action={removeAction}>
-          <button type="submit" disabled={removing} className="btn-ritual btn-ritual-ghost rounded-pill">
+          <button type="submit" disabled={removing} className="btn btn-outline">
             Quitar imagen
           </button>
         </form>

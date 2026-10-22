@@ -36,8 +36,8 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
   }
 
   return (
-    <aside className="w-full md:w-72 flex-none border-t md:border-t-0 md:border-l border-lila-300/18 flex flex-col">
-      <div role="tablist" aria-label={label} onKeyDown={handleKeys} className="flex border-b border-lila-300/18">
+    <aside className="w-full md:w-72 flex-none border-t md:border-t-0 md:border-l border-linea flex flex-col">
+      <div role="tablist" aria-label={label} onKeyDown={handleKeys} className="flex border-b border-linea">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -49,8 +49,8 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
             tabIndex={active.id === t.id ? 0 : -1}
             onClick={() => setActiveId(t.id)}
             className={cn(
-              "flex-1 py-3 font-display text-eyebrow tracking-cosmic transition-colors",
-              active.id === t.id ? "text-lila-300 border-b-2 border-lila-300" : "text-ink-faint hover:text-ink-soft"
+              "flex-1 py-3 font-display text-eyebrow tracking-wide transition-colors",
+              active.id === t.id ? "text-miel-800 border-b-2 border-linea" : "text-suave hover:text-suave"
             )}
           >
             {t.label}

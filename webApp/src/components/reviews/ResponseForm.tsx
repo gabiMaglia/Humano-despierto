@@ -16,8 +16,8 @@ export default function ResponseForm({ reviewId, slug }: { reviewId: string; slu
   const fieldId = `response-${reviewId}`;
 
   return (
-    <form action={formAction} className="mt-4 border-l-2 border-lila-300/30 pl-4">
-      <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-faint">
+    <form action={formAction} className="mt-4 border-l-2 border-linea pl-4">
+      <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
         Responder en público
       </label>
       <textarea
@@ -26,13 +26,13 @@ export default function ResponseForm({ reviewId, slug }: { reviewId: string; slu
         rows={3}
         maxLength={2000}
         required
-        className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/40"
+        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
       />
       <ActionFeedback state={state} />
       <button
         type="submit"
         disabled={isPending}
-        className="btn-ritual btn-ritual-primary mt-3 rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-primary mt-3 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Publicando…" : "Publicar respuesta"}
       </button>

@@ -25,10 +25,10 @@ export default function InvitationRow({ invitation }: { invitation: AdminInvitat
   const [state, revoke, isPending] = useActionState(revokeInvitationAction, ADMIN_ACTION_INITIAL_STATE);
   const pending = invitation.status === "pendiente";
   return (
-    <li className="cosmos-card flex flex-wrap items-center gap-4 p-4">
+    <li className="tarjeta flex flex-wrap items-center gap-4 p-4">
       <div className="min-w-0 flex-1">
-        <p className="font-display text-sm tracking-wide text-ink">{invitation.email}</p>
-        <p className="font-body text-xs text-ink-faint">{detail(invitation)}</p>
+        <p className="font-display text-sm tracking-wide text-tinta">{invitation.email}</p>
+        <p className="font-body text-xs text-suave">{detail(invitation)}</p>
       </div>
       {pending && (
         <form action={revoke}>
@@ -36,7 +36,7 @@ export default function InvitationRow({ invitation }: { invitation: AdminInvitat
           <button
             type="submit"
             disabled={isPending}
-            className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-outline text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "…" : "Revocar"}
           </button>

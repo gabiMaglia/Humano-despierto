@@ -19,16 +19,16 @@ export default function EndCard({ next, closingHref, countdown, onCancel, onGo }
   return (
     <div
       role="status"
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-cosmos-0/90 px-5 text-center"
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-papel px-5 text-center"
     >
-      {!next && <p className="font-display text-sm tracking-wide text-ink">{label}</p>}
+      {!next && <p className="font-display text-sm tracking-wide text-tinta">{label}</p>}
       {countdown !== null && (
-        <p className="font-body text-xs text-ink-soft">
+        <p className="font-body text-xs text-suave">
           Siguiente lección en {countdown} s
           <button
             type="button"
             onClick={onCancel}
-            className="ml-3 font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors"
+            className="ml-3 font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors"
           >
             Cancelar
           </button>
@@ -41,7 +41,7 @@ export default function EndCard({ next, closingHref, countdown, onCancel, onGo }
             e.preventDefault();
             onGo(href);
           }}
-          className="font-display text-eyebrow tracking-cosmic text-gold-400 hover:text-lila-300 transition-colors"
+          className="font-display text-eyebrow tracking-wide text-miel-800 hover:text-bosque transition-colors"
         >
           {next ? `${label} →` : "Continuar →"}
         </a>

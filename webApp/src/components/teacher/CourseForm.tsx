@@ -6,8 +6,8 @@ import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherCourseFields } from "@/lib/server/teacher";
 
 const inputClass =
-  "w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0";
-const labelClass = "mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft";
+  "w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none transition-colors focus:border-linea focus:bg-fondo";
+const labelClass = "mb-1.5 block font-display text-eyebrow tracking-wide text-suave";
 
 interface Props {
   course?: TeacherCourseFields;
@@ -18,7 +18,7 @@ export default function CourseForm({ course }: Props) {
   const [state, formAction, isPending] = useActionState(action, TEACHER_ACTION_INITIAL_STATE);
 
   return (
-    <form action={formAction} className="cosmos-card grid gap-4 p-6 md:grid-cols-2">
+    <form action={formAction} className="tarjeta grid gap-4 p-6 md:grid-cols-2">
       {course && <input type="hidden" name="courseId" value={course.id} />}
 
       <div>
@@ -172,7 +172,7 @@ export default function CourseForm({ course }: Props) {
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-primary rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Guardando…" : course ? "Guardar cambios" : "Crear curso"}
         </button>
@@ -181,7 +181,7 @@ export default function CourseForm({ course }: Props) {
             {state.error}
           </p>
         )}
-        {state.success && <p className="font-body text-xs text-lila-300">{state.success}</p>}
+        {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
       </div>
     </form>
   );

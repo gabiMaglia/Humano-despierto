@@ -13,30 +13,30 @@ export default function NewModuleForm({ courseId }: { courseId: string }) {
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="cosmos-card flex flex-wrap items-end gap-3 p-4">
+    <form ref={formRef} action={formAction} className="tarjeta flex flex-wrap items-end gap-3 p-4">
       <input type="hidden" name="courseId" value={courseId} />
       <div className="min-w-[200px] flex-1">
-        <label className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">
+        <label className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
           Nuevo módulo
         </label>
         <input
           name="title"
           required
           placeholder="Título del módulo"
-          className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink outline-none focus:border-lila-300/50 focus:bg-cosmos-0"
+          className="w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none focus:border-linea focus:bg-fondo"
         />
       </div>
       <div className="min-w-[200px] flex-1">
         <input
           name="description"
           placeholder="Descripción (opcional)"
-          className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink outline-none focus:border-lila-300/50 focus:bg-cosmos-0"
+          className="w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none focus:border-linea focus:bg-fondo"
         />
       </div>
       <button
         type="submit"
         disabled={isPending}
-        className="btn-ritual btn-ritual-primary rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "…" : "+ Módulo"}
       </button>

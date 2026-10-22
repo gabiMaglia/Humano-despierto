@@ -6,14 +6,14 @@ import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherLessonFields } from "@/lib/server/teacher";
 
 const inputClass =
-  "w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0";
-const labelClass = "mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft";
+  "w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none transition-colors focus:border-linea focus:bg-fondo";
+const labelClass = "mb-1.5 block font-display text-eyebrow tracking-wide text-suave";
 
 export default function LessonFieldsForm({ lesson }: { lesson: TeacherLessonFields }) {
   const [state, formAction, isPending] = useActionState(updateLessonAction, TEACHER_ACTION_INITIAL_STATE);
 
   return (
-    <form action={formAction} className="cosmos-card space-y-4 p-6">
+    <form action={formAction} className="tarjeta space-y-4 p-6">
       <input type="hidden" name="courseId" value={lesson.courseId} />
       <input type="hidden" name="lessonId" value={lesson.id} />
 
@@ -27,8 +27,8 @@ export default function LessonFieldsForm({ lesson }: { lesson: TeacherLessonFiel
         <textarea name="description" defaultValue={lesson.description ?? ""} rows={3} className={inputClass} />
       </div>
 
-      <label className="flex items-center gap-2 font-body text-xs text-ink-soft">
-        <input type="checkbox" name="isPreview" defaultChecked={lesson.isPreview} className="accent-lila-300" />
+      <label className="flex items-center gap-2 font-body text-xs text-suave">
+        <input type="checkbox" name="isPreview" defaultChecked={lesson.isPreview} className="accent-bosque" />
         Vista previa (se puede ver sin inscripción)
       </label>
 
@@ -36,12 +36,12 @@ export default function LessonFieldsForm({ lesson }: { lesson: TeacherLessonFiel
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-primary rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Guardando…" : "Guardar"}
         </button>
         {state.error && <p className="font-body text-xs text-red-400">{state.error}</p>}
-        {state.success && <p className="font-body text-xs text-lila-300">{state.success}</p>}
+        {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
       </div>
     </form>
   );

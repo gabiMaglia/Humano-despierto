@@ -15,7 +15,7 @@ export default function QuestionComposer({ lessonId }: { lessonId: string }) {
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="mb-4 space-y-2 rounded-ritual border border-lila-300/20 bg-cosmos-surface p-3">
+    <form ref={formRef} action={formAction} className="mb-4 space-y-2 rounded-md border border-linea bg-papel p-3">
       <input
         name="title"
         aria-label="Título de la pregunta"
@@ -23,7 +23,7 @@ export default function QuestionComposer({ lessonId }: { lessonId: string }) {
         minLength={3}
         maxLength={200}
         placeholder="¿Qué te quedó dando vueltas?"
-        className="w-full bg-transparent font-display text-sm text-ink placeholder:text-ink-faint outline-none"
+        className="w-full bg-transparent font-display text-sm text-tinta placeholder:text-suave outline-none"
       />
       <textarea
         name="body"
@@ -32,9 +32,9 @@ export default function QuestionComposer({ lessonId }: { lessonId: string }) {
         maxLength={4000}
         rows={3}
         placeholder="Contá en qué minuto y qué no cerró."
-        className="w-full resize-none bg-transparent font-body text-sm text-ink placeholder:text-ink-faint outline-none"
+        className="w-full resize-none bg-transparent font-body text-sm text-tinta placeholder:text-suave outline-none"
       />
-      <div className="flex justify-end border-t border-lila-300/10 pt-2">
+      <div className="flex justify-end border-t border-linea pt-2">
         <QaTextButton type="submit" disabled={pending}>
           {pending ? "Enviando…" : "Preguntar"}
         </QaTextButton>

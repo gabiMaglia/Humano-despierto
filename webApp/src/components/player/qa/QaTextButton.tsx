@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils/cn";
 type Variant = "default" | "active" | "danger";
 
 const VARIANT: Record<Variant, string> = {
-  default: "text-lila-300 hover:text-gold-400 disabled:hover:text-lila-300",
-  active: "text-gold-400 hover:text-lila-300",
-  danger: "text-ink-faint hover:text-red-400",
+  default: "text-miel-800 hover:text-miel-800 disabled:hover:text-miel-800",
+  active: "text-miel-800 hover:text-miel-800",
+  danger: "text-suave hover:text-red-400",
 };
 
 interface Props extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
@@ -19,7 +19,7 @@ export default function QaTextButton({ variant = "default", type = "button", ...
     <button
       type={type}
       {...rest}
-      className={cn("font-display text-eyebrow tracking-cosmic transition-colors disabled:opacity-40", VARIANT[variant])}
+      className={cn("font-display text-eyebrow tracking-wide transition-colors disabled:opacity-40", VARIANT[variant])}
     />
   );
 }

@@ -16,7 +16,7 @@ export default function PromoVideo({ videoId, title }: Props) {
   useYouTubePlayer(containerId, videoId, 0, 0, noProgress, title);
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-ritual border border-lila-300/18">
+    <div className="relative aspect-video overflow-hidden rounded-md border border-linea">
       <div id={containerId} className="absolute inset-0 h-full w-full" />
     </div>
   );

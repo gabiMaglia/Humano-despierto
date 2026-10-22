@@ -23,8 +23,8 @@ export default function CoverForm({ courseId, coverUrl, courseTitle }: Props) {
   const [tooBig, setTooBig] = useState(false);
 
   return (
-    <section aria-labelledby="cover-title" className="cosmos-card flex flex-col gap-4 p-6">
-      <h2 id="cover-title" className="font-display text-lg tracking-wide text-ink">Portada</h2>
+    <section aria-labelledby="cover-title" className="tarjeta flex flex-col gap-4 p-6">
+      <h2 id="cover-title" className="font-display text-lg tracking-wide text-tinta">Portada</h2>
       {coverUrl ? (
         <SignedImage
           src={coverUrl}
@@ -33,11 +33,11 @@ export default function CoverForm({ courseId, coverUrl, courseTitle }: Props) {
           className="aspect-[4/3] w-full max-w-sm rounded-sm object-cover"
         />
       ) : (
-        <div aria-hidden className="aspect-[4/3] w-full max-w-sm rounded-sm bg-linear-to-br from-lila-700 to-cosmos-2" />
+        <div aria-hidden className="aspect-[4/3] w-full max-w-sm rounded-sm bg-salvia-100" />
       )}
       <form action={uploadAction} className="flex flex-col items-start gap-3">
         <input type="hidden" name="courseId" value={courseId} />
-        <label htmlFor="cover" className="font-body text-xs text-ink-soft">
+        <label htmlFor="cover" className="font-body text-xs text-suave">
           Elegir portada (JPG, PNG o WEBP, hasta 3 MB)
         </label>
         <input
@@ -47,10 +47,10 @@ export default function CoverForm({ courseId, coverUrl, courseTitle }: Props) {
           accept={IMAGE_ACCEPT}
           required
           onChange={(e) => setTooBig(exceedsCoverLimit(e.currentTarget.files?.[0]?.size ?? 0))}
-          className="max-w-full font-body text-xs text-ink-soft"
+          className="max-w-full font-body text-xs text-suave"
         />
         {tooBig && <p role="alert" className="font-body text-xs text-red-400">La imagen pesa más de 3 MB.</p>}
-        <button type="submit" disabled={uploading || tooBig} className="btn-ritual btn-ritual-primary rounded-pill">
+        <button type="submit" disabled={uploading || tooBig} className="btn btn-primary">
           {uploading ? "Subiendo…" : "Subir portada"}
         </button>
         <FormStatus state={uploadState} />
@@ -58,7 +58,7 @@ export default function CoverForm({ courseId, coverUrl, courseTitle }: Props) {
       {coverUrl && (
         <form action={removeAction}>
           <input type="hidden" name="courseId" value={courseId} />
-          <button type="submit" disabled={removing} className="btn-ritual btn-ritual-ghost rounded-pill">
+          <button type="submit" disabled={removing} className="btn btn-outline">
             Quitar portada
           </button>
         </form>

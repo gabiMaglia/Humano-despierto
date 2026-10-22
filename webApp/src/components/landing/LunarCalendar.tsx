@@ -17,24 +17,24 @@ function Moon({ phase, today }: { phase: Phase; today?: boolean }) {
   };
 
   if (phase === "new") return (
-    <div style={{ ...base, background: "#140828", border: "1px dashed rgba(196,181,253,0.4)" }} />
+    <div style={{ ...base, background: "var(--papel)", border: "1px dashed var(--musgo)" }} />
   );
   if (phase === "full") return (
     <div style={{
       ...base,
-      background: "radial-gradient(circle at 35% 35%, #fde68a, #d4a843)",
-      border: "1px solid #f5d76e",
-      boxShadow: today ? "0 0 30px #f5d76e" : "0 0 20px rgba(245,215,110,0.5)",
+      background: "var(--miel)",
+      border: "1px solid var(--miel-800)",
+      boxShadow: today ? "0 0 0 4px var(--miel-100)" : undefined,
     }} />
   );
   if (phase === "half") return (
-    <div style={{ ...base, background: "linear-gradient(90deg, #1f0f3a 50%, #b8a8d0 50%)", border: "1px solid rgba(196,181,253,0.4)" }} />
+    <div style={{ ...base, background: "linear-gradient(90deg, var(--papel) 50%, var(--musgo) 50%)", border: "1px solid var(--musgo)" }} />
   );
 
   const shift = phase === "crescent" ? "-30%" : "-70%";
   return (
-    <div style={{ ...base, background: "#b8a8d0", border: "1px solid rgba(196,181,253,0.4)" }}>
-      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#140828", transform: `translateX(${shift})` }} />
+    <div style={{ ...base, background: "var(--musgo)", border: "1px solid var(--musgo)" }}>
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "var(--papel)", transform: `translateX(${shift})` }} />
     </div>
   );
 }
@@ -42,22 +42,21 @@ function Moon({ phase, today }: { phase: Phase; today?: boolean }) {
 export default function LunarCalendar({ days }: { days: LunarDay[] }) {
   return (
     <section
-      className="border-b border-t border-lila-300/18 px-6 py-24 md:px-12"
-      style={{ background: "linear-gradient(180deg, #1a0e2e 0%, #140828 100%)" }}
+      className="border-b border-t border-linea bg-salvia-100 px-6 py-24 md:px-12"
     >
       <div className="mx-auto max-w-7xl">
 
         {/* Eyebrow */}
         <div className="mb-3.5 flex items-center gap-3.5">
-          <div className="h-px flex-1 bg-lila-300/18" />
-          <span className="font-display text-eyebrow tracking-[0.25em] text-lila-300">Calendario lunar</span>
-          <div className="h-px flex-1 bg-lila-300/18" />
+          <div className="h-px flex-1 bg-salvia" />
+          <span className="font-display text-eyebrow tracking-[0.25em] text-bosque">Calendario lunar</span>
+          <div className="h-px flex-1 bg-salvia" />
         </div>
 
-        <h2 className="mb-4 text-center font-display text-4xl tracking-wider text-ink">
-          El cielo <em className="font-quote italic text-lila-300">marca el ritmo</em>
+        <h2 className="mb-4 text-center font-display text-4xl tracking-wider text-tinta">
+          El cielo <em className="font-quote italic text-miel-800">marca el ritmo</em>
         </h2>
-        <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-ink-soft">
+        <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-suave">
           Un mapa del cielo para acompañar la práctica, no un calendario de clases.
         </p>
 
@@ -66,8 +65,8 @@ export default function LunarCalendar({ days }: { days: LunarDay[] }) {
           {days.map((d, i) => (
             <div key={d.date.toISOString()} className="relative flex flex-col items-center gap-3 text-center cursor-pointer transition-transform hover:-translate-y-1">
               <Moon phase={d.phase} today={d.today} />
-              <span className="font-display text-[11px] tracking-[0.2em] text-ink">{dateLabel(d, days[i - 1])}</span>
-              <span className="font-quote italic text-sm text-ink-soft">{LABELS[i]}</span>
+              <span className="font-display text-[11px] tracking-[0.2em] text-tinta">{dateLabel(d, days[i - 1])}</span>
+              <span className="font-quote italic text-sm text-suave">{LABELS[i]}</span>
             </div>
           ))}
         </div>

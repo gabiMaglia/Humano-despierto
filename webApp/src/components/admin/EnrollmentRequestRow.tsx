@@ -11,7 +11,7 @@ import type { AdminEnrollmentRequestRow } from "@/lib/server/admin";
 import { formatCertificateDate } from "@/lib/utils/format";
 
 const BUTTON =
-  "btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:cursor-not-allowed disabled:opacity-60";
+  "btn btn-outline text-[10px] disabled:cursor-not-allowed disabled:opacity-60";
 
 export default function EnrollmentRequestRow({ request }: { request: AdminEnrollmentRequestRow }) {
   const [approveState, approveAction, approving] = useActionState(
@@ -28,12 +28,12 @@ export default function EnrollmentRequestRow({ request }: { request: AdminEnroll
   const success = approveState.success ?? rejectState.success;
 
   return (
-    <li className="cosmos-card space-y-3 p-4">
+    <li className="tarjeta space-y-3 p-4">
       <div>
-        <p className="font-display text-sm tracking-wide text-ink">
-          {request.userName} <span className="text-ink-faint">→</span> {request.courseTitle}
+        <p className="font-display text-sm tracking-wide text-tinta">
+          {request.userName} <span className="text-suave">→</span> {request.courseTitle}
         </p>
-        <p className="font-body text-xs text-ink-faint">Pedida el {formatCertificateDate(request.requestedAt)}</p>
+        <p className="font-body text-xs text-suave">Pedida el {formatCertificateDate(request.requestedAt)}</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -47,7 +47,7 @@ export default function EnrollmentRequestRow({ request }: { request: AdminEnroll
         <form action={rejectAction} className="flex min-w-[220px] flex-1 flex-wrap items-end gap-3">
           <input type="hidden" name="enrollmentId" value={request.id} />
           <div className="min-w-[200px] flex-1">
-            <label htmlFor={reasonId} className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">
+            <label htmlFor={reasonId} className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
               Motivo (opcional, lo lee la alumna)
             </label>
             <textarea
@@ -55,7 +55,7 @@ export default function EnrollmentRequestRow({ request }: { request: AdminEnroll
               name="reason"
               rows={2}
               maxLength={REASON_MAX}
-              className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2 font-body text-xs text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0"
+              className="w-full rounded-md border border-linea bg-papel px-3 py-2 font-body text-xs text-tinta outline-none transition-colors focus:border-linea focus:bg-fondo"
             />
           </div>
           <button type="submit" disabled={busy} className={BUTTON}>
@@ -69,7 +69,7 @@ export default function EnrollmentRequestRow({ request }: { request: AdminEnroll
           {error}
         </p>
       )}
-      {success && <p className="font-body text-xs text-lila-300">{success}</p>}
+      {success && <p className="font-body text-xs text-miel-800">{success}</p>}
     </li>
   );
 }

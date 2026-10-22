@@ -38,7 +38,7 @@ export default async function FeaturedCourses() {
           ))}
         </div>
         <div className="mt-12 text-center">
-          <Link href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
+          <Link href="/cursos" className="btn btn-outline">
             Ver todos los cursos ↦
           </Link>
         </div>

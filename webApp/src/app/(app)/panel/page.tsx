@@ -40,18 +40,18 @@ export default async function DashboardPage({
 
   if (courses.length === 0 && saved.length === 0 && requests.length === 0) {
     return (
-      <div className="min-h-screen bg-cosmos-0 text-ink">
+      <div className="min-h-screen bg-fondo text-tinta">
         <Nav />
         <div className="flex flex-col items-center justify-center gap-5 px-6 py-32 text-center">
-          <span className="text-4xl text-lila-300">✦</span>
-          <p className="font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El umbral de tu camino —</p>
-          <h1 className="max-w-md font-display text-display-md text-ink">
-            Todavía no empezaste ningún <em className="font-quote italic text-lila-300">recorrido</em>
+          <span className="text-4xl text-miel-800">✦</span>
+          <p className="font-display text-eyebrow tracking-[0.25em] text-suave">— El umbral de tu camino —</p>
+          <h1 className="max-w-md font-display text-display-md text-tinta">
+            Todavía no empezaste ningún <em className="font-quote italic text-miel-800">recorrido</em>
           </h1>
-          <p className="max-w-md font-body text-sm text-ink-soft">
+          <p className="max-w-md font-body text-sm text-suave">
             Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
           </p>
-          <Link href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
+          <Link href="/cursos" className="btn btn-primary mt-2">
             Explorar el catálogo ↦
           </Link>
         </div>
@@ -79,18 +79,18 @@ export default async function DashboardPage({
   const news = await getRecentAnnouncementsForStudent(courses.map((c) => c.courseId));
 
   return (
-    <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
+    <div className="min-h-screen mt-[-5] bg-fondo text-tinta">
       <Nav />
       <div className="pt-16">
 
         {/* Welcome header */}
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Mi aprendizaje —</p>
-          <h1 className="font-display text-display-md text-ink">
-            Bienvenida de vuelta, <em className="font-quote italic text-lila-300">{user?.fullName ?? "alumna"}</em>
+        <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
+          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">— Mi aprendizaje —</p>
+          <h1 className="font-display text-display-md text-tinta">
+            Bienvenida de vuelta, <em className="font-quote italic text-miel-800">{user?.fullName ?? "alumna"}</em>
           </h1>
           {user?.glyph && (
-            <div className="mt-2 flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-soft">
+            <div className="mt-2 flex items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
               <span>{user.glyph}</span>
             </div>
           )}
@@ -98,28 +98,28 @@ export default async function DashboardPage({
 
         {/* Continue watching strip */}
         {continuing && (
-          <div className="border-b border-lila-300/18 bg-lila-300/[0.04] px-6 py-5 md:px-12 flex flex-wrap items-center gap-6">
+          <div className="border-b border-linea bg-salvia-100 px-6 py-5 md:px-12 flex flex-wrap items-center gap-6">
             <div className="flex-1 min-w-0">
-              <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Continuar donde quedaste</p>
-              <h3 className="font-display text-lg tracking-wide text-ink">{continuing.title}</h3>
-              <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{continuing.discipline}</p>
+              <p className="font-display text-eyebrow tracking-wide text-suave uppercase">Continuar donde quedaste</p>
+              <h3 className="font-display text-lg tracking-wide text-tinta">{continuing.title}</h3>
+              <p className="font-display text-eyebrow tracking-wide text-bosque">{continuing.discipline}</p>
             </div>
             <div className="flex-none">
               <ProgressRing value={continuing.progressPercent} />
             </div>
             <div className="flex flex-col items-start gap-2">
               {continuing.continueLessonId ? (
-                <Link href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
+                <Link href={`/leccion/${continuing.continueLessonId}`} className="btn btn-primary">
                   Continuar ↦
                 </Link>
               ) : (
-                <Link href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
+                <Link href={`/cursos/${continuing.slug}`} className="btn btn-primary">
                   Ver curso ↦
                 </Link>
               )}
               {continuing.lastSeenAt && (
-                <span className="font-quote italic text-sm text-ink-soft">
-                  Vista por última vez <em className="text-lila-300">{formatRelativeTime(continuing.lastSeenAt)}</em>
+                <span className="font-quote italic text-sm text-suave">
+                  Vista por última vez <em className="text-miel-800">{formatRelativeTime(continuing.lastSeenAt)}</em>
                 </span>
               )}
             </div>
@@ -129,27 +129,27 @@ export default async function DashboardPage({
         {/* Novedades (T-031): arriba de las pestañas, sin anuncios no se dibuja. */}
         {news.length > 0 && (
           <section aria-label="Novedades de tus cursos" className="mx-auto max-w-4xl px-6 pt-10 md:px-12">
-            <h2 className="mb-5 font-display text-lg tracking-wide text-ink">Novedades de tus cursos</h2>
+            <h2 className="mb-5 font-display text-lg tracking-wide text-tinta">Novedades de tus cursos</h2>
             <AnnouncementList items={news} showCourse />
           </section>
         )}
 
         <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="font-display text-lg tracking-wide text-ink">Tu camino</h2>
+            <h2 className="font-display text-lg tracking-wide text-tinta">Tu camino</h2>
             <div className="flex items-center gap-5">
-              <Link href="/panel/notas" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Mis notas</Link>
-              <Link href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</Link>
+              <Link href="/panel/notas" className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors">Mis notas</Link>
+              <Link href="/cursos" className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors">Ver todos</Link>
             </div>
           </div>
 
           <LearningTabsNav current={tab} counts={tabs.counts} />
 
           {tabs.counts[tab] === 0 ? (
-            <div className="cosmos-card flex flex-col items-center gap-4 px-6 py-14 text-center">
-              <span className="font-display text-2xl text-lila-300">✧</span>
-              <p className="font-body text-sm text-ink-soft">{EMPTY_TAB[tab]}</p>
-              <Link href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
+            <div className="tarjeta flex flex-col items-center gap-4 px-6 py-14 text-center">
+              <span className="font-display text-2xl text-bosque">✧</span>
+              <p className="font-body text-sm text-suave">{EMPTY_TAB[tab]}</p>
+              <Link href="/cursos" className="btn btn-outline">
                 Explorar el catálogo ↦
               </Link>
             </div>

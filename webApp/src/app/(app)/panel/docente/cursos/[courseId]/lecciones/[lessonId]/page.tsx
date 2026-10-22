@@ -27,14 +27,14 @@ export default async function TeacherLessonEditorPage({ params }: Props) {
   if (!detail) notFound();
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
+    <div className="min-h-screen bg-fondo text-tinta">
       <Nav />
       <div className="pt-16">
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">
+        <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
+          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">
             — {detail.courseTitle} —
           </p>
-          <h1 className="font-display text-display-md text-ink">{detail.lesson.title}</h1>
+          <h1 className="font-display text-display-md text-tinta">{detail.lesson.title}</h1>
         </header>
 
         <div className="mx-auto max-w-3xl space-y-8 px-6 py-10 md:px-12">

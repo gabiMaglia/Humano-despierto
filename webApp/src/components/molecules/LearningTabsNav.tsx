@@ -25,11 +25,11 @@ export default function LearningTabsNav({
           aria-current={current === tab ? "page" : undefined}
           className={`rounded-pill border px-3 py-1 font-display text-eyebrow ${
             current === tab
-              ? "border-lila-300/60 bg-lila-300/20 text-lila-300"
-              : "border-lila-300/20 text-ink-faint hover:text-ink-soft"
+              ? "border-linea bg-salvia-100 text-miel-800"
+              : "border-linea text-suave hover:text-suave"
           }`}
         >
-          {label} <span className="text-ink-faint">{counts[tab]}</span>
+          {label} <span className="text-suave">{counts[tab]}</span>
         </Link>
       ))}
     </nav>

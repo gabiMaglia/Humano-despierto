@@ -12,7 +12,7 @@ import type { CourseReview, CourseReviewsData } from "@/lib/server/reviews";
  *  vacío dice lo que pasa en vez de mostrar "0.0 ★", que se lee como una calificación pésima. */
 function SinResenas({ puedeResenar }: { puedeResenar: boolean }) {
   return (
-    <p className="text-center font-quote italic text-base text-ink-soft">
+    <p className="text-center font-quote italic text-base text-suave">
       {puedeResenar
         ? "Todavía nadie dejó su testimonio. Podés ser la primera."
         : "Este curso todavía no recibió testimonios."}
@@ -35,7 +35,7 @@ export default function ReviewsSection({
 
   return (
     // El id es el ancla del mail de curso completado (c.7): `scroll-mt` deja aire bajo el header.
-    <section id={REVIEWS_ANCHOR} className="scroll-mt-24 border-t border-lila-300/18 px-6 py-16 md:px-12">
+    <section id={REVIEWS_ANCHOR} className="scroll-mt-24 border-t border-linea px-6 py-16 md:px-12">
       <div className="mx-auto max-w-3xl">
         <SectionDivider label="Lo que dicen quienes lo hicieron" className="mb-10" />
 
@@ -45,7 +45,7 @@ export default function ReviewsSection({
           <div className="mb-12 flex flex-col items-center gap-6 md:flex-row md:items-start md:gap-12">
             <div className="flex-none text-center">
               <Stars value={summary.average} size="lg" showValue />
-              <p className="mt-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
+              <p className="mt-2 font-display text-eyebrow tracking-wide text-suave">
                 {summary.total} {summary.total === 1 ? "testimonio" : "testimonios"}
               </p>
             </div>
@@ -57,13 +57,13 @@ export default function ReviewsSection({
                 const pct = summary.total > 0 ? (n / summary.total) * 100 : 0;
                 return (
                   <div key={estrella} className="flex items-center gap-3">
-                    <span className="w-12 flex-none font-display text-xs text-ink-faint">
+                    <span className="w-12 flex-none font-display text-xs text-suave">
                       <span aria-hidden="true">★</span> {estrella}
                     </span>
-                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-lila-300/12">
-                      <span className="block h-full bg-gold-400/60" style={{ width: `${pct}%` }} />
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-salvia-100">
+                      <span className="block h-full bg-miel-100" style={{ width: `${pct}%` }} />
                     </span>
-                    <span className="w-8 flex-none text-right font-display text-xs text-ink-faint">{n}</span>
+                    <span className="w-8 flex-none text-right font-display text-xs text-suave">{n}</span>
                   </div>
                 );
               })}
@@ -76,9 +76,9 @@ export default function ReviewsSection({
         {featured && (
           <article
             aria-label="Testimonio destacado"
-            className="mt-12 rounded-ritual border border-gold-400/30 bg-cosmos-surface p-6"
+            className="mt-12 rounded-md border border-miel bg-papel p-6"
           >
-            <p className="mb-3 font-display text-eyebrow tracking-cosmic text-gold-400">
+            <p className="mb-3 font-display text-eyebrow tracking-wide text-miel-800">
               <span aria-hidden="true">✦ </span>Destacado
             </p>
             <ReviewItem
@@ -94,7 +94,7 @@ export default function ReviewsSection({
         {resto.length > 0 && (
           <ul className="mt-12 space-y-8">
             {resto.map((r) => (
-              <li key={r.id} className="border-t border-lila-300/12 pt-6 first:border-0 first:pt-0">
+              <li key={r.id} className="border-t border-linea pt-6 first:border-0 first:pt-0">
                 <ReviewItem
                   review={r}
                   slug={slug}
@@ -128,24 +128,24 @@ function ReviewItem({
     <>
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <Stars value={r.rating} />
-        <span className="font-display text-sm tracking-wide text-lila-300">{r.authorName}</span>
-        <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
+        <span className="font-display text-sm tracking-wide text-bosque">{r.authorName}</span>
+        <span className="font-display text-eyebrow tracking-wide text-suave">
           {formatCertificateDate(r.updatedAt)}
         </span>
       </div>
-      {r.body && <p className="font-body text-sm text-ink-soft leading-relaxed">{r.body}</p>}
+      {r.body && <p className="font-body text-sm text-suave leading-relaxed">{r.body}</p>}
       {r.response ? (
-        <div className="mt-4 border-l-2 border-lila-300/30 pl-4">
-          <p className="mb-1 font-display text-eyebrow tracking-cosmic text-lila-300">
+        <div className="mt-4 border-l-2 border-linea pl-4">
+          <p className="mb-1 font-display text-eyebrow tracking-wide text-bosque">
             Respuesta de la guía
           </p>
-          <p className="font-body text-sm text-ink-soft leading-relaxed">{r.response}</p>
+          <p className="font-body text-sm text-suave leading-relaxed">{r.response}</p>
         </div>
       ) : (
         viewerIsOwner && <ResponseForm reviewId={r.id} slug={slug} />
       )}
       {reportStatus ? (
-        <p className="mt-3 font-display text-eyebrow tracking-cosmic text-ink-faint">
+        <p className="mt-3 font-display text-eyebrow tracking-wide text-suave">
           {REPORT_STATUS_LABEL[reportStatus]}
         </p>
       ) : (

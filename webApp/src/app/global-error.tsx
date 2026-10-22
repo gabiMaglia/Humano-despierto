@@ -7,18 +7,18 @@ import "@/styles/globals.css";
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <html lang="es">
-      <body className="bg-cosmos-0 text-ink antialiased">
+      <body className="bg-fondo text-tinta antialiased">
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-          <p className="font-display text-eyebrow tracking-cosmic text-gold-400">✧ Algo se cortó</p>
-          <h1 className="font-display text-lg text-ink">No pudimos mostrar esta página.</h1>
-          <p className="max-w-md font-body text-sm text-ink-soft">
+          <p className="font-display text-eyebrow tracking-wide text-miel-800">✧ Algo se cortó</p>
+          <h1 className="font-display text-lg text-tinta">No pudimos mostrar esta página.</h1>
+          <p className="max-w-md font-body text-sm text-suave">
             Puede ser un problema pasajero. Si vuelve a pasar, contanos este código de referencia.
           </p>
-          {error.digest && <p className="font-body text-xs text-ink-faint">Código de referencia: {error.digest}</p>}
+          {error.digest && <p className="font-body text-xs text-suave">Código de referencia: {error.digest}</p>}
           <button
             type="button"
             onClick={reset}
-            className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors"
+            className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors"
           >
             Reintentar
           </button>

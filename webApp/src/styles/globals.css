@@ -1,173 +1,226 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
-/* ── Fonts from next/font (variables injected on <html>) ────────────────── */
+/* ── Tokens → Tailwind (ADR-015) ────────────────────────────────────────────
+   `inline` hace que la utilidad lea la variable de tokens.css: `bg-fondo` y `var(--fondo)` son el
+   mismo valor, y tokens.css sigue siendo la única fuente. */
 @theme inline {
-  --font-display: var(--font-cinzel);
-  --font-body: var(--font-quicksand);
-  --font-quote: var(--font-cormorant);
-  --font-cardo: var(--font-cardo-var);
+  --color-fondo: var(--fondo);
+  --color-papel: var(--papel);
+  --color-salvia-100: var(--salvia-100);
+  --color-salvia: var(--salvia);
+  --color-linea: var(--linea);
+  --color-tinta: var(--tinta);
+  --color-bosque: var(--bosque);
+  --color-bosque-700: var(--bosque-700);
+  --color-suave: var(--suave);
+  --color-miel: var(--miel);
+  --color-miel-hover: var(--miel-hover);
+  --color-miel-800: var(--miel-800);
+  --color-miel-100: var(--miel-100);
+  --color-musgo: var(--musgo);
+  --color-error: var(--error);
+  --color-exito: var(--exito);
+
+  --radius-sm: var(--radio-sm);
+  --radius-md: var(--radio-md);
+  --radius-lg: var(--radio-lg);
+  --radius-pill: var(--radio-pill);
+
+  --shadow-card: var(--sombra-card);
+  --shadow-lift: var(--sombra-lift);
+  --shadow-float: var(--sombra-float);
+
+  --ease-brote: var(--ease);
+  --ease-circ: var(--circ);
+
+  /* Una sola familia (Plus Jakarta Sans, inyectada por next/font en <html>). Los tres nombres
+     quedan para no romper las ~680 clases que ya los usan; el peso lo dan las reglas base. */
+  --font-display: var(--font-jakarta), system-ui, sans-serif;
+  --font-body: var(--font-jakarta), system-ui, sans-serif;
+  --font-quote: var(--font-jakarta), system-ui, sans-serif;
 }
 
-/* ── Design tokens ──────────────────────────────────────────────────────── */
 @theme {
-  /* Cosmos palette */
-  --color-cosmos-0: #0a0418;
-  --color-cosmos-1: #140828;
-  --color-cosmos-2: #1f0f3a;
-  --color-cosmos-surface: #1a0e2e;
-  --color-cosmos-elev: #2a1a4d;
-
-  /* Pergamino palette */
-  --color-pergamino-0: #f5efe2;
-  --color-pergamino-1: #ebe2ce;
-  --color-pergamino-2: #ddd0b6;
-  --color-pergamino-surface: #f8f3e7;
-  --color-pergamino-elev: #ffffff;
-
-  /* Ink */
-  --color-ink: #ede4ff;
-  --color-ink-soft: #b8a8d0;
-  --color-ink-faint: #8070a0;
-
-  /* Lila */
-  --color-lila-50: #f5f3ff;
-  --color-lila-200: #ddd6fe;
-  --color-lila-300: #c4b5fd;
-  --color-lila-400: #a78bfa;
-  --color-lila-500: #8b5cf6;
-  --color-lila-600: #7c3aed;
-  --color-lila-700: #5b21b6;
-  --color-lila-900: #2e1065;
-
-  /* Gold */
-  --color-gold-300: #fde68a;
-  --color-gold-400: #f5d76e;
-  --color-gold-500: #d4a843;
-  --color-gold-700: #8a6520;
-
-  /* Accent */
-  --color-magenta: #ec4899;
-
-  /* Border radius */
-  --radius-ritual: 6px;
-  --radius-scroll: 8px;
-  --radius-pill: 100px;
-
-  /* Shadows */
-  --shadow-cosmos-card: 0 20px 60px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(196,181,253,0.18);
-  --shadow-gold-glow: 0 0 30px -10px rgba(245,215,110,0.4);
-  --shadow-lila-glow: 0 0 40px -10px rgba(196,181,253,0.35);
-
-  /* Font sizes */
-  --text-display-xl: clamp(48px, 7vw, 96px);
-  --text-display-lg: clamp(36px, 5vw, 72px);
-  --text-display-md: clamp(28px, 3.5vw, 44px);
-  --text-eyebrow: 10px;
-  --text-eyebrow-sm: 9px;
-
-  /* Letter spacing */
-  --tracking-ritual: 0.25em;
-  --tracking-cosmic: 0.18em;
-
-  /* Animations */
-  --animate-breathe: breathe 5s ease-in-out infinite;
-  --animate-wheel-spin: wheelSpin 60s linear infinite;
-  --animate-twinkle: twinkle 3s ease-in-out infinite;
+  --text-display-xl: clamp(40px, 6vw, 76px);
+  --text-display-lg: clamp(34px, 4.6vw, 58px);
+  --text-display-md: clamp(28px, 3.4vw, 42px);
+  --text-eyebrow: 12px;
+  --text-eyebrow-sm: 11px;
 }
 
-/* ── Keyframes ──────────────────────────────────────────────────────────── */
-@keyframes breathe {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50%       { opacity: 1;   transform: scale(1.04); }
-}
-@keyframes wheelSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; }
-  50%      { opacity: 1; }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-10px); }
-}
-@keyframes scrollDrop {
-  0%   { transform: scaleY(0); transform-origin: top; }
-  50%  { transform: scaleY(1); transform-origin: top; }
-  100% { transform: scaleY(0); transform-origin: bottom; }
-}
-@keyframes pulse-gold {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px #f5d76e; }
-  50%       { opacity: 0.5; transform: scale(0.8); box-shadow: 0 0 4px #f5d76e; }
+/* ── Base ───────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--fondo);
+    color: var(--tinta);
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--bosque);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--miel-800);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--miel-100);
+    color: var(--bosque);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--suave);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
 }
 
-/* ── SVG wheel animation helpers ────────────────────────────────────────── */
-.wheel-rotate {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: wheelSpin 120s linear infinite;
-}
-.wheel-rotate-rev {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: wheelSpin 180s linear infinite reverse;
-}
-
-/* ── Utility components ─────────────────────────────────────────────────── */
+/* ── Componentes ────────────────────────────────────────────────────────────
+   Las variantes de botón viven SOLO acá; `atoms/Button.tsx` las compone. Una pantalla no estiliza
+   un botón: elige variante. */
 @layer components {
-  .btn-ritual {
+  .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    padding: 14px 24px;
-    border-radius: 6px;
-    font-family: var(--font-display);
-    font-size: 12px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    font-weight: 500;
+    min-height: 48px;
+    padding: 12px 26px;
+    border-radius: var(--radio-pill);
+    border: 1.5px solid transparent;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
     cursor: pointer;
-    transition: all 0.2s;
+    text-decoration: none;
+    transition:
+      transform 0.3s var(--ease),
+      box-shadow 0.3s,
+      background-color 0.3s,
+      color 0.3s,
+      border-color 0.3s;
   }
-  .btn-ritual-primary {
-    background: linear-gradient(180deg, #f5d76e, #d4a843);
-    color: #0a0418;
-    box-shadow: 0 0 30px -8px rgba(245,215,110,0.5);
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none;
   }
-  .btn-ritual-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 40px -6px rgba(245,215,110,0.7);
+  .btn-sm {
+    min-height: 40px;
+    padding: 8px 18px;
+    font-size: 14px;
   }
-  .btn-ritual-ghost {
+  .btn-full {
+    width: 100%;
+  }
+  .btn-primary {
+    background: var(--miel);
+    color: var(--bosque);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--miel-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -12px rgb(199 146 46 / 0.6);
+  }
+  .btn-secondary {
+    background: var(--bosque);
+    color: #fff;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--bosque-700);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -12px rgb(31 46 36 / 0.5);
+  }
+  .btn-outline {
     background: transparent;
-    color: #ede4ff;
-    border: 1px solid rgba(196,181,253,0.4);
+    border-color: currentColor;
+    color: var(--bosque);
   }
-  .btn-ritual-ghost:hover {
-    border-color: #f5d76e;
-    color: #f5d76e;
+  .btn-outline:hover:not(:disabled) {
+    background: var(--salvia-100);
   }
+  .btn-ghost {
+    background: transparent;
+    color: var(--bosque);
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--salvia-100);
+  }
+  .btn .btn-arrow {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s var(--ease);
+  }
+  .btn:hover .btn-arrow {
+    transform: translateX(4px);
+  }
+
   .eyebrow {
-    font-family: var(--font-display);
-    font-size: 10px;
-    letter-spacing: 0.22em;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #f5d76e;
+    color: var(--miel-800);
   }
-  .cosmos-card {
-    background: #1a0e2e;
-    border: 1px solid rgba(196,181,253,0.18);
-    border-radius: 12px;
-    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+
+  .tarjeta {
+    background: var(--papel);
+    border: 1px solid var(--linea);
+    border-radius: var(--radio-lg);
+    box-shadow: 0 1px 2px rgb(31 46 36 / 0.04);
+  }
+
+  /* Reveal: visible en reposo. Sólo lo que arranca fuera de pantalla recibe `reveal-pre` (lo pone
+     el componente Reveal) y vuelve a su lugar al entrar. Sin JS no se oculta nada. */
+  .reveal {
+    transition:
+      opacity 1.2s var(--ease),
+      transform 1.2s var(--ease);
+  }
+  .reveal-pre {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      transition: opacity 0.2s;
+    }
+    .reveal-pre {
+      transform: none;
+    }
+    .btn,
+    .btn .btn-arrow {
+      transition: none;
+    }
+    .btn:hover:not(:disabled) {
+      transform: none;
+    }
   }
 }
 
-/* X-01 · §4 transmite informacion con glifos Unicode (estado de leccion, fase lunar). Un glifo
-   informativo va `aria-hidden` con su texto al lado en `.sr-only`; uno decorativo, solo
-   `aria-hidden`. Sin esta clase la alternativa es texto visible que rompe el diseño, y la
-   tentacion entonces es no poner ninguna. */
+/* X-01 · un ícono informativo va `aria-hidden` con su texto al lado en `.sr-only`; uno decorativo,
+   solo `aria-hidden`. Sin esta clase la alternativa es texto visible que rompe el diseño, y la
+   tentación entonces es no poner ninguna. */
 .sr-only {
   position: absolute;
   width: 1px;

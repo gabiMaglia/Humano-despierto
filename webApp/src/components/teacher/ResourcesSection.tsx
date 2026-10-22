@@ -40,7 +40,7 @@ function ResourceRow({
           <select
             name="type"
             defaultValue={resource.type}
-            className="rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-1.5 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+            className="rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
           >
             {RESOURCE_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -51,25 +51,25 @@ function ResourceRow({
           <input
             name="name"
             defaultValue={resource.name}
-            className="min-w-[160px] flex-1 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-1.5 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+            className="min-w-[160px] flex-1 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
           />
           <input
             name="sizeLabel"
             defaultValue={resource.sizeLabel ?? ""}
             placeholder="2.4 MB"
-            className="w-24 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-1.5 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+            className="w-24 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
           />
           <button
             type="submit"
             disabled={updatePending}
-            className="btn-ritual btn-ritual-primary rounded-pill text-[10px] disabled:opacity-60"
+            className="btn btn-primary text-[10px] disabled:opacity-60"
           >
             Guardar
           </button>
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="font-body text-xs text-ink-faint hover:text-ink"
+            className="font-body text-xs text-suave hover:text-tinta"
           >
             Cancelar
           </button>
@@ -80,16 +80,16 @@ function ResourceRow({
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-ritual border border-lila-300/12 bg-cosmos-0/40 px-3 py-2">
-      <span className="rounded-pill border border-lila-300/25 px-2 py-0.5 font-display text-[10px] tracking-cosmic text-ink-soft uppercase">
+    <li className="flex flex-wrap items-center gap-3 rounded-md border border-linea bg-papel px-3 py-2">
+      <span className="rounded-pill border border-linea px-2 py-0.5 font-display text-[10px] tracking-wide text-suave uppercase">
         {resource.type}
       </span>
-      <span className="min-w-0 flex-1 font-body text-sm text-ink">{resource.name}</span>
-      {resource.sizeLabel && <span className="font-body text-xs text-ink-faint">{resource.sizeLabel}</span>}
+      <span className="min-w-0 flex-1 font-body text-sm text-tinta">{resource.name}</span>
+      {resource.sizeLabel && <span className="font-body text-xs text-suave">{resource.sizeLabel}</span>}
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px]"
+        className="btn btn-outline px-2 py-1 text-[10px]"
       >
         Editar
       </button>
@@ -100,7 +100,7 @@ function ResourceRow({
         <button
           type="submit"
           disabled={deletePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] text-red-400 disabled:opacity-40"
+          className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:opacity-40"
         >
           Borrar
         </button>
@@ -130,13 +130,13 @@ export default function ResourcesSection({
   }, [state.success]);
 
   return (
-    <div className="cosmos-card space-y-3 p-6">
-      <h3 className="font-display text-sm tracking-wide text-ink">Recursos (Drive)</h3>
+    <div className="tarjeta space-y-3 p-6">
+      <h3 className="font-display text-sm tracking-wide text-tinta">Recursos (Drive)</h3>
       <ul className="space-y-1.5">
         {resources.map((r) => (
           <ResourceRow key={r.id} courseId={courseId} lessonId={lessonId} resource={r} />
         ))}
-        {resources.length === 0 && <li className="font-body text-xs text-ink-faint">Sin recursos todavía.</li>}
+        {resources.length === 0 && <li className="font-body text-xs text-suave">Sin recursos todavía.</li>}
       </ul>
 
       <form ref={formRef} action={formAction} className="grid gap-2 pt-1 sm:grid-cols-2">
@@ -145,7 +145,7 @@ export default function ResourcesSection({
         <select
           name="type"
           defaultValue="pdf"
-          className="rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
         >
           {RESOURCE_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -157,23 +157,23 @@ export default function ResourcesSection({
           name="name"
           required
           placeholder="Nombre (ej: Manual de tirada)"
-          className="rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
         />
         <input
           name="link"
           required
           placeholder="Link de Drive"
-          className="rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50 sm:col-span-2"
+          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea sm:col-span-2"
         />
         <input
           name="sizeLabel"
           placeholder="Tamaño (ej: 2.4 MB, opcional)"
-          className="rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
         />
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:opacity-60"
+          className="btn btn-outline text-[10px] disabled:opacity-60"
         >
           {isPending ? "…" : "+ Recurso"}
         </button>

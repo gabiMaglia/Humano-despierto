@@ -83,7 +83,7 @@ test("D-38 · la cabecera muestra cuantas preguntas quedan sin responder", async
     await loginAs(page, SOL, "/panel/docente");
     await page.goto(`/panel/docente/cursos/${cid}/alumnas`);
     const resumen = page.getByRole("region", { name: "Resumen" });
-    await expect(resumen.locator(".cosmos-card", { hasText: "Preguntas" })).toContainText(`${abiertas} sin responder`);
+    await expect(resumen.locator(".tarjeta", { hasText: "Preguntas" })).toContainText(`${abiertas} sin responder`);
   } finally {
     psql(`delete from public.lesson_questions where title = '${titulo}'`);
   }

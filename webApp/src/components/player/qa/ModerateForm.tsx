@@ -29,7 +29,7 @@ export default function ModerateForm({ action }: Props) {
         required
         maxLength={500}
         placeholder="Motivo"
-        className="min-w-0 flex-1 rounded-ritual border border-lila-300/20 bg-transparent px-2 py-1 font-body text-xs text-ink placeholder:text-ink-faint outline-none"
+        className="min-w-0 flex-1 rounded-md border border-linea bg-transparent px-2 py-1 font-body text-xs text-tinta placeholder:text-suave outline-none"
       />
       <QaTextButton type="submit" variant="danger" disabled={pending}>
         Confirmar borrado

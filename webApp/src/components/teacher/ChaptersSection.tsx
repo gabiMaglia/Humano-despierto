@@ -44,24 +44,24 @@ function ChapterRow({
           <input
             name="timestamp"
             defaultValue={formatClock(chapter.startSeconds)}
-            className="w-20 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-1.5 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+            className="w-20 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
           />
           <input
             name="label"
             defaultValue={chapter.label}
-            className="min-w-[160px] flex-1 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-1.5 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+            className="min-w-[160px] flex-1 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
           />
           <button
             type="submit"
             disabled={updatePending}
-            className="btn-ritual btn-ritual-primary rounded-pill text-[10px] disabled:opacity-60"
+            className="btn btn-primary text-[10px] disabled:opacity-60"
           >
             Guardar
           </button>
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="font-body text-xs text-ink-faint hover:text-ink"
+            className="font-body text-xs text-suave hover:text-tinta"
           >
             Cancelar
           </button>
@@ -72,13 +72,13 @@ function ChapterRow({
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-ritual border border-lila-300/12 bg-cosmos-0/40 px-3 py-2">
-      <span className="font-body text-xs text-lila-300">{formatClock(chapter.startSeconds)}</span>
-      <span className="min-w-0 flex-1 font-body text-sm text-ink">{chapter.label}</span>
+    <li className="flex flex-wrap items-center gap-3 rounded-md border border-linea bg-papel px-3 py-2">
+      <span className="font-body text-xs text-miel-800">{formatClock(chapter.startSeconds)}</span>
+      <span className="min-w-0 flex-1 font-body text-sm text-tinta">{chapter.label}</span>
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px]"
+        className="btn btn-outline px-2 py-1 text-[10px]"
       >
         Editar
       </button>
@@ -89,7 +89,7 @@ function ChapterRow({
         <button
           type="submit"
           disabled={deletePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] text-red-400 disabled:opacity-40"
+          className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:opacity-40"
         >
           Borrar
         </button>
@@ -116,13 +116,13 @@ export default function ChaptersSection({
   }, [state.success]);
 
   return (
-    <div className="cosmos-card space-y-3 p-6">
-      <h3 className="font-display text-sm tracking-wide text-ink">Capítulos</h3>
+    <div className="tarjeta space-y-3 p-6">
+      <h3 className="font-display text-sm tracking-wide text-tinta">Capítulos</h3>
       <ul className="space-y-1.5">
         {chapters.map((c) => (
           <ChapterRow key={c.id} courseId={courseId} lessonId={lessonId} chapter={c} />
         ))}
-        {chapters.length === 0 && <li className="font-body text-xs text-ink-faint">Sin capítulos todavía.</li>}
+        {chapters.length === 0 && <li className="font-body text-xs text-suave">Sin capítulos todavía.</li>}
       </ul>
 
       <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-2 pt-1">
@@ -132,18 +132,18 @@ export default function ChaptersSection({
           name="timestamp"
           required
           placeholder="mm:ss"
-          className="w-20 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+          className="w-20 rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
         />
         <input
           name="label"
           required
           placeholder="Etiqueta del capítulo"
-          className="min-w-[160px] flex-1 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-2 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+          className="min-w-[160px] flex-1 rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
         />
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:opacity-60"
+          className="btn btn-outline text-[10px] disabled:opacity-60"
         >
           {isPending ? "…" : "+ Capítulo"}
         </button>

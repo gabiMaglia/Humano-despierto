@@ -44,25 +44,25 @@ export default async function DiarioPostPage({ params }: Props) {
   const paragraphs = post.body.split(/\n{2,}/).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-cosmos-0">
+    <div className="min-h-screen bg-fondo">
       <Breadcrumb crumbs={[{ label: "Diario", href: "/diario" }, { label: post.title }]} />
 
-      <header className="border-b border-lila-300/18 px-6 py-16 text-center md:px-12">
-        <h1 className="mx-auto mb-4 max-w-2xl font-display text-display-md text-ink">{post.title}</h1>
+      <header className="border-b border-linea px-6 py-16 text-center md:px-12">
+        <h1 className="mx-auto mb-4 max-w-2xl font-display text-display-md text-tinta">{post.title}</h1>
         {post.excerpt && (
-          <p className="mx-auto mb-5 max-w-xl font-quote italic text-lg text-lila-300">{post.excerpt}</p>
+          <p className="mx-auto mb-5 max-w-xl font-quote italic text-lg text-miel-800">{post.excerpt}</p>
         )}
-        <div className="flex flex-wrap items-center justify-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-          {post.teacherGlyph && <span className="text-lila-300">{post.teacherGlyph}</span>}
+        <div className="flex flex-wrap items-center justify-center gap-2 font-display text-eyebrow tracking-wide text-suave">
+          {post.teacherGlyph && <span className="text-miel-800">{post.teacherGlyph}</span>}
           <span>{post.teacherName}</span>
-          <span className="text-lila-300/40">·</span>
+          <span className="text-miel-800">·</span>
           <span>{formatCertificateDate(post.publishedAt)}</span>
         </div>
       </header>
 
       <article className="mx-auto max-w-2xl space-y-5 px-6 py-14 md:px-12">
         {paragraphs.map((para, i) => (
-          <p key={i} className="font-body text-base leading-relaxed text-ink-soft">
+          <p key={i} className="font-body text-base leading-relaxed text-suave">
             {para}
           </p>
         ))}

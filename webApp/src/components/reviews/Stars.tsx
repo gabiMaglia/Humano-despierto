@@ -16,13 +16,13 @@ export default function Stars({
     <span className="inline-flex items-center gap-1.5">
       <span
         aria-hidden="true"
-        className={cn("font-display tracking-[0.15em] text-gold-400", size === "lg" ? "text-2xl" : "text-sm")}
+        className={cn("font-display tracking-[0.15em] text-miel-800", size === "lg" ? "text-2xl" : "text-sm")}
       >
         {"★".repeat(llenas)}
-        <span className="text-ink-faint">{"☆".repeat(5 - llenas)}</span>
+        <span className="text-suave">{"☆".repeat(5 - llenas)}</span>
       </span>
       {showValue && (
-        <span className={cn("font-display text-gold-400", size === "lg" ? "text-2xl" : "text-sm")}>
+        <span className={cn("font-display text-miel-800", size === "lg" ? "text-2xl" : "text-sm")}>
           {value.toFixed(1)}
         </span>
       )}

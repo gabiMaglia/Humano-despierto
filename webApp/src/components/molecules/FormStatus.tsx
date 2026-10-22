@@ -9,6 +9,6 @@ export default function FormStatus({ state }: { state: ActionState }) {
       </p>
     );
   }
-  if (state.success) return <p className="font-body text-xs text-lila-300">{state.success}</p>;
+  if (state.success) return <p className="font-body text-xs text-miel-800">{state.success}</p>;
   return null;
 }

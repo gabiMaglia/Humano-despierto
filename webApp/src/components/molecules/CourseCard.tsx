@@ -54,12 +54,12 @@ export default function CourseCard({
     <Link
       href={`/cursos/${slug}`}
       className={cn(
-        "cosmos-card relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow duration-300 group-hover:shadow-lila-glow",
-        featured && "border-lila-300/40 bg-cosmos-elev"
+        "tarjeta relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow duration-300 group-hover:shadow-card",
+        featured && "border-linea bg-salvia-100"
       )}
     >
       {/* Image placeholder */}
-      <div className="relative shrink-0 overflow-hidden bg-linear-to-br from-lila-700 to-cosmos-2 aspect-[4/3]">
+      <div className="relative shrink-0 overflow-hidden bg-salvia-100 aspect-[4/3]">
         {coverUrl ? (
           // alt vacio: la card ya nombra el curso en su h3; leerlo dos veces es ruido.
           <SignedImage src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -74,13 +74,13 @@ export default function CourseCard({
         )}
         {/* Moon phase badge */}
         {moon && (
-          <span className="absolute top-3 left-3 font-display text-base text-gold-400">
+          <span className="absolute top-3 left-3 font-display text-base text-miel-800">
             {moon}
           </span>
         )}
         {/* Featured flag */}
         {featured && (
-          <span className="absolute top-3 right-14 font-display text-eyebrow tracking-cosmic text-gold-400 bg-cosmos-0/70 px-2 py-0.5 rounded-pill">
+          <span className="absolute top-3 right-14 font-display text-eyebrow tracking-wide text-miel-800 bg-papel px-2 py-0.5 rounded-pill">
             ✦ destacado
           </span>
         )}
@@ -92,8 +92,8 @@ export default function CourseCard({
       {/* Body */}
       <div className="flex flex-1 flex-col p-5 md:p-6">
         <div className="mb-3 flex h-[1lh] items-center justify-between overflow-hidden font-display text-eyebrow uppercase tracking-[0.2em]">
-          <span className="truncate text-gold-400">✦ {tag}</span>
-          <div className="flex shrink-0 items-center gap-1.5 text-ink-faint">
+          <span className="truncate text-miel-800">✦ {tag}</span>
+          <div className="flex shrink-0 items-center gap-1.5 text-suave">
             {level && <span>{level}</span>}
             {level && weeks && <span>·</span>}
             {weeks && <span>☾ {weeks}</span>}
@@ -102,19 +102,19 @@ export default function CourseCard({
 
         {/* Dos líneas fijas: un título corto y uno largo ocupan lo mismo, así la
             descripción y el pie no se desplazan de una card a otra. */}
-        <h3 className="mb-2.5 line-clamp-2 h-[2lh] font-display text-xl leading-snug tracking-wide text-ink">
+        <h3 className="mb-2.5 line-clamp-2 h-[2lh] font-display text-xl leading-snug tracking-wide text-tinta">
           {title}
           {titleEm && (
             <>
               {" "}
-              <em className="font-quote italic text-lila-300">{titleEm}</em>
+              <em className="font-quote italic text-miel-800">{titleEm}</em>
             </>
           )}
         </h3>
 
         {/* Alto fijo de 3 líneas. Si la descripción es más larga, se scrollea acá
             dentro en vez de estirar la card. */}
-        <p className="mb-4 h-[3lh] overflow-y-auto pr-1 font-body text-sm leading-relaxed text-ink-soft [scrollbar-color:var(--color-lila-300)_transparent] [scrollbar-width:thin]">
+        <p className="mb-4 h-[3lh] overflow-y-auto pr-1 font-body text-sm leading-relaxed text-suave [scrollbar-color:var(--color-salvia)_transparent] [scrollbar-width:thin]">
           {desc}
         </p>
 
@@ -123,18 +123,18 @@ export default function CourseCard({
           {ratingText && rating !== undefined && (
             <>
               <Stars value={rating} />
-              <span className="font-display text-eyebrow tracking-wide text-ink-faint">{ratingText}</span>
+              <span className="font-display text-eyebrow tracking-wide text-suave">{ratingText}</span>
             </>
           )}
         </div>
 
         {/* mt-auto: el pie queda pegado abajo aunque el resto no llene el alto. */}
-        <div className="mt-auto flex items-center justify-between border-t border-lila-300/18 pt-3.5">
+        <div className="mt-auto flex items-center justify-between border-t border-linea pt-3.5">
           <div className="flex items-center gap-2.5">
             <Avatar size="sm" />
-            <span className="font-body text-xs text-ink-soft">{teacher}</span>
+            <span className="font-body text-xs text-suave">{teacher}</span>
           </div>
-          <span className="font-display text-sm tracking-wide text-gold-400">{price}</span>
+          <span className="font-display text-sm tracking-wide text-miel-800">{price}</span>
         </div>
       </div>
     </Link>

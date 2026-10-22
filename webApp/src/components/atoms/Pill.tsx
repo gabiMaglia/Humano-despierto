@@ -14,15 +14,15 @@ export default function Pill({ label, active, count, onClick }: Props) {
     <button
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-pill border px-3.5 py-1.5 font-display text-eyebrow tracking-cosmic transition-colors",
+        "inline-flex items-center gap-1.5 rounded-pill border px-3.5 py-1.5 font-display text-eyebrow tracking-wide transition-colors",
         active
-          ? "border-lila-300/60 bg-lila-300/10 text-lila-300"
-          : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
+          ? "border-linea bg-salvia-100 text-miel-800"
+          : "border-linea text-suave hover:border-linea hover:text-suave"
       )}
     >
       {label}
       {count !== undefined && (
-        <span className={cn("text-[8px]", active ? "text-lila-400" : "text-ink-faint")}>
+        <span className={cn("text-[8px]", active ? "text-miel-800" : "text-suave")}>
           {count}
         </span>
       )}

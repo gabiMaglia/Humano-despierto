@@ -21,7 +21,7 @@ export default function CampusComposer({ courseId, courseSlug, authorGlyph, plac
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="border-b border-lila-300/18 px-5 py-4">
+    <form ref={formRef} action={formAction} className="border-b border-linea px-5 py-4">
       <input type="hidden" name="courseId" value={courseId ?? ""} />
       <input type="hidden" name="courseSlug" value={courseSlug ?? ""} />
       <div className="flex items-start gap-3">
@@ -32,12 +32,12 @@ export default function CampusComposer({ courseId, courseSlug, authorGlyph, plac
           maxLength={4000}
           rows={2}
           placeholder={placeholder}
-          className="min-h-[44px] flex-1 resize-y rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-sm text-ink placeholder:text-ink-faint outline-none focus:border-lila-300/50 focus:bg-cosmos-0"
+          className="min-h-[44px] flex-1 resize-y rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta placeholder:text-suave outline-none focus:border-linea focus:bg-fondo"
         />
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-primary rounded-pill flex-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-primary flex-none disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "…" : "✦ Publicar"}
         </button>

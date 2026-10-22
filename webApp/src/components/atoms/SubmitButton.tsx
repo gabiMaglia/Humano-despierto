@@ -9,7 +9,7 @@ export default function SubmitButton({ loading, label, loadingLabel = "Un moment
     <button
       type="submit"
       disabled={loading}
-      className="btn-ritual btn-ritual-primary mt-2 w-full rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+      className="btn btn-primary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-60"
     >
       {loading ? loadingLabel : label}
     </button>

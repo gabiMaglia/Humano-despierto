@@ -31,7 +31,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
   );
 
   return (
-    <section className="cosmos-card p-5">
+    <section className="tarjeta p-5">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         {editing ? (
           <form action={updateAction} className="flex-1 space-y-2">
@@ -41,26 +41,26 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
               name="title"
               defaultValue={mod.title}
               required
-              className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2 font-display text-sm text-ink outline-none focus:border-lila-300/50"
+              className="w-full rounded-md border border-linea bg-papel px-3 py-2 font-display text-sm text-tinta outline-none focus:border-linea"
             />
             <input
               name="description"
               defaultValue={mod.description ?? ""}
               placeholder="Descripción (opcional)"
-              className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50"
+              className="w-full rounded-md border border-linea bg-papel px-3 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
             />
             <div className="flex items-center gap-2">
               <button
                 type="submit"
                 disabled={updatePending}
-                className="btn-ritual btn-ritual-primary rounded-pill text-[10px] disabled:opacity-60"
+                className="btn btn-primary text-[10px] disabled:opacity-60"
               >
                 Guardar
               </button>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="font-body text-xs text-ink-faint hover:text-ink"
+                className="font-body text-xs text-suave hover:text-tinta"
               >
                 Cancelar
               </button>
@@ -69,8 +69,8 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
           </form>
         ) : (
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-base tracking-wide text-ink">{mod.title}</h3>
-            {mod.description && <p className="font-body text-xs text-ink-faint">{mod.description}</p>}
+            <h3 className="font-display text-base tracking-wide text-tinta">{mod.title}</h3>
+            {mod.description && <p className="font-body text-xs text-suave">{mod.description}</p>}
           </div>
         )}
 
@@ -83,7 +83,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
               name="direction"
               value="up"
               disabled={isFirst || movePending}
-              className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
+              className="btn btn-outline px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
               aria-label="Subir módulo"
             >
               ↑
@@ -93,7 +93,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
               name="direction"
               value="down"
               disabled={isLast || movePending}
-              className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
+              className="btn btn-outline px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
               aria-label="Bajar módulo"
             >
               ↓
@@ -103,7 +103,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px]"
+              className="btn btn-outline px-2 py-1 text-[10px]"
             >
               Editar
             </button>
@@ -114,7 +114,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
             <button
               type="submit"
               disabled={deletePending}
-              className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Borrar módulo
             </button>
@@ -137,7 +137,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
           />
         ))}
         {mod.lessons.length === 0 && (
-          <li className="font-body text-xs text-ink-faint">Sin lecciones todavía.</li>
+          <li className="font-body text-xs text-suave">Sin lecciones todavía.</li>
         )}
       </ul>
 

@@ -22,28 +22,28 @@ export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast 
   );
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-ritual border border-lila-300/12 bg-cosmos-0/40 px-3 py-2.5">
+    <li className="flex flex-wrap items-center gap-3 rounded-md border border-linea bg-papel px-3 py-2.5">
       <Link
         href={`/panel/docente/cursos/${courseId}/lecciones/${lesson.id}`}
-        className="min-w-0 flex-1 font-body text-sm text-ink hover:text-lila-300"
+        className="min-w-0 flex-1 font-body text-sm text-tinta hover:text-miel-800"
       >
         {lesson.title}
       </Link>
 
-      <div className="flex flex-none items-center gap-1.5 font-display text-[10px] tracking-cosmic uppercase">
+      <div className="flex flex-none items-center gap-1.5 font-display text-[10px] tracking-wide uppercase">
         {lesson.isPreview && (
-          <span className="rounded-pill border border-gold-400/30 px-2 py-0.5 text-gold-400">Vista previa</span>
+          <span className="rounded-pill border border-miel px-2 py-0.5 text-miel-800">Vista previa</span>
         )}
         <span
           className={`rounded-pill border px-2 py-0.5 ${
-            lesson.hasVideo ? "border-lila-300/30 text-lila-300" : "border-red-400/30 text-red-400"
+            lesson.hasVideo ? "border-linea text-miel-800" : "border-red-400/30 text-red-400"
           }`}
         >
           {lesson.hasVideo ? "Video ✓" : "Sin video"}
         </span>
         <span
           className={`rounded-pill border px-2 py-0.5 ${
-            lesson.isPublished ? "border-lila-300/30 text-lila-300" : "border-ink-faint/30 text-ink-faint"
+            lesson.isPublished ? "border-linea text-miel-800" : "border-linea text-suave"
           }`}
         >
           {lesson.isPublished ? "Publicada" : "Oculta"}
@@ -59,7 +59,7 @@ export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast 
           name="direction"
           value="up"
           disabled={isFirst || movePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
+          className="btn btn-outline px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
           aria-label="Subir lección"
         >
           ↑
@@ -69,7 +69,7 @@ export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast 
           name="direction"
           value="down"
           disabled={isLast || movePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
+          className="btn btn-outline px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
           aria-label="Bajar lección"
         >
           ↓
@@ -82,7 +82,7 @@ export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast 
         <button
           type="submit"
           disabled={deletePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Borrar
         </button>

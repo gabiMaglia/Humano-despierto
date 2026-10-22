@@ -43,7 +43,7 @@ function FilterGroup({
   if (items.length === 0) return null;
   return (
     <div className="mb-6">
-      <h4 className="mb-3 font-display text-eyebrow uppercase tracking-[0.2em] text-ink">{title}</h4>
+      <h4 className="mb-3 font-display text-eyebrow uppercase tracking-[0.2em] text-tinta">{title}</h4>
       <div className="space-y-2">
         {items.map((item) => (
           <Link
@@ -54,15 +54,15 @@ function FilterGroup({
           >
             <span
               className={`h-4 w-4 flex-none rounded-sm border flex items-center justify-center text-[8px] transition-colors ${
-                item.active ? "border-lila-300 bg-lila-300/20 text-lila-300" : "border-lila-300/30 text-transparent"
+                item.active ? "border-linea bg-salvia-100 text-miel-800" : "border-linea text-transparent"
               }`}
             >
               {item.active && "✦"}
             </span>
-            <span className={`font-body text-sm flex-1 ${item.active ? "text-ink" : "text-ink-soft"}`}>
+            <span className={`font-body text-sm flex-1 ${item.active ? "text-tinta" : "text-suave"}`}>
               {item.label}
             </span>
-            <span className="font-display text-[9px] text-ink-faint">{item.count}</span>
+            <span className="font-display text-[9px] text-suave">{item.count}</span>
           </Link>
         ))}
       </div>
@@ -120,10 +120,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const hasAnyFilter = activeFilterCount > 0;
 
   return (
-    <div className="min-h-screen bg-cosmos-0">
+    <div className="min-h-screen bg-fondo">
       <PageHeader
         badge={`${allCourses.length} curso${allCourses.length === 1 ? "" : "s"} · ${disciplineFacets.length} disciplina${disciplineFacets.length === 1 ? "" : "s"}`}
-        title={<>El compendio <em className="font-quote italic text-lila-300">vivo</em></>}
+        title={<>El compendio <em className="font-quote italic text-miel-800">vivo</em></>}
         subtitle="Todos los recorridos están abiertos. Se cursan a tu propio ritmo, sin fecha de inicio."
       />
 
@@ -142,14 +142,14 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             {state.durations.length > 0 && (
               <input type="hidden" name="duracion" value={state.durations.join(",")} />
             )}
-            <div className="flex items-center gap-2.5 rounded-ritual border border-lila-300/20 bg-cosmos-surface px-3.5 py-2.5">
-              <span className="text-lila-300 text-sm">✦</span>
+            <div className="flex items-center gap-2.5 rounded-md border border-linea bg-papel px-3.5 py-2.5">
+              <span className="text-miel-800 text-sm">✦</span>
               <input
                 type="text"
                 name="q"
                 defaultValue={state.query}
                 placeholder="Buscar en el compendio…"
-                className="flex-1 bg-transparent font-body text-sm text-ink placeholder:text-ink-faint outline-none"
+                className="flex-1 bg-transparent font-body text-sm text-tinta placeholder:text-suave outline-none"
               />
             </div>
           </form>
@@ -159,7 +159,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           {hasAnyFilter && (
             <Link
               href="/cursos"
-              className="mt-2 inline-block font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-lila-300 transition-colors"
+              className="mt-2 inline-block font-display text-eyebrow tracking-wide text-suave hover:text-bosque transition-colors"
             >
               Limpiar filtros ✕
             </Link>
@@ -171,8 +171,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           {/* Toolbar */}
           <div className="mb-6 flex flex-wrap items-center gap-3">
             <div>
-              <span className="font-display text-2xl text-ink">{filtered.length}</span>
-              <span className="ml-2 font-body text-sm text-ink-soft">
+              <span className="font-display text-2xl text-tinta">{filtered.length}</span>
+              <span className="ml-2 font-body text-sm text-suave">
                 curso{filtered.length === 1 ? "" : "s"}
                 {hasAnyFilter && ` · ${activeFilterCount} filtro${activeFilterCount === 1 ? "" : "s"} activo${activeFilterCount === 1 ? "" : "s"}`}
               </span>
@@ -183,9 +183,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                   <Link
                     key={chip.label}
                     href={chip.href}
-                    className="inline-flex items-center gap-1.5 rounded-pill bg-lila-300/10 border border-lila-300/30 px-3 py-1 font-display text-eyebrow text-lila-300"
+                    className="inline-flex items-center gap-1.5 rounded-pill bg-salvia-100 border border-linea px-3 py-1 font-display text-eyebrow text-bosque"
                   >
-                    {chip.label} <span className="text-lila-400 hover:text-gold-400">✕</span>
+                    {chip.label} <span className="text-miel-800 hover:text-miel-800">✕</span>
                   </Link>
                 ))}
               </div>
@@ -193,7 +193,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           </div>
 
           <nav aria-label="Ordenar cursos" className="mb-6 flex flex-wrap items-center gap-2">
-            <span className="font-display text-eyebrow uppercase tracking-[0.2em] text-ink-faint">Ordenar</span>
+            <span className="font-display text-eyebrow uppercase tracking-[0.2em] text-suave">Ordenar</span>
             {ORDER_OPTIONS.map((o) => (
               <Link
                 key={o.key}
@@ -201,8 +201,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 aria-pressed={state.order === o.key}
                 className={`rounded-pill border px-3 py-1 font-display text-eyebrow ${
                   state.order === o.key
-                    ? "border-lila-300/60 bg-lila-300/20 text-lila-300"
-                    : "border-lila-300/20 text-ink-faint hover:text-ink-soft"
+                    ? "border-linea bg-salvia-100 text-miel-800"
+                    : "border-linea text-suave hover:text-suave"
                 }`}
               >
                 {o.label}
@@ -211,13 +211,13 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           </nav>
 
           {filtered.length === 0 ? (
-            <div className="cosmos-card flex flex-col items-center gap-4 px-6 py-20 text-center">
-              <span className="font-display text-2xl text-lila-300">✧</span>
-              <p className="font-body text-sm text-ink-soft max-w-sm">
+            <div className="tarjeta flex flex-col items-center gap-4 px-6 py-20 text-center">
+              <span className="font-display text-2xl text-bosque">✧</span>
+              <p className="font-body text-sm text-suave max-w-sm">
                 Ningún curso del compendio coincide con estos filtros. Probá con otra combinación o
                 empezá de nuevo.
               </p>
-              <Link href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
+              <Link href="/cursos" className="btn btn-outline">
                 Limpiar filtros ✕
               </Link>
             </div>
@@ -253,10 +253,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                   <Link
                     href={hrefFor(withPage(current, page - 1))}
                     aria-disabled={page <= 1}
-                    className={`h-9 min-w-9 px-3 rounded-ritual font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
+                    className={`h-9 min-w-9 px-3 rounded-md font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
                       page <= 1
-                        ? "pointer-events-none border-lila-300/10 text-ink-faint/40"
-                        : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
+                        ? "pointer-events-none border-linea text-suave"
+                        : "border-linea text-suave hover:border-linea hover:text-suave"
                     }`}
                   >
                     ←
@@ -265,10 +265,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     <Link
                       key={p}
                       href={hrefFor(withPage(current, p))}
-                      className={`h-9 min-w-9 px-3 rounded-ritual font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
+                      className={`h-9 min-w-9 px-3 rounded-md font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
                         p === page
-                          ? "bg-lila-300/20 border-lila-300/60 text-lila-300"
-                          : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
+                          ? "bg-salvia-100 border-linea text-miel-800"
+                          : "border-linea text-suave hover:border-linea hover:text-suave"
                       }`}
                     >
                       {p}
@@ -277,10 +277,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                   <Link
                     href={hrefFor(withPage(current, page + 1))}
                     aria-disabled={page >= totalPages}
-                    className={`h-9 min-w-9 px-3 rounded-ritual font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
+                    className={`h-9 min-w-9 px-3 rounded-md font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
                       page >= totalPages
-                        ? "pointer-events-none border-lila-300/10 text-ink-faint/40"
-                        : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
+                        ? "pointer-events-none border-linea text-suave"
+                        : "border-linea text-suave hover:border-linea hover:text-suave"
                     }`}
                   >
                     →

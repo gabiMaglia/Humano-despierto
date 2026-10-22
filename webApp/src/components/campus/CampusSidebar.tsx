@@ -18,16 +18,16 @@ export default function CampusSidebar({ threads }: { threads: CampusThreadSummar
           <Link
             key={t.slug ?? "general"}
             href={href}
-            className={`flex items-center gap-2.5 rounded-ritual px-3 py-2.5 transition-colors ${
-              isActive ? "bg-lila-300/10 border border-lila-300/20" : "hover:bg-cosmos-surface"
+            className={`flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors ${
+              isActive ? "bg-salvia-100 border border-linea" : "hover:bg-papel"
             }`}
           >
-            <span className={`text-base ${isActive ? "text-gold-400" : "text-lila-300/70"}`}>{t.glyph}</span>
+            <span className={`text-base ${isActive ? "text-miel-800" : "text-miel-800"}`}>{t.glyph}</span>
             <div className="min-w-0 flex-1">
-              <p className={`font-display text-[11px] tracking-wide truncate ${isActive ? "text-ink" : "text-ink-soft"}`}>
+              <p className={`font-display text-[11px] tracking-wide truncate ${isActive ? "text-tinta" : "text-suave"}`}>
                 {t.title}
               </p>
-              <p className="font-body text-[10px] text-ink-faint truncate">{t.subtitle}</p>
+              <p className="font-body text-[10px] text-suave truncate">{t.subtitle}</p>
             </div>
           </Link>
         );

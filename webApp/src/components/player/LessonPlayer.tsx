@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { formatDurationSeconds } from "@/lib/utils/format";
-import { toRoman } from "@/lib/utils/roman";
 import { readRate, writeRate } from "@/lib/player/prefs";
 import { anonymousClosingHref } from "@/lib/player/navigation";
 import { useYouTubePlayer } from "@/components/player/useYouTubePlayer";
@@ -122,23 +121,23 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
     : [...availableRates, playbackRate].sort((a, b) => a - b);
 
   return (
-    <div className="flex flex-col min-h-screen bg-cosmos-0 text-ink">
+    <div className="flex flex-col min-h-screen bg-fondo text-tinta">
       {/* Top bar */}
-      <header className="flex items-center justify-between gap-4 border-b border-lila-300/18 bg-cosmos-surface px-5 py-3">
+      <header className="flex items-center justify-between gap-4 border-b border-linea bg-papel px-5 py-3">
         <a
           href={`/cursos/${data.courseSlug}`}
-          className="font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors whitespace-nowrap"
+          className="font-display text-eyebrow tracking-wide text-suave hover:text-bosque transition-colors whitespace-nowrap"
         >
           ← {data.courseTitle}
         </a>
-        <div className="hidden sm:flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-          <span>Módulo {toRoman(data.modulePosition)}</span>
-          <span className="text-lila-300/30">·</span>
-          <span className="text-lila-300">Lección {data.lessonPosition}</span>
+        <div className="hidden sm:flex items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
+          <span>Módulo {String(data.modulePosition)}</span>
+          <span className="text-miel-800">·</span>
+          <span className="text-miel-800">Lección {data.lessonPosition}</span>
           {completed && (
             <>
-              <span className="text-lila-300/30">·</span>
-              <span className="text-gold-400">✓ Completada</span>
+              <span className="text-miel-800">·</span>
+              <span className="text-miel-800">✓ Completada</span>
             </>
           )}
         </div>
@@ -148,11 +147,11 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
         {/* MAIN */}
         <main className="flex-1 flex flex-col min-w-0 overflow-auto">
           {/* Video stage — embed real de la IFrame Player API (T-006 c.1) */}
-          <div className="relative aspect-video max-h-[55vh] bg-cosmos-1 overflow-hidden">
+          <div className="relative aspect-video max-h-[55vh] bg-papel overflow-hidden">
             <div id={containerId} className="absolute inset-0 h-full w-full" />
             {!ready && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
+                <span className="font-display text-eyebrow tracking-wide text-suave">
                   Cargando video…
                 </span>
               </div>
@@ -168,26 +167,26 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
             )}
           </div>
 
-          <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-4">
-            <h1 className="font-display text-xl tracking-wide text-ink mb-1">{data.title}</h1>
+          <div className="border-b border-linea bg-papel px-5 py-4">
+            <h1 className="font-display text-xl tracking-wide text-tinta mb-1">{data.title}</h1>
             {data.description && (
-              <p className="font-body text-sm text-ink-soft leading-relaxed">{data.description}</p>
+              <p className="font-body text-sm text-suave leading-relaxed">{data.description}</p>
             )}
           </div>
 
           {/* Controls */}
-          <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="font-display text-sm text-ink whitespace-nowrap">
-              {formatClock(currentTime)} <span className="text-ink-faint">/ {formatClock(effectiveDuration)}</span>
+          <div className="border-b border-linea bg-papel px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="font-display text-sm text-tinta whitespace-nowrap">
+              {formatClock(currentTime)} <span className="text-suave">/ {formatClock(effectiveDuration)}</span>
             </span>
             {/* Scrubber */}
-            <div className="relative flex-1 min-w-24 h-1.5 rounded-full bg-lila-300/18">
+            <div className="relative flex-1 min-w-24 h-1.5 rounded-full bg-salvia-100">
               <div
-                className="absolute left-0 top-0 h-full rounded-full bg-gold-400"
+                className="absolute left-0 top-0 h-full rounded-full bg-miel"
                 style={{ width: `${progressFraction * 100}%` }}
               />
               <div
-                className="absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-gold-400 border-2 border-cosmos-0"
+                className="absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-miel border-2 border-papel"
                 style={{ left: `${progressFraction * 100}%` }}
               />
               {/* Chapter marks */}
@@ -197,7 +196,7 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
                     key={c.id}
                     type="button"
                     onClick={() => seekTo(c.startSeconds)}
-                    className="absolute top-1/2 -translate-y-1/2 h-2 w-0.5 bg-lila-300/40 hover:bg-gold-400"
+                    className="absolute top-1/2 -translate-y-1/2 h-2 w-0.5 bg-salvia hover:bg-miel"
                     style={{ left: `${(c.startSeconds / effectiveDuration) * 100}%` }}
                     title={c.label}
                   />
@@ -212,7 +211,7 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
                 setPlaybackRate(rate);
                 writeRate(rate);
               }}
-              className="bg-cosmos-surface border border-lila-300/20 rounded px-1 py-0.5 font-display text-eyebrow tracking-cosmic text-ink-faint"
+              className="bg-papel border border-linea rounded px-1 py-0.5 font-display text-eyebrow tracking-wide text-suave"
             >
               {rates.map((r) => (
                 <option key={r} value={r}>
@@ -221,7 +220,7 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
               ))}
             </select>
             {nextHref && (
-              <label className="flex items-center gap-1.5 font-display text-eyebrow tracking-cosmic text-ink-faint">
+              <label className="flex items-center gap-1.5 font-display text-eyebrow tracking-wide text-suave">
                 <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
                 Autoplay
               </label>
@@ -233,7 +232,7 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
                   e.preventDefault();
                   void goTo(nextHref);
                 }}
-                className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap"
+                className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors whitespace-nowrap"
               >
                 Siguiente lección →
               </a>
@@ -243,8 +242,8 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
           {/* Chapters */}
           <div className="p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-sm tracking-wide text-ink">Capítulos</h3>
-              <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
+              <h3 className="font-display text-sm tracking-wide text-tinta">Capítulos</h3>
+              <span className="font-display text-eyebrow tracking-wide text-suave">
                 {sortedChapters.length} {sortedChapters.length === 1 ? "SECCIÓN" : "SECCIONES"}
               </span>
             </div>
@@ -257,22 +256,22 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
                     type="button"
                     onClick={() => seekTo(c.startSeconds)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-ritual px-3 py-2 text-left transition-colors",
-                      active ? "bg-lila-300/10 border border-lila-300/20" : "hover:bg-cosmos-surface"
+                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors",
+                      active ? "bg-salvia-100 border border-linea" : "hover:bg-papel"
                     )}
                   >
-                    <span className="font-display text-eyebrow tracking-cosmic text-ink-faint w-10 flex-none">
+                    <span className="font-display text-eyebrow tracking-wide text-suave w-10 flex-none">
                       {formatDurationSeconds(c.startSeconds)}
                     </span>
-                    <span className={cn("font-body text-sm flex-1", active ? "text-lila-300" : "text-ink-soft")}>
+                    <span className={cn("font-body text-sm flex-1", active ? "text-miel-800" : "text-suave")}>
                       {c.label}
                     </span>
-                    <span className={cn("font-display text-xs", active ? "text-gold-400" : "text-ink-faint")}>▸</span>
+                    <span className={cn("font-display text-xs", active ? "text-miel-800" : "text-suave")}>▸</span>
                   </button>
                 );
               })}
               {sortedChapters.length === 0 && (
-                <p className="font-body text-xs italic text-ink-faint">Esta lección no tiene capítulos.</p>
+                <p className="font-body text-xs italic text-suave">Esta lección no tiene capítulos.</p>
               )}
             </div>
           </div>

@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils/cn";
 import { formatDurationSeconds } from "@/lib/utils/format";
-import { toRoman } from "@/lib/utils/roman";
 import type { PlayerLessonState, PlayerModule } from "@/lib/server/lesson-player";
 
 const STATE_ICON: Record<PlayerLessonState, string> = {
@@ -20,11 +19,11 @@ const STATE_LABEL: Record<PlayerLessonState, string> = {
 };
 
 const STATE_ICON_CLASS: Record<PlayerLessonState, string> = {
-  done: "text-lila-300",
-  current: "text-gold-400",
-  pending: "text-ink-faint",
-  preview: "text-gold-400",
-  locked: "text-ink-faint",
+  done: "text-miel-800",
+  current: "text-miel-800",
+  pending: "text-suave",
+  preview: "text-miel-800",
+  locked: "text-suave",
 };
 
 interface Props {
@@ -44,17 +43,17 @@ export default function CurriculumTab({ modules, currentCompleted }: Props) {
           <div
             key={m.position}
             className={cn(
-              "rounded-ritual border p-3",
+              "rounded-md border p-3",
               m.lessons.some((l) => l.state === "current")
-                ? "border-lila-300/40 bg-lila-300/[0.05]"
-                : "border-lila-300/18"
+                ? "border-linea bg-salvia-100"
+                : "border-linea"
             )}
           >
             <div className="flex items-center gap-2.5 mb-1">
-              <span className="font-display text-sm text-lila-300 w-5">{toRoman(m.position)}</span>
-              <span className="flex-1 font-display text-[11px] tracking-wide text-ink">{m.title}</span>
+              <span className="font-display text-sm text-bosque w-5">{String(m.position)}</span>
+              <span className="flex-1 font-display text-[11px] tracking-wide text-tinta">{m.title}</span>
               <span
-                className="font-display text-eyebrow tracking-cosmic text-ink-faint"
+                className="font-display text-eyebrow tracking-wide text-suave"
                 aria-label={`${done} de ${m.lessons.length} completadas`}
               >
                 {done}/{m.lessons.length}
@@ -72,7 +71,7 @@ export default function CurriculumTab({ modules, currentCompleted }: Props) {
                       aria-current={l.state === "current" ? "page" : undefined}
                       className={cn(
                         "flex items-center gap-2 py-1.5 rounded px-2",
-                        l.state === "current" && "bg-gold-400/10 border border-gold-400/20",
+                        l.state === "current" && "bg-miel-100 border border-miel",
                         l.state === "locked" && "pointer-events-none opacity-60"
                       )}
                     >
@@ -83,16 +82,16 @@ export default function CurriculumTab({ modules, currentCompleted }: Props) {
                       >
                         {STATE_ICON[shown]}
                       </span>
-                      <span className="font-display text-[9px] text-ink-faint w-4">{l.position}</span>
+                      <span className="font-display text-[9px] text-suave w-4">{l.position}</span>
                       <span
                         className={cn(
                           "flex-1 font-body text-[11px] truncate",
-                          l.state === "current" ? "text-gold-400" : "text-ink-soft"
+                          l.state === "current" ? "text-miel-800" : "text-suave"
                         )}
                       >
                         {l.title}
                       </span>
-                      <span className="font-display text-[9px] text-ink-faint">
+                      <span className="font-display text-[9px] text-suave">
                         {formatDurationSeconds(l.durationSeconds)}
                       </span>
                     </a>

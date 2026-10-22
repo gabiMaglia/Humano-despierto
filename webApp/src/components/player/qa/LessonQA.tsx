@@ -13,10 +13,10 @@ interface Props {
 
 export default function LessonQA({ lessonId, data }: Props) {
   if (!data.isAuthenticated) {
-    return <p className="font-body text-xs italic text-ink-faint">Iniciá sesión para ver y hacer preguntas sobre esta lección.</p>;
+    return <p className="font-body text-xs italic text-suave">Iniciá sesión para ver y hacer preguntas sobre esta lección.</p>;
   }
   if (!data.canAsk && !data.canModerate) {
-    return <p className="font-body text-xs italic text-ink-faint">Las preguntas de esta lección son de quienes la cursan.</p>;
+    return <p className="font-body text-xs italic text-suave">Las preguntas de esta lección son de quienes la cursan.</p>;
   }
 
   return (
@@ -24,7 +24,7 @@ export default function LessonQA({ lessonId, data }: Props) {
       {data.canAsk && <QuestionComposer lessonId={lessonId} />}
       {data.questions.length === 0 ? (
         // Criterio 11: vacío deliberado, con el compositor arriba.
-        <p className="font-body text-xs italic text-ink-faint">Nadie preguntó todavía en esta lección.</p>
+        <p className="font-body text-xs italic text-suave">Nadie preguntó todavía en esta lección.</p>
       ) : (
         <div className="space-y-3">
           {data.questions.map((q) => (

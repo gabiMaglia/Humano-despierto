@@ -5,15 +5,16 @@ import { ogCourseTitle, ogSafeText } from "./text";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
-// Mismos valores que tokens.css (tema Cosmos).
+// Mismos valores que tokens.css (Brote, ADR-015): fondo bosque, texto blanco, salvia y miel de acento.
+// La composición completa se rediseña en T-061; acá sólo cambia la paleta.
 export const OG_COLORS = {
-  bg: "#0a0418",
-  ink: "#ede4ff",
-  lila: "#c4b5fd",
-  gold: "#f5d76e",
+  bg: "#1f2e24",
+  texto: "#ffffff",
+  salvia: "#cfdccb",
+  miel: "#c7922e",
 } as const;
 
-export function Sparkle({ size = 40, color = OG_COLORS.gold }: { size?: number; color?: string }) {
+export function Sparkle({ size = 40, color = OG_COLORS.miel }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24">
       <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill={color} />
@@ -27,9 +28,9 @@ const FRAME = {
   display: "flex",
   position: "relative",
   backgroundColor: OG_COLORS.bg,
-  backgroundImage: "radial-gradient(circle at 75% 30%, rgba(196,181,253,0.22), rgba(10,4,24,0) 60%)",
+  backgroundImage: "radial-gradient(circle at 75% 30%, rgba(207,220,203,0.18), rgba(31,46,36,0) 60%)",
   fontFamily: "Cinzel",
-  color: OG_COLORS.ink,
+  color: OG_COLORS.texto,
 } as const;
 
 function Watermark({ text, top }: { text: string; top?: number }) {
@@ -42,7 +43,7 @@ function Watermark({ text, top }: { text: string; top?: number }) {
         display: "flex",
         fontSize: 360,
         fontWeight: 700,
-        color: OG_COLORS.lila,
+        color: OG_COLORS.salvia,
         opacity: 0.08,
       }}
     >
@@ -60,7 +61,7 @@ export function SiteOgCard() {
       <div style={{ display: "flex", marginTop: 36, fontSize: 92, fontWeight: 700, letterSpacing: 6 }}>
         HUMANO DESPIERTO
       </div>
-      <div style={{ display: "flex", marginTop: 20, fontSize: 34, color: OG_COLORS.lila, letterSpacing: 10 }}>
+      <div style={{ display: "flex", marginTop: 20, fontSize: 34, color: OG_COLORS.salvia, letterSpacing: 10 }}>
         Escuela holística
       </div>
     </div>
@@ -102,7 +103,7 @@ export function CourseOgCard({ course, cover }: { course: CourseOgInput; cover: 
             width: OG_SIZE.width,
             height: OG_SIZE.height,
             display: "flex",
-            backgroundColor: "rgba(10,4,24,0.7)",
+            backgroundColor: "rgba(31,46,36,0.7)",
           }}
         />
       ) : (
@@ -110,14 +111,14 @@ export function CourseOgCard({ course, cover }: { course: CourseOgInput; cover: 
       )}
       <div style={{ display: "flex", alignItems: "center" }}>
         <Sparkle size={30} />
-        <div style={{ display: "flex", marginLeft: 16, fontSize: 28, color: OG_COLORS.lila, letterSpacing: 8 }}>
+        <div style={{ display: "flex", marginLeft: 16, fontSize: 28, color: OG_COLORS.salvia, letterSpacing: 8 }}>
           {discipline || "Humano Despierto"}
         </div>
       </div>
       <div style={{ display: "flex", marginTop: 24, fontSize: 72, fontWeight: 700, lineHeight: 1.1, maxWidth: 1000 }}>
         {title}
       </div>
-      <div style={{ display: "flex", marginTop: 28, fontSize: 30, color: OG_COLORS.gold }}>
+      <div style={{ display: "flex", marginTop: 28, fontSize: 30, color: OG_COLORS.miel }}>
         {teacher ? `con ${teacher}` : "Humano Despierto"}
       </div>
     </div>

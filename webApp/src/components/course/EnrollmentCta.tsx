@@ -6,8 +6,8 @@ import { formatCertificateDate } from "@/lib/utils/format";
 function Estado({ title, detail }: { title: string; detail?: string | null }) {
   return (
     <div className="text-center">
-      <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{title}</p>
-      {detail && <p className="mt-2 font-quote italic text-sm text-ink-soft">{detail}</p>}
+      <p className="font-display text-eyebrow tracking-wide text-bosque">{title}</p>
+      {detail && <p className="mt-2 font-quote italic text-sm text-suave">{detail}</p>}
     </div>
   );
 }
@@ -20,7 +20,7 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
       return (
         <Link
           href={`/entrar?next=${encodeURIComponent(`/cursos/${slug}`)}`}
-          className="btn-ritual btn-ritual-primary w-full rounded-pill justify-center"
+          className="btn btn-primary w-full justify-center"
         >
           Solicitar inscripción ↦
         </Link>
@@ -38,7 +38,7 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
       return (
         <div className="space-y-3 text-center">
           <Estado title="Ya estás inscripta" />
-          <Link href="/panel" className="btn-ritual btn-ritual-primary w-full rounded-pill justify-center">
+          <Link href="/panel" className="btn btn-primary w-full justify-center">
             Ir a mi panel ↦
           </Link>
         </div>

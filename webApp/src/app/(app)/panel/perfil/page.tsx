@@ -18,15 +18,15 @@ export default async function PerfilPage() {
   if (!profile) redirect("/entrar?next=/panel/perfil");
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
+    <div className="min-h-screen bg-fondo text-tinta">
       <Nav />
       <div className="pt-16">
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Tu ficha —</p>
-          <h1 className="font-display text-display-md text-ink">
-            Mi <em className="font-quote italic text-lila-300">perfil</em>
+        <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
+          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">— Tu ficha —</p>
+          <h1 className="font-display text-display-md text-tinta">
+            Mi <em className="font-quote italic text-miel-800">perfil</em>
           </h1>
-          <p className="mt-2 font-display text-eyebrow tracking-cosmic text-ink-soft">{ROLE_LABEL[profile.role]}</p>
+          <p className="mt-2 font-display text-eyebrow tracking-wide text-suave">{ROLE_LABEL[profile.role]}</p>
         </header>
         <main className="mx-auto grid max-w-4xl gap-8 px-6 py-12 md:grid-cols-[auto_1fr] md:px-12">
           <AvatarForm avatarUrl={profile.avatarUrl} glyph={profile.glyph ?? "☉"} fullName={profile.fullName} />

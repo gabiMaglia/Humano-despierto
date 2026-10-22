@@ -6,7 +6,6 @@ import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
 import { SITE_OG_IMAGE } from "@/lib/og/site";
 import { getTeacherBySlug } from "@/lib/server/guias";
-import { toRoman } from "@/lib/utils/roman";
 
 
 export async function generateMetadata(
@@ -33,25 +32,25 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
   const bioParagraphs = (M.bio ?? "").split(/\n{2,}/).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-cosmos-0">
+    <div className="min-h-screen bg-fondo">
       <Breadcrumb crumbs={[{ label:"Guías", href:"/guias" }, { label:M.fullName }]} />
 
       {/* Hero */}
-      <header className="px-6 py-16 md:px-12 grid md:grid-cols-[1fr_auto] gap-12 items-start border-b border-lila-300/18">
+      <header className="px-6 py-16 md:px-12 grid md:grid-cols-[1fr_auto] gap-12 items-start border-b border-linea">
         <div>
-          <p className="mb-4 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Tras el velo —</p>
-          <div className="mb-3 text-5xl font-display text-lila-300">{M.glyph}</div>
-          <h1 className="mb-2 font-display text-display-md text-ink">{M.fullName}</h1>
+          <p className="mb-4 font-display text-eyebrow tracking-[0.25em] text-suave">— Tras el velo —</p>
+          <div className="mb-3 text-5xl font-display text-bosque">{M.glyph}</div>
+          <h1 className="mb-2 font-display text-display-md text-tinta">{M.fullName}</h1>
           {M.headline && (
-            <p className="mb-1 font-display text-eyebrow tracking-[0.2em] text-ink-soft uppercase">{M.headline}</p>
+            <p className="mb-1 font-display text-eyebrow tracking-[0.2em] text-suave uppercase">{M.headline}</p>
           )}
           {M.location && (
-            <p className="mb-8 font-display text-eyebrow tracking-cosmic text-ink-faint">✦ {M.location}</p>
+            <p className="mb-8 font-display text-eyebrow tracking-wide text-suave">✦ {M.location}</p>
           )}
 
           <div className="mb-8 flex flex-wrap gap-6 md:gap-10">
             {[
-              M.yearsPractice != null ? { num: toRoman(M.yearsPractice), label: "Años" } : null,
+              M.yearsPractice != null ? { num: String(M.yearsPractice), label: "Años" } : null,
               { num: String(M.coursesCount), label: "Cursos" },
             ]
               .filter((s): s is { num: string; label: string } => s !== null)
@@ -59,23 +58,23 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           </div>
 
           <div className="flex flex-wrap gap-3.5">
-            <a href="#cursos" className="btn-ritual btn-ritual-primary rounded-pill">Ver sus cursos ↦</a>
+            <a href="#cursos" className="btn btn-primary">Ver sus cursos ↦</a>
           </div>
         </div>
 
         {/* Portrait */}
         <div className="hidden md:flex flex-col items-center gap-4">
-          <div className="relative h-64 w-48 rounded-sm overflow-hidden bg-linear-to-b from-lila-700 to-cosmos-1">
+          <div className="relative h-64 w-48 rounded-sm overflow-hidden bg-salvia-100">
             {M.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h; el optimizador de next/image la cachearia mas alla de su vida.
               <img src={M.avatarUrl} alt={`Retrato de ${M.fullName}`} className="absolute inset-0 h-full w-full object-cover" />
             ) : (
-              <span className="absolute inset-0 flex items-center justify-center text-6xl font-display text-lila-300/70">
+              <span className="absolute inset-0 flex items-center justify-center text-6xl font-display text-bosque">
                 {M.glyph}
               </span>
             )}
             {["top-3 left-3 border-t border-l","top-3 right-3 border-t border-r","bottom-3 left-3 border-b border-l","bottom-3 right-3 border-b border-r"].map((cls) => (
-              <span key={cls} className={`absolute h-5 w-5 ${cls} border-gold-400/60`} />
+              <span key={cls} className={`absolute h-5 w-5 ${cls} border-miel`} />
             ))}
           </div>
         </div>
@@ -89,16 +88,16 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
             <div className={M.quote ? "grid md:grid-cols-[1.2fr_1fr] gap-10 items-start" : "max-w-3xl"}>
               <div className="space-y-4">
                 {bioParagraphs.map((p, i) => (
-                  <p key={i} className={`font-${i===0?"quote italic text-lg text-ink":"body text-sm text-ink-soft"} leading-relaxed`}>
+                  <p key={i} className={`font-${i===0?"quote italic text-lg text-tinta":"body text-sm text-suave"} leading-relaxed`}>
                     {p}
                   </p>
                 ))}
               </div>
               {M.quote && (
-                <aside className="cosmos-card p-8">
-                  <span className="block mb-4 text-4xl text-gold-400 font-quote">&ldquo;</span>
-                  <p className="mb-4 font-quote italic text-xl text-ink leading-relaxed">{M.quote}</p>
-                  <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">— {M.fullName}</span>
+                <aside className="tarjeta p-8">
+                  <span className="block mb-4 text-4xl text-miel-800 font-quote">&ldquo;</span>
+                  <p className="mb-4 font-quote italic text-xl text-tinta leading-relaxed">{M.quote}</p>
+                  <span className="font-display text-eyebrow tracking-wide text-suave">— {M.fullName}</span>
                 </aside>
               )}
             </div>
@@ -108,15 +107,15 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
 
       {/* Formación */}
       {M.formations.length > 0 && (
-        <section className="border-t border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12">
+        <section className="border-t border-linea bg-papel px-6 py-16 md:px-12">
           <div className="mx-auto max-w-3xl">
             <SectionDivider label="Formación" className="mb-10" />
             <div className="space-y-4">
               {M.formations.map((f, i) => (
-                <div key={`${f.year}-${i}`} className="flex items-start gap-5 border-b border-lila-300/10 pb-4">
-                  <span className="flex-none font-display text-eyebrow tracking-cosmic text-lila-300 w-16">{f.year}</span>
-                  <span className="flex-1 font-body text-sm text-ink">{f.title}</span>
-                  <span className="flex-none font-display text-eyebrow tracking-cosmic text-ink-faint">{f.place}</span>
+                <div key={`${f.year}-${i}`} className="flex items-start gap-5 border-b border-linea pb-4">
+                  <span className="flex-none font-display text-eyebrow tracking-wide text-bosque w-16">{f.year}</span>
+                  <span className="flex-1 font-body text-sm text-tinta">{f.title}</span>
+                  <span className="flex-none font-display text-eyebrow tracking-wide text-suave">{f.place}</span>
                 </div>
               ))}
             </div>
@@ -131,16 +130,16 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           <div className="grid gap-4 sm:grid-cols-2">
             {M.courses.map((c, i) => (
               <Link key={c.slug} href={`/cursos/${c.slug}`}>
-                <article className="cosmos-card p-5 cursor-pointer hover:-translate-y-0.5 transition-transform">
+                <article className="tarjeta p-5 cursor-pointer hover:-translate-y-0.5 transition-transform">
                   <div className="mb-3 flex justify-between items-center">
-                    <span className="font-display text-sm tracking-wider text-lila-300">{toRoman(i + 1)}</span>
-                    {c.moonGlyph && <span className="text-gold-400 text-base">{c.moonGlyph}</span>}
+                    <span className="font-display text-sm tracking-wider text-bosque">{String(i + 1)}</span>
+                    {c.moonGlyph && <span className="text-miel-800 text-base">{c.moonGlyph}</span>}
                   </div>
-                  <p className="mb-1 font-display text-eyebrow tracking-[0.15em] text-gold-400">
+                  <p className="mb-1 font-display text-eyebrow tracking-[0.15em] text-miel-800">
                     {c.discipline} · {c.level}
                   </p>
-                  <h4 className="font-display text-base tracking-wide text-ink">
-                    {c.title}{c.titleEm && <> <em className="font-quote italic text-lila-300">{c.titleEm}</em></>}
+                  <h4 className="font-display text-base tracking-wide text-tinta">
+                    {c.title}{c.titleEm && <> <em className="font-quote italic text-miel-800">{c.titleEm}</em></>}
                   </h4>
                 </article>
               </Link>
@@ -151,7 +150,7 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
 
       {/* Testimonios */}
       {M.testimonials.length > 0 && (
-        <section className="border-t border-lila-300/18 bg-cosmos-surface px-6 py-16 md:px-12">
+        <section className="border-t border-linea bg-papel px-6 py-16 md:px-12">
           <div className="mx-auto max-w-5xl">
             <SectionDivider label="Voces de quienes pasaron" className="mb-4" />
             {/* Mismo criterio que la landing (T-017 c.3): sin tabla de reviews —sin
@@ -159,17 +158,17 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
                 contenido curado, no testimonios de alumnas reales. Se marca acá también:
                 marcarlo en un lado y no en el otro es peor que no marcarlo, porque
                 sugiere que estos sí son auténticos. */}
-            <p className="mb-10 text-center font-display text-[10px] uppercase tracking-[0.2em] text-ink-faint">
+            <p className="mb-10 text-center font-display text-[10px] uppercase tracking-[0.2em] text-suave">
               — testimonios ilustrativos —
             </p>
             <div className="grid gap-5 md:grid-cols-3">
               {M.testimonials.map((t, i) => (
-                <blockquote key={`${t.who}-${i}`} className="cosmos-card relative p-7">
-                  <span className="pointer-events-none absolute left-4 top-1 select-none font-quote text-[64px] leading-none text-lila-300/20">&ldquo;</span>
-                  <p className="relative z-10 mb-4 font-quote italic text-base leading-relaxed text-ink">{t.quote}</p>
+                <blockquote key={`${t.who}-${i}`} className="tarjeta relative p-7">
+                  <span className="pointer-events-none absolute left-4 top-1 select-none font-quote text-[64px] leading-none text-miel-800">&ldquo;</span>
+                  <p className="relative z-10 mb-4 font-quote italic text-base leading-relaxed text-tinta">{t.quote}</p>
                   <footer>
-                    <strong className="block font-display text-[11px] tracking-[0.15em] text-ink uppercase">{t.who}</strong>
-                    <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">{t.course}</span>
+                    <strong className="block font-display text-[11px] tracking-[0.15em] text-tinta uppercase">{t.who}</strong>
+                    <span className="font-display text-eyebrow tracking-wide text-suave">{t.course}</span>
                   </footer>
                 </blockquote>
               ))}
@@ -179,18 +178,17 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
       )}
 
       {/* CTA */}
-      <section className="relative overflow-hidden border-t border-lila-300/18 px-6 py-24 md:px-12 text-center"
-        style={{ background:"radial-gradient(ellipse at 50% 50%, rgba(196,181,253,0.08), transparent 60%), #0a0418" }}>
-        <p className="mb-3 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Para quienes buscan —</p>
-        <h2 className="mb-3 font-display text-4xl tracking-wide text-ink">
-          Una <em className="font-quote italic text-lila-300">guía</em> que sostenga el camino
+      <section className="relative overflow-hidden border-t border-linea px-6 py-24 md:px-12 text-center bg-salvia-100">
+        <p className="mb-3 font-display text-eyebrow tracking-[0.25em] text-suave">— Para quienes buscan —</p>
+        <h2 className="mb-3 font-display text-4xl tracking-wide text-tinta">
+          Una <em className="font-quote italic text-miel-800">guía</em> que sostenga el camino
         </h2>
-        <p className="mb-8 font-quote italic text-lg text-ink-soft">
+        <p className="mb-8 font-quote italic text-lg text-suave">
           Sus recorridos están abiertos · se cursan cuando quieras, a tu ritmo
         </p>
         <div className="flex flex-col sm:flex-row gap-3.5 justify-center">
-          <Link href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill">Ver el catálogo ↦</Link>
-          <a href="#cursos" className="btn-ritual btn-ritual-ghost rounded-pill">Ver todos sus cursos</a>
+          <Link href="/cursos" className="btn btn-primary">Ver el catálogo ↦</Link>
+          <a href="#cursos" className="btn btn-outline">Ver todos sus cursos</a>
         </div>
       </section>
     </div>
