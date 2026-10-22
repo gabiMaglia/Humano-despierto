@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { MAX_CSP_REPORT_BYTES } from "@/lib/security/csp-report";
 import * as route from "./route";
+import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
 
 vi.mock("next/headers", () => ({ headers: () => Promise.reject(new Error("fuera de request")) }));
 
@@ -17,7 +18,7 @@ function post(body: string, headers: Record<string, string> = {}): Promise<Respo
   return route.POST(
     new Request("http://localhost:3000/api/csp-report", {
       method: "POST",
-      headers: { "content-type": "application/csp-report", ...headers },
+      headers: { "content-type": "application/csp-report", "x-forwarded-for": "203.0.113.7", ...headers },
       body,
     }),
   );
@@ -28,6 +29,7 @@ let logSpy: MockInstance;
 describe("POST /api/csp-report", () => {
   beforeEach(() => {
     logSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    __resetRateLimiterForTests();
   });
 
   it("valido: 204 sin cuerpo y UNA linea csp_violation sin query strings", async () => {
@@ -73,6 +75,41 @@ describe("POST /api/csp-report", () => {
     expect((await post(big)).status).toBe(413);
     expect((await post(VALID, { "content-length": String(MAX_CSP_REPORT_BYTES + 1) })).status).toBe(413);
     expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("D-46 · sin content-length, deja de leer apenas pasa el tope: 413", async () => {
+    let pulled = 0;
+    const chunk = new TextEncoder().encode("a".repeat(1024));
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        if (pulled > 1000) controller.close();
+        else controller.enqueue(chunk);
+      },
+    });
+    const res = await route.POST(
+      new Request("http://localhost:3000/api/csp-report", {
+        method: "POST",
+        headers: { "content-type": "application/csp-report", "x-forwarded-for": "203.0.113.7" },
+        body,
+        duplex: "half",
+      } as RequestInit),
+    );
+    expect(res.status).toBe(413);
+    // 16 KiB de tope en trozos de 1 KiB: unos 17 leídos, nunca los 1000 (el stream puede adelantar uno o dos).
+    expect(pulled).toBeLessThan(25);
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("T-050 · 20 por minuto por IP: el 21 es 429 con Retry-After y no se loguea; otra IP sigue", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:05:30Z"), toFake: ["Date"] });
+    for (let i = 0; i < 20; i++) expect((await post(VALID)).status).toBe(204);
+    const res = await post(VALID);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("30");
+    expect(logSpy).toHaveBeenCalledTimes(20);
+    expect((await post(VALID, { "x-forwarded-for": "198.51.100.2" })).status).toBe(204);
+    vi.useRealTimers();
   });
 
   it("solo exporta POST: cualquier otro metodo es 405 de Next", () => {
