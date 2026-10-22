@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { safeNext } from "./safe-next";
-import { DEFAULT_NEXT, callbackUrl } from "./paths";
+import { DEFAULT_NEXT, callbackUrl, needsDocumentNavigation } from "./paths";
 
 describe("safeNext", () => {
   it.each([
@@ -48,5 +48,17 @@ describe("callbackUrl", () => {
   // T-041 ronda 2: sin `next` el callback elige por rol (c.9 de T-040); `?next=/panel` lo taparía.
   it("sin next no agrega query", () => {
     expect(callbackUrl("http://localhost:3000", null)).toBe("http://localhost:3000/auth/callback");
+  });
+});
+
+describe("T-049 · next hacia una invitación", () => {
+  const link = `/invitacion/${"A".repeat(21)}-_${"b".repeat(20)}`;
+  it("safeNext acepta el path de una invitación", () => {
+    expect(safeNext(link)).toBe(link);
+  });
+  it("solo /invitacion/ pide navegación de documento (es un Route Handler)", () => {
+    expect(needsDocumentNavigation(link)).toBe(true);
+    expect(needsDocumentNavigation("/panel")).toBe(false);
+    expect(needsDocumentNavigation("/invitaciones")).toBe(false);
   });
 });

@@ -837,6 +837,61 @@ x "delete from public.course_wishlist where user_id in ('$ALUMNA','$SOLICITANTE'
    delete from public.courses where slug='curso-borrador-b1w';"
 
 echo ""
+echo ""
+echo "── T-049 · invitaciones de docentes y listados del admin"
+# Medido el 2026-10-21: una RPC sin EXECUTE da 403 con 42501 (anon: 401 con 42501, que esperar
+# ya lee como 403). Si PostgREST la ocultara del schema cache daria 404: RPC_DENIED=404.
+RPC_DENIED=${RPC_DENIED:-403}
+alta "b1-admin@test.local" '' admin
+alta "b1-invitada@test.local" '' student
+INVITADA_JWT=$(tok "b1-invitada@test.local")
+INVITADA=$(q "select id from auth.users where email='b1-invitada@test.local';")
+B1_ADMIN=$(q "select id from auth.users where email='b1-admin@test.local';")
+B1_TOKEN="b1-t049-$(printf 'A%.0s' $(seq 1 35))"
+B1_HASH=$(printf '%s' "$B1_TOKEN" | shasum -a 256 | cut -d' ' -f1)
+x "delete from public.teacher_invitations where email in ('b1-invitada@test.local','b1-alumna@test.local');
+   insert into public.teacher_invitations (email, token_hash, invited_by) values ('b1-invitada@test.local', '$B1_HASH', '$B1_ADMIN');"
+
+esperar "(i1) alumna se pone teacher (profiles_guard)" 403 PATCH "profiles?id=eq.$INVITADA" "$INVITADA_JWT" '{"role":"teacher"}'
+esperar "(i2) leer invitaciones"                       403 GET   "teacher_invitations?select=email,token_hash" "$INVITADA_JWT"
+esperar "(i3) crearse una invitacion"                  403 POST  "teacher_invitations" "$INVITADA_JWT" "{\"email\":\"b1-invitada@test.local\",\"token_hash\":\"$(printf '0%.0s' $(seq 1 64))\",\"invited_by\":\"$B1_ADMIN\"}"
+esperar "(i4) aceptarse por PATCH"                     403 PATCH "teacher_invitations?email=eq.b1-invitada@test.local" "$INVITADA_JWT" "{\"accepted_at\":\"2026-01-01T00:00:00Z\",\"accepted_by\":\"$INVITADA\"}"
+esperar "(i5) rpc accept con su propio token"          "$RPC_DENIED" POST "rpc/accept_teacher_invitation" "$INVITADA_JWT" "{\"p_token_hash\":\"$B1_HASH\",\"p_user_id\":\"$INVITADA\"}"
+esperar "(i6) rpc admin_list_users"                    "$RPC_DENIED" POST "rpc/admin_list_users" "$INVITADA_JWT" '{}'
+esperar "(i7) anon rpc admin_list_users"               "$RPC_DENIED" POST "rpc/admin_list_users" "$ANON" '{}'
+esperar "(i8) rpc admin_user_by_email"                 "$RPC_DENIED" POST "rpc/admin_user_by_email" "$INVITADA_JWT" '{"p_email":"admin@test.local"}'
+
+ROL=$(q "select role from public.profiles where id='$INVITADA';")
+PEND=$(q "select count(*) from public.teacher_invitations where token_hash='$B1_HASH' and accepted_at is null;")
+if [ "$ROL" = "student" ] && [ "$PEND" = "1" ]; then printf '  ok    %-52s %s\n' "tras los ataques: sigue alumna y pendiente" "afirmado en la DB"
+else printf '  FALLA tras los ataques rol=%s pendiente=%s\n' "$ROL" "$PEND"; fallos=$((fallos+1)); fi
+
+# El camino legitimo por HTTP, como lo hace el Route Handler: service_role, despues de getUser.
+rpc_srv() {  # $1 user_id · imprime el cuerpo (true/false)
+  curl -s -X POST "$API/rest/v1/rpc/accept_teacher_invitation" -H "apikey: $ANON" -H "Authorization: Bearer $SRV" \
+    -H "Content-Type: application/json" -d "{\"p_token_hash\":\"$B1_HASH\",\"p_user_id\":\"$1\"}"
+}
+afirmar() {  # $1 rotulo · $2 obtenido · $3 esperado
+  if [ "$2" = "$3" ]; then printf '  ok    %-52s %s\n' "$1" "$2"
+  else printf '  FALLA %-52s %s (esperaba %s)\n' "$1" "$2" "$3"; fallos=$((fallos+1)); fi
+}
+afirmar "(i9) token ajeno: otra cuenta"         "$(rpc_srv "$ALUMNA")"   "false"
+afirmar "(i9b) ajeno no cambio el rol"          "$(q "select role from public.profiles where id='$ALUMNA';")" "student"
+afirmar "(i10) la invitada acepta"              "$(rpc_srv "$INVITADA")" "true"
+afirmar "(i10b) ahora es teacher"               "$(q "select role from public.profiles where id='$INVITADA';")" "teacher"
+afirmar "(i11) aceptar dos veces: idempotente"  "$(rpc_srv "$INVITADA")" "true"
+
+B1_HASH_VENCIDA=$(printf '%s' "${B1_TOKEN}v" | shasum -a 256 | cut -d' ' -f1)
+x "insert into public.teacher_invitations (email, token_hash, invited_by, created_at, expires_at)
+   values ('b1-invitada@test.local', '$B1_HASH_VENCIDA', '$B1_ADMIN', now() - interval '8 days', now() - interval '1 day');"
+VENC=$(curl -s -X POST "$API/rest/v1/rpc/accept_teacher_invitation" -H "apikey: $ANON" -H "Authorization: Bearer $SRV" \
+  -H "Content-Type: application/json" -d "{\"p_token_hash\":\"$B1_HASH_VENCIDA\",\"p_user_id\":\"$INVITADA\"}")
+afirmar "(i12) token vencido"                   "$VENC" "false"
+
+# Un verificador no deja basura: la invitada vuelve a alumna y las filas se van.
+x "update public.profiles set role='student' where id='$INVITADA';
+   delete from public.teacher_invitations where email='b1-invitada@test.local';"
+
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"

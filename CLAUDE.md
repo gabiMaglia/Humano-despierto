@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 783 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 815 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -56,8 +56,8 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 
 | Area | State |
 |------|-------|
-| `webApp/src` | **~20.4k LOC** (non-test). 28 routes (`page.tsx`), 101 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 34 migrations (last `0036`; `0032` applies before `0031` by timestamp, independent), 20 tables, RLS + per-column grants + guard triggers, 783 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/src` | **~21.5k LOC** (non-test). 33 routes (`page.tsx`), 106 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
+| `webApp/supabase` | **Schema live.** 35 migrations (last `0036`; `0032` applies before `0031` by timestamp, independent), 21 tables, RLS + per-column grants + guard triggers, 815 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -87,8 +87,15 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
                                     chapters, resources, diario posts,
                                     announcements (`/panel/docente/anuncios`,
                                     T-031: drafts, publish + mail, withdraw)
-/panel/admin                        Roles, manual enrollments, publish        [admin]
+/panel/admin                        Enrollments tab: request queue, grant by  [admin]
+                                    mail + slug, searchable paged history
+/panel/admin/{usuarios,cursos,invitaciones}  Admin tabs, ?q= search,     [admin]
+                                    25 per page by keyset cursor (T-049)
 /panel/admin/resenas                Review moderation: report queue, hide     [admin]
+/panel/admin/anuncios               Withdraw published announcements (T-031)   [admin]
+/invitacion/[token]                 Route Handler: accepts a teacher          [auth]
+                                    invitation, refreshes the session claim
+/invitacion/invalida                Neutral "invalid or expired" page
 ```
 `/guias/[slug]` **is** the "Maestra" screen from the original 9-screen plan, renamed.
 Auth is enforced twice: `src/proxy.ts` (session + JWT role for routing) and the server layouts
@@ -185,6 +192,11 @@ covered by mutation tests that fail loudly if you regress them.
    `course_announcements_freeze_published` rejects any change to `title`, `body`, `status` or
    `published_at` once published. Publishing is a Server Action with `service_role` after
    `assertOwnsCourse`; the mail runs in `after()` and never blocks or breaks the publish.
+9. **A role change outside `updateUserRoleAction` exists only in `accept_teacher_invitation`**
+   (T-049; `service_role` only, mail confirmed and equal to the invited one, only
+   `student -> teacher`). `teacher_invitations` has no client access at all. The invitation
+   token lives only in the mail; the DB keeps its sha256. The admin lists (`admin_list_*`,
+   `admin_user_by_email`) are `service_role`-only SQL functions: the mail lives in `auth.users`.
 
 **Review moderation** (T-037, ADR-012): only the course's teacher or an admin can report a review
 (`course_review_reports`, RLS via `can_report_review`, which reads `profiles.role`). Hiding,
