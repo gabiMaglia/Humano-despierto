@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/server/log";
 import { MAX_CSP_REPORT_BYTES, parseCspReport } from "@/lib/security/csp-report";
 
 // Anonimo a proposito: el navegador no manda sesion con el reporte. Por eso tope de tamano,
@@ -25,16 +26,11 @@ export async function POST(request: Request) {
   const v = parseCspReport(body);
   if (!v) return new NextResponse(null, { status: 400 });
 
-  // T-051 lo pasa a log.warn: hoy no hay logger y una linea JSON es lo que se puede filtrar.
-  console.error(
-    JSON.stringify({
-      level: "warn",
-      event: "csp_violation",
-      blocked_uri: v.blockedUri,
-      violated_directive: v.violatedDirective,
-      document_uri: v.documentUri,
-      disposition: v.disposition,
-    }),
-  );
+  await log.warn("csp_violation", {
+    blocked_uri: v.blockedUri,
+    violated_directive: v.violatedDirective,
+    document_uri: v.documentUri,
+    disposition: v.disposition,
+  });
   return new NextResponse(null, { status: 204 });
 }

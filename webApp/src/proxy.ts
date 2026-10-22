@@ -36,8 +36,12 @@ export async function proxy(request: NextRequest) {
   // que arma updateSession al refrescar cookies.
   request.headers.set(csp.name, csp.value);
   request.headers.set("x-nonce", nonce);
+  // Lo lee lib/server/log.ts para atar cada linea de log a su request (T-051).
+  const requestId = crypto.randomUUID();
+  request.headers.set("x-request-id", requestId);
 
   const response = await route(request);
+  response.headers.set("x-request-id", requestId);
   // Un redirect no tiene documento: no necesita politica.
   if (!response.headers.has("location")) response.headers.set(csp.name, csp.value);
   return response;

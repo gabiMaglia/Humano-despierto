@@ -2,6 +2,7 @@ import "server-only";
 import { connection } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { log } from "@/lib/server/log";
 
 // Bucket privado unico (S-D): `avatars/<uid>/` (T-042) y `covers/<course_id>/` (T-047).
 export const UPLOADS_BUCKET = "uploads";
@@ -25,7 +26,7 @@ export async function signUploadUrls(client: StorageClient, paths: (string | nul
   if (unique.length === 0) return urls;
   const { data, error } = await client.storage.from(UPLOADS_BUCKET).createSignedUrls(unique, SIGNED_URL_TTL_SECONDS);
   if (error || !data) {
-    console.error("[uploads] no se pudieron firmar las imagenes", error?.message);
+    log.error("uploads_sign_failed", { message: error?.message });
     return urls;
   }
   for (const item of data) if (item.path && item.signedUrl && !item.error) urls.set(item.path, item.signedUrl);

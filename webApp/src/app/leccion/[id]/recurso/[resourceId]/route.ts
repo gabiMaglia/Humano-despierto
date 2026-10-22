@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { getLessonResourceRedirect } from "@/lib/server/lesson-resources";
+import { log } from "@/lib/server/log";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -23,7 +24,7 @@ export async function GET(
   try {
     target = await getLessonResourceRedirect(id, resourceId);
   } catch (err) {
-    console.error("[recurso] no se pudo resolver", resourceId, err instanceof Error ? err.message : err);
+    log.error("resource_unresolved", { resource_id: resourceId, err });
     return denied();
   }
   if (!target) return denied();

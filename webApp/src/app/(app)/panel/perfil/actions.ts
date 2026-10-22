@@ -9,6 +9,7 @@ import type { ActionState } from "@/lib/action-state";
 import { profileFormSchema, toProfileUpdate } from "@/lib/validation/profile";
 import { buildAvatarPath, checkAvatarBytes, IMAGE_MIME } from "@/lib/validation/image";
 import { firstIssueMessage } from "@/lib/validation/teacher";
+import { log } from "@/lib/server/log";
 
 const SESSION_EXPIRED: ActionState = { error: "Tu sesión venció. Volvé a entrar.", success: null };
 
@@ -114,7 +115,7 @@ export async function removeAvatarAction(): Promise<ActionState> {
 
   const { error: removeError } = await supabase.storage.from(AVATAR_BUCKET).remove([current.avatar_path]);
   if (removeError) {
-    console.error("T-042: el avatar quedo sin referencia en Storage", current.avatar_path, removeError.message);
+    log.error("avatar_storage_orphan", { path: current.avatar_path, message: removeError.message });
   }
 
   revalidateProfile();

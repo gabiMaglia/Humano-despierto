@@ -1,6 +1,7 @@
 import "server-only";
 import { hashInvitationToken, invitationPath } from "@/lib/server/invitation-token";
 import { homeForRole } from "@/lib/auth/paths";
+import { log } from "@/lib/server/log";
 
 export const INVALID_INVITATION_PATH = "/invitacion/invalida";
 
@@ -27,7 +28,7 @@ export async function resolveInvitationVisit(token: string, deps: VisitDeps): Pr
   try {
     await deps.refreshSession();
   } catch (err) {
-    console.error("[invitacion] no se pudo refrescar la sesión:", err instanceof Error ? err.message : err);
+    log.error("invitation_session_refresh_failed", { err });
   }
   return homeForRole(await deps.roleOf(userId));
 }

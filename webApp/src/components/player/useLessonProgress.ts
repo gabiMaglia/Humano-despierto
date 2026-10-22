@@ -66,8 +66,8 @@ export function useLessonProgress({
             completedRef.current = true;
             setCompleted(true);
           }
-        } catch (error) {
-          console.error("No se pudo guardar el progreso de la lección:", error);
+        } catch {
+          // El action ya registra el fallo; el próximo tick reintenta con los segundos acumulados.
         } finally {
           savingRef.current = false;
         }

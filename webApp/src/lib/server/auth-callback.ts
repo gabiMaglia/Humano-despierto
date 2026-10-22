@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { internalNext } from "@/lib/auth/safe-next";
 import { DEFAULT_NEXT, LINK_ERROR_PATH, RECOVERY_NEXT, homeForRole } from "@/lib/auth/paths";
+import { log } from "@/lib/server/log";
 
 // Solo lo que se usa: el test pasa un fake con el canje y la lectura de `profiles`.
 export interface ExchangeClient {
@@ -22,12 +23,12 @@ async function homeFromProfile(supabase: ExchangeClient, userId: string): Promis
   try {
     const { data, error } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
     if (error) {
-      console.error(`[auth] callback sin rol: ${error.code ?? "desconocido"}`);
+      log.error("auth_callback_role_missing", { pg_code: error.code ?? "desconocido" });
       return DEFAULT_NEXT;
     }
     return homeForRole(data?.role);
   } catch (err) {
-    console.error("[auth] callback sin rol:", err instanceof Error ? err.message : err);
+    log.error("auth_callback_role_threw", { err });
     return DEFAULT_NEXT;
   }
 }
@@ -47,12 +48,12 @@ export async function resolveAuthCallback(
   try {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
     if (error || !data.user) {
-      console.error(`[auth] callback rechazado: ${error?.code ?? "sin usuario"}`);
+      log.error("auth_callback_rejected", { pg_code: error?.code ?? "sin usuario" });
       return LINK_ERROR;
     }
     userId = data.user.id;
   } catch (err) {
-    console.error("[auth] callback lanzó:", err instanceof Error ? err.message : err);
+    log.error("auth_callback_threw", { err });
     return LINK_ERROR;
   }
 

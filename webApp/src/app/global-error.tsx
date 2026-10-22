@@ -1,10 +1,14 @@
 "use client";
 
+import { useReportError } from "@/hooks/useReportError";
+
 // Reemplaza al root layout cuando el error es del layout mismo: trae su <html>/<body> y sus estilos.
-// T-051 suma aca el registro del error (hoy no hay logger del lado cliente).
+// Reporta el error al servidor con su digest (T-051).
 import "@/styles/globals.css";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useReportError(error);
+
   return (
     <html lang="es">
       <body className="bg-cosmos-0 text-ink antialiased">

@@ -8,6 +8,7 @@ import { firstIssueMessage } from "@/lib/validation/teacher";
 import { AUTH_COPY } from "@/lib/auth/messages";
 import { RECOVERY_NEXT, callbackUrl } from "@/lib/auth/paths";
 import type { ResetRequestState } from "@/lib/auth/action-state";
+import { log } from "@/lib/server/log";
 
 export async function requestPasswordResetAction(
   _prev: ResetRequestState,
@@ -26,9 +27,9 @@ export async function requestPasswordResetAction(
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
       redirectTo: callbackUrl(getSiteUrl(), safeNext(RECOVERY_NEXT)),
     });
-    if (error) console.error(`[auth] resetPasswordForEmail: ${error.code ?? error.status}`);
+    if (error) log.error("auth_reset_password_failed", { pg_code: error.code ?? error.status });
   } catch (err) {
-    console.error("[auth] resetPasswordForEmail lanzó:", err instanceof Error ? err.message : err);
+    log.error("auth_reset_password_threw", { err });
   }
 
   return { status: "sent", message: AUTH_COPY.resetSent };

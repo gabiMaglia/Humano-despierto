@@ -6,6 +6,8 @@ import { HARD_CAP_MS } from "./limits";
 import { MailTransportError, type MailMessage } from "./transport";
 import { ResendTransport } from "./transport-resend";
 
+vi.mock("next/headers", () => ({ headers: () => Promise.reject(new Error("fuera de request")) }));
+
 const KEY = "re_test";
 
 interface Seen {
@@ -98,7 +100,11 @@ describe("ResendTransport contra un Resend falso (ADR-014)", () => {
     expect((req.body as { from: string }).from).toBe('"Escuela, Humano" <hola@humano.test>');
     expect(JSON.stringify(req.body)).not.toContain("=?UTF-8?");
     // Se loguea el id del proveedor, nunca el destinatario.
-    expect(info).toHaveBeenCalledWith("mail_sent", { provider: "resend", provider_id: "em_1" });
+    expect(JSON.parse(String(info.mock.calls[0][0]))).toMatchObject({
+      event: "mail_sent",
+      provider: "resend",
+      provider_id: "em_1",
+    });
     expect(JSON.stringify(info.mock.calls)).not.toContain("alumna@test.local");
   });
 
@@ -221,7 +227,10 @@ describe("ResendTransport contra un Resend falso (ADR-014)", () => {
     });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await expect(new ResendTransport({ apiKey: KEY, baseUrl: fake.baseUrl }).send(MESSAGE)).resolves.toBeUndefined();
-    expect(warn).toHaveBeenCalledWith("mail_provider_unparsed_response", expect.objectContaining({ provider: "resend" }));
+    expect(JSON.parse(String(warn.mock.calls[0][0]))).toMatchObject({
+      event: "mail_provider_unparsed_response",
+      provider: "resend",
+    });
   });
 
   it("constructor: clave vacía o timeout fuera de (0, HARD_CAP_MS) no se aceptan (E1)", () => {

@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { log } from "@/lib/server/log";
 import { groupNotes, type NoteCourse, type NoteCourseGroup, type NoteRow } from "@/lib/notes/group-notes";
 
 /**
@@ -45,5 +46,7 @@ export async function getStudentNotes(): Promise<NoteCourseGroup[]> {
   if (enrollmentsError) throw new Error(`No se pudieron leer las inscripciones: ${enrollmentsError.message}`);
 
   const accessible = new Set((enrollments ?? []).map((e) => e.course_id as string));
-  return groupNotes(rows, (courses ?? []) as NoteCourse[], accessible);
+  return groupNotes(rows, (courses ?? []) as NoteCourse[], accessible, (noteId) =>
+    log.error("note_skipped", { note_id: noteId, message: "lección, módulo o curso no resueltos" }),
+  );
 }

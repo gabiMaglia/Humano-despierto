@@ -13,6 +13,7 @@ import { ANNOUNCEMENT_MAIL_CONCURRENCY, buildAnnouncementRecipients } from "@/li
 import { settleWithConcurrency } from "@/lib/utils/concurrency";
 import { renderTeacherInvitationMail } from "@/lib/server/mail/templates/teacher-invitation";
 import { formatCertificateDate } from "@/lib/utils/format";
+import { log } from "@/lib/server/log";
 
 // T-020 · capa de orquestación: junta los datos (nombre, curso, docente, email) y llama a
 // `sendMail`. Cada función atrapa TODO internamente — DB incluida, no solo el transporte — así
@@ -46,11 +47,11 @@ async function getUserEmail(
     ]);
 
   if (authError || !authData?.user?.email) {
-    console.error(`[mail] no se pudo resolver el email de ${userId}: ${authError?.message ?? "sin email"}`);
+    log.error("mail_recipient_email_unresolved", { user_id: userId, message: authError?.message ?? "sin email" });
     return null;
   }
   if (profileError || !profile) {
-    console.error(`[mail] no se pudo resolver el perfil de ${userId}: ${profileError?.message}`);
+    log.error("mail_recipient_profile_unresolved", { user_id: userId, message: profileError?.message });
     return null;
   }
 
@@ -89,7 +90,7 @@ export function mailIdempotencyKey(type: MailType, recipientUserId: string, scop
 function hostScopedKey(type: string, rest: string): string | undefined {
   const key = `${new URL(getSiteUrl()).host}/${type}/${rest}`;
   if (key.length > IDEMPOTENCY_KEY_MAX) {
-    console.warn("mail_idempotency_key_too_long", { mail_type: type, length: key.length });
+    log.warn("mail_idempotency_key_too_long", { mail_type: type, length: key.length });
     return undefined;
   }
   return key;
@@ -139,9 +140,11 @@ async function claimOrReclaimMailSlot(
   });
 
   if (error) {
-    console.error(
-      `[mail] no se pudo reclamar el turno de envío (${mailType}/${scopeKey}), se aborta el envío: ${error.message}`
-    );
+    log.error("mail_slot_claim_failed", {
+      mail_type: mailType,
+      scope_key: scopeKey,
+      message: `no se pudo reclamar el turno de envío, se aborta el envío: ${error.message}`,
+    });
     return null;
   }
   const row = Array.isArray(data) ? data[0] : data;
@@ -172,11 +175,12 @@ async function confirmMailSent(claim: MailClaim): Promise<void> {
     .is("sent_at", null);
 
   if (error) {
-    console.error(`[mail] no se pudo confirmar el envío ${claim.id} (igual salió): ${error.message}`);
+    log.error("mail_confirm_failed", { claim_id: claim.id, message: `no se pudo confirmar el envío (igual salió): ${error.message}` });
   } else if (count === 0) {
-    console.error(
-      `[mail] confirmación de ${claim.id} llegó tarde — el turno ya había sido retomado por otro intento; no se tocó nada (correcto, no un error)`
-    );
+    log.error("mail_confirm_late", {
+      claim_id: claim.id,
+      message: "la confirmación llegó tarde — el turno ya había sido retomado por otro intento; no se tocó nada (correcto, no un error)",
+    });
   }
 }
 
@@ -202,8 +206,8 @@ async function retireMailSlot(claim: MailClaim, result: SendResult): Promise<voi
     .eq("id", claim.id)
     .eq("claimed_at", claim.claimedAt)
     .is("sent_at", null);
-  if (error) console.error("mail_slot_retire_failed", { mail_type: claim.mailType, error: error.message });
-  else console.warn("mail_slot_retired", { mail_type: claim.mailType, last_error: lastError });
+  if (error) log.error("mail_slot_retire_failed", { mail_type: claim.mailType, error: error.message });
+  else log.warn("mail_slot_retired", { mail_type: claim.mailType, last_error: lastError });
 }
 
 /** Manda con la clave del turno y cierra el turno según el resultado: confirmado, retirado, o
@@ -235,7 +239,7 @@ async function getCourseInfo(courseId: string): Promise<CourseInfo | null> {
     .maybeSingle();
 
   if (error || !data) {
-    console.error(`[mail] no se pudo resolver el curso ${courseId}: ${error?.message ?? "no existe"}`);
+    log.error("mail_course_unresolved", { course_id: courseId, message: error?.message ?? "no existe" });
     return null;
   }
 
@@ -266,11 +270,11 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
   try {
     const [student, course] = await Promise.all([
       getUserEmail(input.studentId).catch((err) => {
-        console.error("[mail] no se pudo resolver la alumna:", err);
+        log.error("mail_student_unresolved", { err });
         return null;
       }),
       getCourseInfo(input.courseId).catch((err) => {
-        console.error("[mail] no se pudo resolver el curso:", err);
+        log.error("mail_course_unresolved", { err });
         return null;
       }),
     ]);
@@ -303,13 +307,13 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
           });
           await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
         } catch (err) {
-          console.error("[mail] mail de inscripción a la alumna falló:", err);
+          log.error("mail_enrollment_student_failed", { err });
         }
       }
     }
 
     const teacher = await getUserEmail(course.teacherId).catch((err) => {
-      console.error("[mail] no se pudo resolver la docente:", err);
+      log.error("mail_teacher_unresolved", { err });
       return null;
     });
     // scope_key incluye a la ALUMNA, no solo el curso: la docente tiene que enterarse de CADA
@@ -335,12 +339,12 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
           });
           await deliverClaimedMail(claim, { to: { email: teacher.email, name: teacher.name }, subject, html, text });
         } catch (err) {
-          console.error("[mail] aviso de alumna nueva a la docente falló:", err);
+          log.error("mail_new_student_teacher_failed", { err });
         }
       }
     }
   } catch (err) {
-    console.error("[mail] notifyEnrollmentActivated falló:", err);
+    log.error("mail_enrollment_activated_failed", { err });
   }
 }
 
@@ -370,7 +374,7 @@ export async function notifyWelcome(input: { userId: string }): Promise<void> {
     });
     await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
   } catch (err) {
-    console.error("[mail] notifyWelcome falló:", err);
+    log.error("mail_welcome_failed", { err });
   }
 }
 
@@ -405,7 +409,7 @@ export async function notifyCourseCompleted(input: {
     });
     await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
   } catch (err) {
-    console.error("[mail] notifyCourseCompleted falló:", err);
+    log.error("mail_course_completed_failed", { err });
   }
 }
 
@@ -436,7 +440,7 @@ export async function notifyEnrollmentRejected(input: {
     });
     await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
   } catch (err) {
-    console.error("[mail] notifyEnrollmentRejected falló:", err);
+    log.error("mail_enrollment_rejected_failed", { err });
   }
 }
 
@@ -483,7 +487,7 @@ export async function notifyAnnouncementPublished(input: { announcementId: strin
       .eq("id", input.announcementId)
       .maybeSingle();
     if (error || !announcement) {
-      console.error(`[mail] no se pudo leer el anuncio ${input.announcementId}: ${error?.message ?? "no existe"}`);
+      log.error("mail_announcement_unresolved", { announcement_id: input.announcementId, message: error?.message ?? "no existe" });
       return;
     }
     // Un retiro entre el click y este `after` no manda nada.
@@ -525,9 +529,9 @@ export async function notifyAnnouncementPublished(input: { announcementId: strin
       const key = r.status === "fulfilled" ? r.value : "error";
       tally[key] = (tally[key] ?? 0) + 1;
     }
-    console.info(`[mail] anuncio ${announcement.id}: ${recipients.length} destinatarias ${JSON.stringify(tally)}`);
+    log.info("mail_announcement_sent", { announcement_id: announcement.id, recipients: recipients.length, tally });
   } catch (err) {
-    console.error("[mail] notifyAnnouncementPublished falló:", err);
+    log.error("mail_announcement_published_failed", { err });
   }
 }
 
@@ -556,7 +560,7 @@ export async function notifyTeacherInvitation(input: {
     return result.ok;
   } catch (err) {
     // Sin `input`: lleva el token en claro.
-    console.error("[mail] notifyTeacherInvitation falló:", err instanceof Error ? err.message : err);
+    log.error("mail_teacher_invitation_failed", { err });
     return false;
   }
 }
