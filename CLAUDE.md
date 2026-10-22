@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 775 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 783 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~20.4k LOC** (non-test). 28 routes (`page.tsx`), 101 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (unit, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 33 migrations (last `0034`; `0032` applies before `0031` by timestamp, independent), 20 tables, RLS + per-column grants + guard triggers, 775 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 34 migrations (last `0036`; `0032` applies before `0031` by timestamp, independent), 20 tables, RLS + per-column grants + guard triggers, 783 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -100,7 +100,14 @@ under `(app)/`, which re-read `profiles.role`.
 - **Google OAuth is wired but unproven against Google** (T-041): it needs the PO's OAuth client
   credentials (see "External dependencies"); e2e only intercepts `/auth/v1/authorize`.
 - **Profiles are not editable** and there is no Storage usage (T-042).
-- **Mail transport is a bare SMTP client for Mailpit**: no AUTH, no TLS (T-054).
+- **Mail transport is chosen by `MAIL_TRANSPORT`** (T-054, ADR-014): `smtp` (default) is a bare
+  client for Mailpit only (no AUTH, no TLS; with `NODE_ENV=production` a non-loopback
+  `SMTP_HOST` refuses to boot); `resend` posts to Resend's HTTP API. `src/instrumentation.ts`
+  validates the mail config in `register()` and the server does not start if it is invalid.
+  A permanent provider failure retires the `mail_log` slot with `last_error`
+  (`permanent:<status>/<name>`, migration 0036). After fixing a bad key or domain, recover with
+  `delete from mail_log where sent_at is null and last_error ~ '^permanent:(401|403)/'` —
+  never delete the `409` rows: that mail may already have gone out.
 - **No rate limiting, no error capture, no CSP** (SP-6).
 
 ## Architecture
@@ -206,7 +213,7 @@ cannot review her own course (D-20, enforced by the `course_reviews` guard with 
 - There are no mocks left (T-053 removed the last one). Do not add mocks.
 
 ## External dependencies not yet provisioned
-Three things block work and require the repo owner's accounts:
+Four things block work and require the repo owner's accounts:
 - **Supabase cloud project** does not exist. The schema has only run on PGlite (`npm test`,
   no PostgREST) and on the local Supabase stack (`supabase start`, where
   `harness/b1-postgrest-attacks.sh` exercises the HTTP surface). Re-run b1 against the cloud
@@ -218,9 +225,14 @@ Three things block work and require the repo owner's accounts:
   `webApp/.env.local`; read by the Supabase CLI on `supabase start`, not by Next). Local
   authorised redirect URI: `http://127.0.0.1:54321/auth/v1/callback`. Without them the Google
   button ends in a Google error page.
+- **Resend** (ADR-014): account, `RESEND_API_KEY`, and the domain of `MAIL_FROM_ADDRESS` verified
+  with SPF (`TXT` + `MX`, or `CNAME`, on `send.<domain>`) and DKIM (`TXT` on
+  `resend._domainkey.<domain>`), checkable with `nslookup -type=TXT resend._domainkey.<domain>`.
+  Without it every real send is a `403`, which retires the slot (see recovery above).
 
-Secrets go in `webApp/.env.local` (gitignored). `SUPABASE_SERVICE_ROLE_KEY` must **never** carry
-the `NEXT_PUBLIC_` prefix: it bypasses RLS entirely and the prefix would ship it to the browser.
+Secrets go in `webApp/.env.local` (gitignored). `SUPABASE_SERVICE_ROLE_KEY` and `RESEND_API_KEY`
+must **never** carry the `NEXT_PUBLIC_` prefix: the first bypasses RLS entirely, the second sends
+mail as the school, and the prefix would ship either to the browser.
 
 ## History
 Until 2026-10-21 this file still described the state of 2026-08-06 (3.6k LOC, 11 routes, "the
