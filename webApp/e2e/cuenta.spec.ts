@@ -3,12 +3,9 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { ALUMNA, assertStackUp } from "./fixtures";
 import { authLinkFor, messagesTo, welcomeCount } from "./mailpit";
+import { ADMIN, DOCENTE, PASSWORD, freshEmail, loginAt, register } from "./account";
 
 const SESSION_COOKIE = /^sb-.+-auth-token(\.\d+)?$/;
-const PASSWORD = "clave-e2e-1";
-// Fixtures del seed (T-038) con rol distinto de student; misma clave que ALUMNA.
-const ADMIN = { email: "admin@test.local", password: "test-1234" };
-const DOCENTE = { email: "docente@test.local", password: "test-1234" };
 
 const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 
@@ -23,10 +20,6 @@ function serviceRoleKey(): string {
   }
 }
 
-function freshEmail(tag: string): string {
-  return `e2e-${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`;
-}
-
 // Next monta su propio `role="alert"` (el anunciador de rutas); el error de la pantalla vive en el form.
 function formAlert(page: Page) {
   return page.locator('form [role="alert"]');
@@ -34,23 +27,6 @@ function formAlert(page: Page) {
 
 async function hasSession(page: Page): Promise<boolean> {
   return (await page.context().cookies()).some((c) => SESSION_COOKIE.test(c.name));
-}
-
-// networkidle espera la hidratación: sin ella el submit es un envío nativo y no el de Supabase.
-async function register(page: Page, email: string, name = "Alumna de Prueba"): Promise<void> {
-  await page.goto("/entrar", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Crear cuenta" }).first().click();
-  await page.getByLabel("Nombre").fill(name);
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Contraseña").fill(PASSWORD);
-  await page.locator('form button[type="submit"]').click();
-}
-
-async function loginAt(page: Page, path: string, email: string, password: string): Promise<void> {
-  await page.goto(path, { waitUntil: "networkidle" });
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Contraseña").fill(password);
-  await page.locator('form button[type="submit"]').click();
 }
 
 async function registerAndConfirm(page: Page, email: string): Promise<void> {
