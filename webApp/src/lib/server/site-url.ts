@@ -1,4 +1,13 @@
 import 'server-only';
+import { log } from "@/lib/server/log";
+
+let warned = false;
+// Una sola vez por proceso: getSiteUrl corre en cada mail y cada página con URL absoluta.
+function warnMissingOnce() {
+  if (warned) return;
+  warned = true;
+  log.warn("site_url_missing", { message: "SITE_URL no está seteada — los links absolutos apuntan a localhost." });
+}
 
 /** `SITE_URL` (server-only, sin `NEXT_PUBLIC_`) es la única fuente del host absoluto que sale de
  * este servidor: los links DENTRO de un mail y las URLs canónicas del sitemap y del Open Graph.
@@ -8,7 +17,7 @@ import 'server-only';
 export function getSiteUrl(): string {
   const configured = process.env.SITE_URL;
   if (!configured) {
-    console.error("[site-url] SITE_URL no está seteada — los links absolutos apuntan a localhost.");
+    warnMissingOnce();
   }
   return (configured || "http://localhost:3000").replace(/\/$/, "");
 }

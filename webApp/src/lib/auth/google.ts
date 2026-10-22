@@ -28,8 +28,8 @@ export async function startGoogleSignIn(
       options: { redirectTo: callbackUrl(origin, internalNext(next)) },
     });
     return error ? (authErrorMessage(error) ?? AUTH_COPY.generic) : null;
-  } catch (err) {
-    console.error("[auth] signInWithOAuth lanzó:", err instanceof Error ? err.message : err);
+  } catch {
+    // Corre en el navegador, donde no hay logger: la alumna ve el mensaje genérico.
     return AUTH_COPY.generic;
   }
 }

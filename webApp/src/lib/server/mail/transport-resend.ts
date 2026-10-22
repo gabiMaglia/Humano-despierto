@@ -2,6 +2,7 @@ import "server-only";
 import { formatAddress, stripHeaderInjection } from "@/lib/mail/address.mjs";
 import { assertTransportTimeout, TRANSPORT_TIMEOUT_MS } from "@/lib/server/mail/limits";
 import { MailTransportError, type MailMessage, type MailTransport } from "@/lib/server/mail/transport";
+import { log } from "@/lib/server/log";
 
 // ADR-014 · Resend por su API HTTP con `fetch`, sin SDK. No reintenta: eso es de `mail_log`.
 // Firmas verificadas en Context7 (`/llmstxt/resend_llms_txt`, `/websites/resend`) el 2026-10-21.
@@ -92,9 +93,9 @@ export class ResendTransport implements MailTransport {
 
     if (status >= 200 && status < 300) {
       const id = str(body?.id);
-      if (id) console.info("mail_sent", { provider: "resend", provider_id: id });
+      if (id) await log.info("mail_sent", { provider: "resend", provider_id: id });
       // 2xx es aceptado: reintentar sería peor, y la idempotencia lo absorbería igual.
-      else console.warn("mail_provider_unparsed_response", { provider: "resend", status });
+      else await log.warn("mail_provider_unparsed_response", { provider: "resend", status });
       return;
     }
 

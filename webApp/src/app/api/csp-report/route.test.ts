@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { MAX_CSP_REPORT_BYTES } from "@/lib/security/csp-report";
 import * as route from "./route";
 
+vi.mock("next/headers", () => ({ headers: () => Promise.reject(new Error("fuera de request")) }));
+
 const VALID = JSON.stringify({
   "csp-report": {
     "document-uri": "http://localhost:3000/entrar/nueva-clave?code=secreto",
@@ -25,7 +27,7 @@ let logSpy: MockInstance;
 
 describe("POST /api/csp-report", () => {
   beforeEach(() => {
-    logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   it("valido: 204 sin cuerpo y UNA linea csp_violation sin query strings", async () => {
@@ -34,7 +36,7 @@ describe("POST /api/csp-report", () => {
     expect(await res.text()).toBe("");
     expect(logSpy).toHaveBeenCalledTimes(1);
     const line = JSON.parse(String(logSpy.mock.calls[0][0]));
-    expect(line).toEqual({
+    expect(line).toMatchObject({
       level: "warn",
       event: "csp_violation",
       blocked_uri: "http://127.0.0.1:54321/storage/v1/object/sign/uploads/a.jpg",

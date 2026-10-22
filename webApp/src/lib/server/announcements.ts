@@ -5,6 +5,7 @@ import type {
   ModerationAnnouncementView,
   TeacherAnnouncementView,
 } from "@/lib/announcements/types";
+import { log } from "@/lib/server/log";
 
 // Todo con el cliente de SESIÓN: quién ve qué lo decide `course_announcements_read` (0034). Los
 // filtros de estado de abajo no son la autoridad; existen porque la dueña también puede ser
@@ -45,7 +46,7 @@ export async function getCourseAnnouncements(courseId: string): Promise<Announce
     .order("published_at", { ascending: false })
     .limit(20);
   if (error) {
-    console.error(`[anuncios] no se pudieron leer los de ${courseId}: ${error.message}`);
+    log.error("announcements_read_failed", { course_id: courseId, message: error.message });
     return [];
   }
   return ((data ?? []) as PublishedRow[]).map((r) => toView({ ...r, course: null }));
@@ -64,7 +65,7 @@ export async function getRecentAnnouncementsForStudent(courseIds: string[]): Pro
     .order("published_at", { ascending: false })
     .limit(5);
   if (error) {
-    console.error(`[anuncios] no se pudieron leer las novedades: ${error.message}`);
+    log.error("announcements_feed_read_failed", { message: error.message });
     return [];
   }
   return ((data ?? []) as unknown as PublishedRow[]).map(toView);

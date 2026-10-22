@@ -18,6 +18,7 @@ import {
   traducirErrorQa,
   votar,
 } from "@/lib/lesson-qa/write.mjs";
+import { log } from "@/lib/server/log";
 
 /**
  * Destino del cierre de la última lección. Se resuelve al terminar el video y no al renderizar:
@@ -28,7 +29,7 @@ export async function resolveClosingHref(courseId: string): Promise<string> {
   try {
     return closingHref(await ensureCertificate(courseId));
   } catch (err) {
-    console.error("[player] no se pudo resolver el certificado:", err);
+    log.error("player_certificate_unresolved", { err });
     return closingHref(null);
   }
 }
@@ -79,7 +80,7 @@ async function maybeNotifyCourseCompleted(
       certificateCode: code,
     });
   } catch (err) {
-    console.error("[mail] maybeNotifyCourseCompleted falló:", err);
+    log.error("mail_course_completed_failed", { err });
   }
 }
 
@@ -313,7 +314,7 @@ function done(lessonId: string, success: string): QaActionState {
 }
 
 function translated(error: { code?: string | null; message: string }, duplicado: string): QaActionState {
-  console.error("[qa] escritura rechazada:", error.code, error.message);
+  log.error("qa_write_rejected", { pg_code: error.code, message: error.message });
   return qaFail(traducirErrorQa(error, { duplicado, fallback: GENERIC_QA_ERROR }));
 }
 

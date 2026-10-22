@@ -7,6 +7,7 @@ import {
   type DisciplineCount,
   type HeroStat,
 } from "@/lib/landing";
+import { log } from "@/lib/server/log";
 
 export interface LandingTestimonial {
   id: string;
@@ -82,8 +83,8 @@ async function readTestimonials(): Promise<LandingTestimonial[]> {
 // Una seccion que falla se omite: la portada no se cae por un conteo.
 export async function getLandingData(): Promise<LandingData> {
   const [agg, testimonials] = await Promise.allSettled([readCourseAggregates(), readTestimonials()]);
-  if (agg.status === "rejected") console.error(`[landing] agregados: ${agg.reason}`);
-  if (testimonials.status === "rejected") console.error(`[landing] testimonios: ${testimonials.reason}`);
+  if (agg.status === "rejected") log.error("landing_aggregates_failed", { err: agg.reason });
+  if (testimonials.status === "rejected") log.error("landing_testimonials_failed", { err: testimonials.reason });
   return {
     stats: agg.status === "fulfilled" ? buildHeroStats(agg.value.counts) : [],
     disciplines: agg.status === "fulfilled" ? agg.value.disciplines : [],

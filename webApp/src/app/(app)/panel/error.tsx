@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useReportError } from "@/hooks/useReportError";
+import { ErrorReference } from "@/components/ErrorReference";
 
 export default function PanelError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => {
-    console.error("Error cargando el panel:", error);
-  }, [error]);
+  useReportError(error);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cosmos-0 px-6 text-center text-ink">
@@ -14,6 +13,7 @@ export default function PanelError({ error, reset }: { error: Error & { digest?:
       <p className="max-w-md font-body text-sm text-ink-soft">
         Puede ser un problema pasajero con tus inscripciones o tu progreso guardado.
       </p>
+      <ErrorReference digest={error.digest} />
       <button
         type="button"
         onClick={reset}
