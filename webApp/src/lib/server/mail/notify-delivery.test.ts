@@ -137,12 +137,13 @@ describe("notify: una falla permanente retira el turno con su causa (E2)", () =>
     expect(updates[0].patch.last_error).toMatch(/^permanent:409\/[a-z0-9_]{1,64}$/);
   });
 
-  it("reintentable: no se toca mail_log (el turno queda para el próximo disparo)", async () => {
+  it("reintentable: no se toca mail_log y el intento lleva la clave del turno (el reintento no duplica)", async () => {
     const { updates } = fakeDb();
-    transport(async () => {
+    const sent = transport(async () => {
       throw new MailTransportError("429", false, 429);
     });
     await notifyWelcome({ userId: U });
     expect(updates).toHaveLength(0);
+    expect(sent[0].idempotencyKey).toBe(`localhost:3000/welcome/${U}/account`);
   });
 });
