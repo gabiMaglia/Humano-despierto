@@ -11,7 +11,7 @@ export default function CertificadoNoEncontrado() {
         Revisá el link: un carácter de más o de menos alcanza para que no coincida con ninguno.
       </p>
       <Link href="/" className="btn btn-primary mt-2">
-        Ir al inicio ↦
+        Ir al inicio
       </Link>
     </div>
   );

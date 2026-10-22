@@ -22,7 +22,7 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
           href={`/entrar?next=${encodeURIComponent(`/cursos/${slug}`)}`}
           className="btn btn-primary w-full justify-center"
         >
-          Solicitar inscripción ↦
+          Solicitar inscripción
         </Link>
       );
     case "none":
@@ -39,7 +39,7 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
         <div className="space-y-3 text-center">
           <Estado title="Ya estás inscripta" />
           <Link href="/panel" className="btn btn-primary w-full justify-center">
-            Ir a mi panel ↦
+            Ir a mi panel
           </Link>
         </div>
       );

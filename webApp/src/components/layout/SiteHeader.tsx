@@ -76,6 +76,7 @@ export default function SiteHeader({ overHero = false }: Props) {
   );
 
   return (
+    <>
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow,color] duration-400",
@@ -110,6 +111,9 @@ export default function SiteHeader({ overHero = false }: Props) {
         </button>
       </div>
 
+    </header>
+    {/* Fuera del <header>: su backdrop-filter crea un bloque contenedor y un `fixed` adentro
+        quedaría recortado a la altura del header. */}
       {open && (
         <MobileMenu
           id={menuId}
@@ -141,6 +145,6 @@ export default function SiteHeader({ overHero = false }: Props) {
           }
         />
       )}
-    </header>
+    </>
   );
 }

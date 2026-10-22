@@ -74,7 +74,7 @@ export default function HeroSection({ stats }: { stats: HeroStat[] }) {
             src={unsplashUrl(HERO_PHOTO.id)}
             alt={HERO_PHOTO.alt}
             fill
-            priority
+            preload
             sizes="(min-width: 768px) 45vw, 100vw"
             className="object-cover"
           />

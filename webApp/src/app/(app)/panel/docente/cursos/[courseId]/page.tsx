@@ -48,7 +48,7 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
               href={`/panel/docente/anuncios?curso=${course.id}`}
               className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors"
             >
-              Anuncios del curso ↦
+              Anuncios del curso
             </Link>
           </div>
         </header>

@@ -27,6 +27,8 @@ export interface CourseCardData {
 
 interface Props extends CourseCardData {
   className?: string;
+  /** La primera fila de una grilla está sobre el pliegue: su foto no espera al lazy. */
+  eager?: boolean;
   /** T-033 · sin esto la card no dibuja botón (landing). `loginHref` solo sin sesión. */
   wishlist?: { courseId: string; saved: boolean; loginHref: string | null };
 }
@@ -36,7 +38,7 @@ interface Props extends CourseCardData {
  *  <button> dentro de un <a> es HTML inválido). */
 export default function CourseCard({
   tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl,
-  className, wishlist,
+  className, wishlist, eager,
 }: Props) {
   const placeholder = placeholderForDiscipline(tag);
   return (
@@ -48,6 +50,7 @@ export default function CourseCard({
             <SignedImage
               src={coverUrl}
               alt=""
+              loading={eager ? "eager" : "lazy"}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none"
             />
           ) : (
@@ -55,6 +58,7 @@ export default function CourseCard({
               src={unsplashUrl(placeholder.id)}
               alt=""
               fill
+              loading={eager ? "eager" : "lazy"}
               sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
               className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none"
             />

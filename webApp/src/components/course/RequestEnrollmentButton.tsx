@@ -15,7 +15,7 @@ export default function RequestEnrollmentButton({ slug }: { slug: string }) {
 
   return (
     <form action={formAction}>
-      <SubmitButton loading={isPending} label="Solicitar inscripción ↦" loadingLabel="Enviando…" />
+      <SubmitButton loading={isPending} label="Solicitar inscripción" loadingLabel="Enviando…" />
       <ActionFeedback state={state} />
     </form>
   );

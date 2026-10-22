@@ -27,7 +27,7 @@ export default function ClosingCTA() {
 
       <div className="flex flex-col justify-center gap-3.5 sm:flex-row">
         <Link href="/cursos" className="btn btn-primary">
-          Comenzar el viaje ↦
+          Comenzar el viaje
         </Link>
         <Link href="/circulo" className="btn btn-outline">
           Hablar con una guía

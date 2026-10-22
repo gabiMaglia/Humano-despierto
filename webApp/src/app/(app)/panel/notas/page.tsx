@@ -31,7 +31,7 @@ export default async function NotasPage() {
                 Todavía no escribiste ninguna nota. Podés anotar mientras mirás cualquier lección.
               </p>
               <Link href="/panel" className="btn btn-primary">
-                Volver al panel ↦
+                Volver al panel
               </Link>
             </div>
           ) : (

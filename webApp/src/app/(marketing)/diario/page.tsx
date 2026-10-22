@@ -63,7 +63,7 @@ export default async function DiarioPage() {
                   </div>
                 </div>
                 <span className="flex-none font-display text-sm text-suave transition-colors group-hover:text-bosque">
-                  ↦
+                 
                 </span>
               </Link>
             ))}

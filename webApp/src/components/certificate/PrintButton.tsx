@@ -10,7 +10,7 @@ export default function PrintButton() {
         onClick={() => window.print()}
         className="btn btn-outline"
       >
-        Imprimir ↦
+        Imprimir
       </button>
     </div>
   );

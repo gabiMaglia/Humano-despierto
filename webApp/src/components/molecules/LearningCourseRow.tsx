@@ -36,7 +36,7 @@ export default function LearningCourseRow({ course: c, index, certificateCode }:
         <ProgressRing value={c.progressPercent} />
         {c.progressPercent < 100 && c.continueLessonId && (
           <Link href={`/leccion/${c.continueLessonId}`} className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors whitespace-nowrap">
-            Continuar ↦
+            Continuar
           </Link>
         )}
         {c.progressPercent === 100 && certificateCode && (
@@ -46,7 +46,7 @@ export default function LearningCourseRow({ course: c, index, certificateCode }:
             rel="noopener noreferrer"
             className="font-display text-eyebrow tracking-wide text-miel-800 hover:text-bosque transition-colors whitespace-nowrap"
           >
-            Ver certificado ↦
+            Ver certificado
           </a>
         )}
       </div>

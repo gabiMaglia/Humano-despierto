@@ -58,7 +58,7 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           </div>
 
           <div className="flex flex-wrap gap-3.5">
-            <a href="#cursos" className="btn btn-primary">Ver sus cursos ↦</a>
+            <a href="#cursos" className="btn btn-primary">Ver sus cursos</a>
           </div>
         </div>
 
@@ -187,7 +187,7 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           Sus recorridos están abiertos · se cursan cuando quieras, a tu ritmo
         </p>
         <div className="flex flex-col sm:flex-row gap-3.5 justify-center">
-          <Link href="/cursos" className="btn btn-primary">Ver el catálogo ↦</Link>
+          <Link href="/cursos" className="btn btn-primary">Ver el catálogo</Link>
           <a href="#cursos" className="btn btn-outline">Ver todos sus cursos</a>
         </div>
       </section>

@@ -37,7 +37,7 @@ export default async function FeaturedCourses() {
         </div>
         <div className="mt-12 text-center">
           <Link href="/cursos" className="btn btn-outline">
-            Ver todos los cursos ↦
+            Ver todos los cursos
           </Link>
         </div>
       </div>

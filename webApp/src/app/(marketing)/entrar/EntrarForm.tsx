@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { fullNameSchema } from "@/lib/validation/profile";
 import { AUTH_COPY, authErrorMessage } from "@/lib/auth/messages";
 import { DEFAULT_NEXT, RECOVER_PATH, callbackUrl, needsDocumentNavigation } from "@/lib/auth/paths";
-import AuthBrand from "@/components/molecules/AuthBrand";
 import AuthField from "@/components/molecules/AuthField";
 import SubmitButton from "@/components/atoms/SubmitButton";
 import { postLoginDestinationAction } from "./actions";
@@ -100,7 +99,6 @@ export default function EntrarForm({ next, linkError }: Props) {
       {/* ── Left — Form ────────────────────────────────────────────────── */}
       <div className="flex w-full flex-col justify-center bg-papel px-8 py-6 md:px-14 lg:max-w-[520px]">
 
-        <AuthBrand />
 
         {sent ? (
           <div role="status" className="space-y-4">
@@ -252,6 +250,7 @@ export default function EntrarForm({ next, linkError }: Props) {
           alt={LOGIN_PHOTO.alt}
           fill
           sizes="50vw"
+          preload
           className="object-cover"
         />
       </div>

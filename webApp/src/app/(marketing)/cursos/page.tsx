@@ -224,9 +224,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             <>
               {/* Grid */}
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {pageCourses.map((course) => (
+                {pageCourses.map((course, i) => (
                   <CourseCard
                     key={course.slug}
+                    eager={i < 3}
                     tag={course.discipline}
                     level={course.level}
                     title={course.title}

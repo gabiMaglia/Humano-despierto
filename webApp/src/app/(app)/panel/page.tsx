@@ -51,7 +51,7 @@ export default async function DashboardPage({
             Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
           </p>
           <Link href="/cursos" className="btn btn-primary mt-2">
-            Explorar el catálogo ↦
+            Explorar el catálogo
           </Link>
         </div>
       </div>
@@ -109,11 +109,11 @@ export default async function DashboardPage({
             <div className="flex flex-col items-start gap-2">
               {continuing.continueLessonId ? (
                 <Link href={`/leccion/${continuing.continueLessonId}`} className="btn btn-primary">
-                  Continuar ↦
+                  Continuar
                 </Link>
               ) : (
                 <Link href={`/cursos/${continuing.slug}`} className="btn btn-primary">
-                  Ver curso ↦
+                  Ver curso
                 </Link>
               )}
               {continuing.lastSeenAt && (
@@ -148,7 +148,7 @@ export default async function DashboardPage({
             <div className="tarjeta flex flex-col items-center gap-4 px-6 py-14 text-center">
               <p className="font-body text-sm text-suave">{EMPTY_TAB[tab]}</p>
               <Link href="/cursos" className="btn btn-outline">
-                Explorar el catálogo ↦
+                Explorar el catálogo
               </Link>
             </div>
           ) : tab === "guardados" ? (
