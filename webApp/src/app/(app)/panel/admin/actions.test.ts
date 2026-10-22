@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { argsOf, queryChain } from "@/test/query-chain";
 
-const { getCurrentUser, getAdminSupabaseClient, notifyEnrollmentActivated, notifyEnrollmentRejected, revalidatePath } =
+const { getCurrentUser, getAdminSupabaseClient, notifyEnrollmentActivated, notifyEnrollmentRejected, revalidatePath, resolveGrantTarget } =
   vi.hoisted(() => ({
+    resolveGrantTarget: vi.fn(),
     getCurrentUser: vi.fn(),
     getAdminSupabaseClient: vi.fn(),
     notifyEnrollmentActivated: vi.fn(),
@@ -13,10 +14,12 @@ vi.mock("@/lib/server/auth", () => ({ getCurrentUser }));
 vi.mock("@/lib/server/supabase-admin", () => ({ getAdminSupabaseClient }));
 vi.mock("@/lib/server/mail/notify", () => ({ notifyEnrollmentActivated, notifyEnrollmentRejected }));
 vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("@/lib/server/enrollment-grant", () => ({ resolveGrantTarget }));
 
 import {
   approveEnrollmentRequestAction,
   dismissReportAction,
+  grantEnrollmentByEmailAction,
   hideReviewAction,
   rejectEnrollmentRequestAction,
   setEnrollmentAction,
@@ -232,6 +235,28 @@ describe("dismissReportAction", () => {
   it("sin admin lanza", async () => {
     getCurrentUser.mockResolvedValue({ ...ADMIN, role: "teacher" });
     await expect(dismissReportAction(REPORT, INICIAL, form({}))).rejects.toThrow(/No autorizado/);
+    expect(getAdminSupabaseClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("grantEnrollmentByEmailAction", () => {
+  it("datos inválidos no consultan nada", async () => {
+    const fd = new FormData();
+    fd.set("email", "no-es-mail");
+    fd.set("courseSlug", "reiki-nivel-1");
+    await expect(grantEnrollmentByEmailAction(INICIAL, fd)).resolves.toEqual({ error: "Datos inválidos.", success: null });
+    expect(resolveGrantTarget).not.toHaveBeenCalled();
+  });
+
+  it("sin cuenta con ese mail: el mensaje del resolvedor, sin inscribir", async () => {
+    resolveGrantTarget.mockResolvedValue({ ok: false, error: "No hay ninguna cuenta con ese mail." });
+    const fd = new FormData();
+    fd.set("email", "nadie@mail.com");
+    fd.set("courseSlug", "reiki-nivel-1");
+    await expect(grantEnrollmentByEmailAction(INICIAL, fd)).resolves.toEqual({
+      error: "No hay ninguna cuenta con ese mail.",
+      success: null,
+    });
     expect(getAdminSupabaseClient).not.toHaveBeenCalled();
   });
 });

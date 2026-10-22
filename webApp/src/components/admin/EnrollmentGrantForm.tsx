@@ -1,60 +1,35 @@
 "use client";
 
 import { useActionState } from "react";
-import { setEnrollmentAction } from "@/app/(app)/panel/admin/actions";
+import { grantEnrollmentByEmailAction } from "@/app/(app)/panel/admin/actions";
 import { ADMIN_ACTION_INITIAL_STATE } from "@/lib/admin/action-state";
-import type { AdminCourseRow, AdminUserRow } from "@/lib/server/admin";
 
-interface Props {
-  users: AdminUserRow[];
-  courses: AdminCourseRow[];
-}
+const INPUT_CLASS =
+  "w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-xs text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0";
 
-export default function EnrollmentGrantForm({ users, courses }: Props) {
-  const [state, formAction, isPending] = useActionState(
-    setEnrollmentAction,
-    ADMIN_ACTION_INITIAL_STATE
-  );
+/** T-049: mail y slug en vez de dos <select> con todas las cuentas y cursos; los resuelve el servidor. */
+export default function EnrollmentGrantForm() {
+  const [state, formAction, isPending] = useActionState(grantEnrollmentByEmailAction, ADMIN_ACTION_INITIAL_STATE);
 
   return (
     <form action={formAction} className="cosmos-card flex flex-wrap items-end gap-3 p-4">
-      <input type="hidden" name="status" value="active" />
+      <label className="min-w-[180px] flex-1">
+        <span className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">Mail de la alumna/o</span>
+        <input type="email" name="email" required maxLength={320} autoComplete="off" className={INPUT_CLASS} />
+      </label>
 
-      <div className="min-w-[180px] flex-1">
-        <label className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">
-          Alumna/o
-        </label>
-        <select
-          name="userId"
+      <label className="min-w-[180px] flex-1">
+        <span className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">Slug del curso</span>
+        <input
+          type="text"
+          name="courseSlug"
           required
-          className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-xs text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0"
-        >
-          <option value="">Elegir…</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.fullName} ({u.email ?? "sin email"})
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="min-w-[180px] flex-1">
-        <label className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-soft">
-          Curso
-        </label>
-        <select
-          name="courseId"
-          required
-          className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2.5 font-body text-xs text-ink outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0"
-        >
-          <option value="">Elegir…</option>
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-      </div>
+          maxLength={120}
+          pattern="[a-z0-9]+(-[a-z0-9]+)*"
+          autoComplete="off"
+          className={INPUT_CLASS}
+        />
+      </label>
 
       <button
         type="submit"
@@ -69,9 +44,7 @@ export default function EnrollmentGrantForm({ users, courses }: Props) {
           {state.error}
         </p>
       )}
-      {state.success && (
-        <p className="w-full font-body text-xs text-lila-300">{state.success}</p>
-      )}
+      {state.success && <p className="w-full font-body text-xs text-lila-300">{state.success}</p>}
     </form>
   );
 }

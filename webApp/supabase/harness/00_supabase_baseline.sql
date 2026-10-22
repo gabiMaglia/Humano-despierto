@@ -33,6 +33,8 @@ create schema if not exists auth;
 create table if not exists auth.users (
   id                 uuid primary key default gen_random_uuid(),
   email              text unique,
+  -- T-049 · GoTrue real la tiene; accept_teacher_invitation exige mail confirmado (D8).
+  email_confirmed_at timestamptz,
   raw_user_meta_data jsonb not null default '{}',
   raw_app_meta_data  jsonb not null default '{}',
   created_at         timestamptz not null default now()

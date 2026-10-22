@@ -11,6 +11,8 @@ import { getSiteUrl } from "@/lib/server/site-url";
 import { renderCourseAnnouncementMail } from "@/lib/server/mail/templates/course-announcement";
 import { ANNOUNCEMENT_MAIL_CONCURRENCY, buildAnnouncementRecipients } from "@/lib/announcements/recipients";
 import { settleWithConcurrency } from "@/lib/utils/concurrency";
+import { renderTeacherInvitationMail } from "@/lib/server/mail/templates/teacher-invitation";
+import { formatCertificateDate } from "@/lib/utils/format";
 
 // T-020 · capa de orquestación: junta los datos (nombre, curso, docente, email) y llama a
 // `sendMail`. Cada función atrapa TODO internamente — DB incluida, no solo el transporte — así
@@ -19,7 +21,7 @@ import { settleWithConcurrency } from "@/lib/utils/concurrency";
 // UNA vez, no repetido en cada call site donde alguien se podría olvidar de envolverlo.
 //
 // `getAdminSupabaseClient` (service_role) es necesario para leer el email real: vive en
-// `auth.users`, no en `profiles` — mismo patrón que `admin.ts::listAllUsers`. Quien llama a
+// `auth.users`, no en `profiles` (por eso los listados del admin lo cruzan en la base, `admin_list_users`). Quien llama a
 // estas funciones ya verificó el permiso que corresponda (admin activando inscripción, sesión
 // propia registrándose): esta capa no vuelve a autorizar nada, solo notifica.
 
@@ -522,5 +524,32 @@ export async function notifyAnnouncementPublished(input: { announcementId: strin
     console.info(`[mail] anuncio ${announcement.id}: ${recipients.length} destinatarias ${JSON.stringify(tally)}`);
   } catch (err) {
     console.error("[mail] notifyAnnouncementPublished falló:", err);
+  }
+}
+
+/**
+ * T-049 · Excepción declarada a R-12: la invitada puede no tener cuenta y `mail_log` exige
+ * `recipient_user_id`. La idempotencia vive en `teacher_invitations` (una fila, un envío; el
+ * índice parcial impide dos pendientes por mail; reenviar crea otra fila y mata el token viejo).
+ * Devuelve si el envío se confirmó para que el admin sepa si tiene que reenviar; nunca tira.
+ */
+export async function notifyTeacherInvitation(input: {
+  email: string;
+  inviterName: string;
+  acceptUrl: string;
+  expiresAt: string;
+}): Promise<boolean> {
+  try {
+    const { subject, html, text } = renderTeacherInvitationMail({
+      inviterName: input.inviterName,
+      acceptUrl: input.acceptUrl,
+      expiresOn: formatCertificateDate(input.expiresAt),
+    });
+    const result = await sendMail({ to: { email: input.email }, subject, html, text });
+    return result.ok;
+  } catch (err) {
+    // Sin `input`: lleva el token en claro.
+    console.error("[mail] notifyTeacherInvitation falló:", err instanceof Error ? err.message : err);
+    return false;
   }
 }
