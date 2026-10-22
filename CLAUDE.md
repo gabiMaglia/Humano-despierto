@@ -56,12 +56,12 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 
 | Area | State |
 |------|-------|
-| `webApp/src` | **~21.5k LOC** (non-test). 33 routes (`page.tsx`), 106 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (594 unit tests in 72 files, next to the file) + Playwright (`e2e/`), T-039. |
+| `webApp/src` | **~21.5k LOC** (non-test). 33 routes (`page.tsx`), 112 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (616 unit tests in 76 files, next to the file) + Playwright (`e2e/`), T-039. |
 | `webApp/supabase` | **Schema live.** 35 migrations (last `0036`; `0032` applies before `0031` by timestamp, independent), 21 tables, RLS + per-column grants + guard triggers, 815 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
-| `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
+| `packages/tokens` | 763 LOC of the old Cosmos palette — **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
-| `design_handoff_humano_humano/` | Real. `reference/hifi/` (visual spec + data constants) and `reference/design-system/` (canonical tokens). Never ships. |
+| `design_handoff_humano_humano/` | Real. `reference/brote/` (current visual reference, ADR-015); `reference/hifi/` and `reference/design-system/` are the historical Cosmos spec. Never ships. |
 
 ### Routes that exist
 ```
@@ -220,16 +220,39 @@ unhiding and dismissing go ONLY through the `moderate_*` SQL functions (execute 
 cannot review her own course (D-20, enforced by the `course_reviews` guard with no bypass).
 
 ## Design language (hard constraints)
-- Dark theme `Cosmos`: bg `#0a0418` · ink `#ede4ff` · lila `#c4b5fd` · gold `#f5d76e`.
-  Second theme `pergamino` (light).
-- Fonts: Cinzel (display) · Quicksand (body) · Cormorant Garamond (quote) · Cardo (alt).
-- **No emojis.** Unicode glyphs only: `☉ ☽ ✦ ◐ ◑ ○ ● ✧`.
-- **No raster images.** Inline SVG and Unicode only. (`three.js` powers a WebGL canvas on the
-  login screen — that is the one exception, and it is deliberate.) User uploads are the declared
-  exception (S-A): avatar (T-042) and course cover (T-047), jpg/png/webp only, never SVG.
-- Roman-numeral watermarks, Starfield background, ZodiacWheel (`wheelSpin` 60s).
-- Source of truth: `design_handoff_humano_humano/reference/design-system/`. **Copy** tokens into
-  the app; never import across apps. Read the hi-fi JSX for spec and data — do not paste its HTML.
+**«Brote»** (ADR-015, PO 2026-10-22). Spec: `docs/superpowers/specs/2026-10-22-rediseno-brote-design.md`;
+visual reference: `design_handoff_humano_humano/reference/brote/b4-brote2.html`.
+- **One light theme.** No `data-theme`, no toggle, no dark mode. Cosmos and `pergamino` are gone.
+- **Semantic tokens only**, defined once in `webApp/src/styles/tokens.css` and exposed to Tailwind
+  by `@theme inline` in `src/styles/globals.css`: `fondo` `#FCFBF8` · `papel` `#FFFFFF` ·
+  `salvia-100` `#EEF3EC` · `salvia` `#CFDCCB` · `linea` `#E3E8E1` · `tinta` `#2C3A31` (body text) ·
+  `bosque` `#1F2E24` (headings, secondary button, footer) · `bosque-700` · `suave` `#5F6E65`
+  (secondary text) · `miel` `#C7922E` (primary button, `bosque` text on it) · `miel-hover` ·
+  `miel-800` `#8A6219` (links, accent text) · `miel-100` (tags) · `musgo` `#5E7A66` (**icons and
+  illustration only, never text**) · `error` `#A8322A` · `exito` `#2F6B45`. No `cosmos`, `lila`,
+  `ink`, `gold` or `hh-` names anywhere in `webApp/src`. Radii `sm` 8 · `md` 12 · `lg` 18 · `pill`.
+- **Text contrast ≥ 4.5:1.** No light text on light backgrounds, no opacity on text colours.
+- **Font: Plus Jakarta Sans only**, via `next/font/google` in `src/app/layout.tsx` (`--font-jakarta`,
+  served from our origin, so CSP `font-src 'self'` is enough). `font-display`, `font-body` and
+  `font-quote` still exist and all point to it; heading weight comes from the base styles.
+  (OG images still render with the vendored Cinzel in `src/assets/fonts/` until T-061.)
+- **Buttons:** `Button` / `ButtonLink` (`src/components/atoms/Button.tsx`), variants `primary` ·
+  `secondary` · `outline` · `ghost`, sizes `md` (48px) · `sm` (40px), optional `arrow`. The variant
+  CSS lives only in `globals.css` (`.btn-*`); a screen picks a variant, it never styles a button.
+- **Raster is allowed for photography, always through `next/image`**, with a real `alt` and reserved
+  size. The only remote host in `images.remotePatterns` is `images.unsplash.com`, and only the closed,
+  hand-verified list in `src/content/placeholder-photos.ts` (marked PLACEHOLDER in code; id
+  `1469474968028-56623f02e42e` is forbidden). Exception: signed `uploads` URLs (avatar, course cover)
+  go through `SignedImage` (`<img>`), because they expire in 1 h and the optimizer would cache them;
+  uploads stay jpg/png/webp, never SVG. Illustration is inline SVG (`LeafIllustration`, `Icon`).
+- **No emojis. Unicode glyphs are not part of the language:** where one worked as an icon it is a
+  line SVG from `atoms/Icon.tsx`. Glyphs that are *data* (`profiles.glyph`, `courses.moon_glyph`,
+  the lunar calendar) are still rendered as data.
+- No Starfield, ZodiacWheel, three.js canvas or Roman-numeral watermarks (deleted in T-060; `three`
+  is not a dependency). Motion: `Reveal` only animates what starts below the fold; everything
+  honours `prefers-reduced-motion`.
+- `design_handoff_humano_humano/reference/design-system/` is **historical**. Read the Brote reference
+  for spec — do not paste its HTML.
 
 ## Coding standards
 - TypeScript strict everywhere.
@@ -261,6 +284,8 @@ must **never** carry the `NEXT_PUBLIC_` prefix: the first bypasses RLS entirely,
 mail as the school, and the prefix would ship either to the browser.
 
 ## History
+On 2026-10-22 T-060 replaced the Cosmos design language (dark theme, Cinzel, no raster, three.js
+login canvas) with «Brote» (ADR-015); the old rules were deleted, not kept as an alternative.
 Until 2026-10-21 this file still described the state of 2026-08-06 (3.6k LOC, 11 routes, "the
 player has no video"); corrected by T-038 after QA rejected it.
 Until 2026-08-06 this file claimed Phase 1, "webApp: scaffold only, Landing not started", and
