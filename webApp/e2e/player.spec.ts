@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { ALUMNA, lessonHrefs, login } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, test, ALUMNA, lessonHrefs, login } from "./fixtures";
 
 // T-045 · el player contra el stack real. La IFrame API corre en el navegador de verdad: la
 // velocidad se afirma sobre lo que muestra el selector (que sale de onPlaybackRateChange).

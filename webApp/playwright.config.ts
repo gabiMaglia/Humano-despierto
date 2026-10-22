@@ -5,6 +5,9 @@ import { defineConfig } from "@playwright/test";
 // cookie del verificador PKCE no viaja y el link de recuperación cae en /entrar?error=link.
 const E2E_PORT = 3101;
 const baseURL = `http://localhost:${E2E_PORT}`;
+// T-052 · E2E_PROD=1 corre la suite contra el build. En dev la CSP lleva 'unsafe-eval' (React
+// reconstruye stacks con eval): una violacion que solo aparece sin el se ve unicamente aca.
+const PROD = process.env.E2E_PROD === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,12 +19,15 @@ export default defineConfig({
   reporter: "list",
   use: { baseURL, trace: "retain-on-failure" },
   webServer: {
-    command: `npm run dev -- --port ${E2E_PORT}`,
+    command: PROD
+      ? `npm run build && npm run start -- --port ${E2E_PORT}`
+      : `npm run dev -- --port ${E2E_PORT}`,
     url: baseURL,
     // Un server ajeno en el puerto podría tener otro SITE_URL; mejor fallar que probar con él.
     reuseExistingServer: false,
     env: { SITE_URL: baseURL },
-    timeout: 120_000,
+    // El build entero entra en este plazo cuando PROD.
+    timeout: PROD ? 600_000 : 120_000,
   },
   projects: [
     { name: "stack", testMatch: /stack\.setup\.ts/ },

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 import { noLocator } from "@/lib/validation/teacher";
 
 // Espejo de los CHECK de la migración de T-030: el formulario frena antes y con un mensaje

@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { assertStackUp } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, test, assertStackUp } from "./fixtures";
 
 // Sol Mayor es duena de `arcanos-menores` (seed.sql): publicado, no destacado y sin otros specs
 // encima, a diferencia de `tarot-iniciatico`, que usan los de alumna.

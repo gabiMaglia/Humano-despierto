@@ -1,5 +1,5 @@
-import { expect, test, type APIResponse } from "@playwright/test";
-import { ALUMNA, DELFINA, RECURSO, REVOCADA, expectDenied, lessonIdOfResource, login } from "./fixtures";
+import type { APIResponse } from "@playwright/test";
+import { expect, test, ALUMNA, DELFINA, RECURSO, REVOCADA, expectDenied, lessonIdOfResource, login } from "./fixtures";
 
 const DRIVE = "https://drive.google.com/uc?export=download&id=";
 // Nunca se sigue el redirect: los fixtures apuntan a placeholders, lo que se prueba es el Location.

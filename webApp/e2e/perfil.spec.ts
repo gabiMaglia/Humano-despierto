@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { ALUMNA, assertStackUp, login } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, test, ALUMNA, assertStackUp, login } from "./fixtures";
 
 // Sol Mayor es la docente sembrada con ficha publica y cursos (seed.sql, bloque de docentes).
 const SOL = {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 import { noLocator, slugSchema } from "@/lib/validation/teacher";
 
 // Validación de formularios del Diario (T-022). Mismo patrón que `courseFormSchema`

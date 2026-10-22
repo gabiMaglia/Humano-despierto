@@ -10,7 +10,9 @@ import { createClient } from "@supabase/supabase-js";
  * (`/guias/[slug]`, T-042), nunca lee datos de `profiles`; firma las portadas de cursos
  * PUBLICADOS (`signPublicUploadUrls`, T-047); y es el único que sube a `uploads` (D-34: avatar y
  * portada, después de validar bytes y titularidad) y el que borra la portada de un curso recién
- * borrado (`deleteCourseAction`). Cualquier otro uso de este cliente anula RLS sin que
+ * borrado (`deleteCourseAction`). Lee los bytes de la portada de un curso PUBLICADO para su
+ * imagen Open Graph (`loadCoverForOg`, T-052; el path sale de la fila, nunca del request).
+ * Cualquier otro uso de este cliente anula RLS sin que
  * nadie lo note; el llamador es responsable de verificar el permiso ANTES de invocarlo (este
  * cliente no verifica nada por sí mismo, sólo bypassa).
  */

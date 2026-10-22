@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 // El predicado vive en un modulo plano para que el test de paridad ejecute ESTA
 // misma funcion en vez de reconstruirla parseando el fuente (ver locator.mjs).
 import { hasLocator } from "@/lib/validation/locator.mjs";
