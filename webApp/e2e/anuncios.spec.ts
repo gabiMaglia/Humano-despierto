@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, DELFINA, SOL, assertStackUp, login, loginAs } from "./fixtures";
+import { expect, test, ALUMNA, DELFINA, SOL, assertStackUp, login, loginAs } from "./fixtures";
 import { messagesWithSubject } from "./mailpit";
 import { psql } from "./db";
 

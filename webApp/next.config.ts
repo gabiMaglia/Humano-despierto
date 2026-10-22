@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
-/** S-04 · Sin CSP todavía: el player embebe YouTube y una CSP correcta necesita `frame-src`
- * afinado más una pasada de verificación real, que es un ticket propio. Estas cuatro no tienen
- * ese riesgo y hoy no hay ninguna. `X-Frame-Options` está por `/certificado/<código>`, que es
- * público y hoy embebible por cualquiera. */
+/** S-04 · La CSP no vive aca: necesita un nonce por request y la arma `src/proxy.ts` con
+ * `buildCsp` (T-052). Estas cuatro son fijas. `frame-ancestors 'self'` de la CSP es la fuente
+ * de verdad contra el embebido (`/certificado/<código>` es público); `X-Frame-Options` queda
+ * para navegadores que no la entienden. */
 const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },

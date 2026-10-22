@@ -1,0 +1,79 @@
+import { beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
+import { MAX_CSP_REPORT_BYTES } from "@/lib/security/csp-report";
+import * as route from "./route";
+
+const VALID = JSON.stringify({
+  "csp-report": {
+    "document-uri": "http://localhost:3000/entrar/nueva-clave?code=secreto",
+    "blocked-uri": "http://127.0.0.1:54321/storage/v1/object/sign/uploads/a.jpg?token=eyJ.x.y",
+    "violated-directive": "img-src",
+    disposition: "report",
+  },
+});
+
+function post(body: string, headers: Record<string, string> = {}): Promise<Response> {
+  return route.POST(
+    new Request("http://localhost:3000/api/csp-report", {
+      method: "POST",
+      headers: { "content-type": "application/csp-report", ...headers },
+      body,
+    }),
+  );
+}
+
+let logSpy: MockInstance;
+
+describe("POST /api/csp-report", () => {
+  beforeEach(() => {
+    logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("valido: 204 sin cuerpo y UNA linea csp_violation sin query strings", async () => {
+    const res = await post(VALID);
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe("");
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    const line = JSON.parse(String(logSpy.mock.calls[0][0]));
+    expect(line).toEqual({
+      level: "warn",
+      event: "csp_violation",
+      blocked_uri: "http://127.0.0.1:54321/storage/v1/object/sign/uploads/a.jpg",
+      violated_directive: "img-src",
+      document_uri: "http://localhost:3000/entrar/nueva-clave",
+      disposition: "report",
+    });
+    expect(String(logSpy.mock.calls[0][0])).not.toMatch(/secreto|token=/);
+  });
+
+  it("acepta tambien application/json y application/reports+json", async () => {
+    for (const ct of ["application/json", "application/reports+json; charset=utf-8"]) {
+      expect((await post(VALID, { "content-type": ct })).status).toBe(204);
+    }
+  });
+
+  it("otro content-type: 415 y nada al log", async () => {
+    expect((await post(VALID, { "content-type": "text/plain" })).status).toBe(415);
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("cuerpo no-JSON: 400 y nada al log", async () => {
+    expect((await post("{no es json")).status).toBe(400);
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("JSON con forma desconocida: 400 y nada al log", async () => {
+    expect((await post(JSON.stringify({ hola: 1 }))).status).toBe(400);
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("cuerpo mas grande que el tope: 413 aunque content-length mienta", async () => {
+    const big = JSON.stringify({ "csp-report": { "violated-directive": "img-src", x: "a".repeat(MAX_CSP_REPORT_BYTES) } });
+    expect((await post(big)).status).toBe(413);
+    expect((await post(VALID, { "content-length": String(MAX_CSP_REPORT_BYTES + 1) })).status).toBe(413);
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("solo exporta POST: cualquier otro metodo es 405 de Next", () => {
+    expect(Object.keys(route).sort()).toEqual(["POST"]);
+  });
+});

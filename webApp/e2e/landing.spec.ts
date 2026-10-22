@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { assertStackUp } from "./fixtures";
+import { expect, test, assertStackUp } from "./fixtures";
 
 // T-053: la portada no inventa nada. Se siembran 3 reseñas de 5 estrellas con texto + 1 oculta
 // sobre un curso sin otros specs encima, y se limpian al terminar.

@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ADMIN, ALUMNA, assertStackUp, login, loginAs } from "./fixtures";
+import { expect, test, ADMIN, ALUMNA, assertStackUp, login, loginAs } from "./fixtures";
 import { psql } from "./db";
 
 const ALUMNA_ID = "d0000000-0000-4000-8000-000000000003";

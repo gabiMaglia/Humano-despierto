@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, DELFINA, login, nonPreviewLessonHref } from "./fixtures";
+import { expect, test, ALUMNA, DELFINA, login, nonPreviewLessonHref } from "./fixtures";
 
 test("inscripta: una leccion no-preview muestra el iframe de YouTube", async ({ browser, page }) => {
   const href = await nonPreviewLessonHref(browser);
