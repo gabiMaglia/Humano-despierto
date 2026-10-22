@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 import { hasLocator } from "@/lib/validation/locator.mjs";
 
 // Espejo de los CHECK de 0034 (largo y `text_has_locator`). La defensa es la base; esto traduce el
