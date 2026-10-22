@@ -54,6 +54,26 @@ export async function authLinkFor(
   return link!;
 }
 
+const INVITATION_SUBJECT = "Te invitamos a enseñar en Humano Despierto";
+
+export async function invitationLinkFor(request: APIRequestContext, email: string): Promise<string> {
+  let link: string | null = null;
+  await expect
+    .poll(
+      async () => {
+        for (const summary of (await messagesTo(request, email)).filter((m) => m.Subject === INVITATION_SUBJECT)) {
+          const msg = (await (await request.get(`${MAILPIT}/api/v1/message/${summary.ID}`)).json()) as MailpitMessage;
+          link = (msg.Text || msg.HTML).match(/https?:\/\/[^\s"'<>]+\/invitacion\/[A-Za-z0-9_-]{43}/)?.[0] ?? null;
+          if (link) return true;
+        }
+        return false;
+      },
+      { timeout: 15_000, message: `no llegó a Mailpit la invitación para ${email}` },
+    )
+    .toBe(true);
+  return link!;
+}
+
 export async function welcomeCount(request: APIRequestContext, email: string): Promise<number> {
   return (await messagesTo(request, email)).filter((m) => m.Subject === WELCOME_SUBJECT).length;
 }
