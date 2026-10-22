@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { ALUMNA, assertStackUp } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, test, ALUMNA, assertStackUp } from "./fixtures";
 import { ADMIN, PASSWORD, fillLogin, fillRegister, freshEmail, loginAt, register } from "./account";
 import { authLinkFor, invitationLinkFor } from "./mailpit";
 

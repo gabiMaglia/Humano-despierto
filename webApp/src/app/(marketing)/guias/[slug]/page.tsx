@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
 import SectionDivider from "@/components/atoms/SectionDivider";
 import StatBlock from "@/components/atoms/StatBlock";
+import { SITE_OG_IMAGE } from "@/lib/og/site";
 import { getTeacherBySlug } from "@/lib/server/guias";
 import { toRoman } from "@/lib/utils/roman";
 
@@ -19,7 +20,8 @@ export async function generateMetadata(
     title: teacher.fullName,
     description,
     alternates: { canonical: `/guias/${slug}` },
-    openGraph: { title: teacher.fullName, description, url: `/guias/${slug}`, type: "profile" },
+    // Un openGraph propio reemplaza entero el de la raiz, imagen incluida: va explicita.
+    openGraph: { title: teacher.fullName, description, url: `/guias/${slug}`, type: "profile", images: [SITE_OG_IMAGE] },
   };
 }
 

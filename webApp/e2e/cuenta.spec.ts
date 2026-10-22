@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type Page } from "@playwright/test";
-import { ALUMNA, assertStackUp } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, test, ALUMNA, assertStackUp } from "./fixtures";
 import { authLinkFor, messagesTo, welcomeCount } from "./mailpit";
 import { ADMIN, DOCENTE, PASSWORD, freshEmail, loginAt, register } from "./account";
 

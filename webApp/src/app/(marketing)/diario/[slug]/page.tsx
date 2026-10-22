@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/atoms/Breadcrumb";
+import { SITE_OG_IMAGE } from "@/lib/og/site";
 import { getPostBySlug } from "@/lib/server/diario";
 import { formatCertificateDate } from "@/lib/utils/format";
 
@@ -29,6 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `/diario/${slug}`,
       type: "article",
       publishedTime: post.publishedAt,
+      // Un openGraph propio reemplaza entero el de la raiz, imagen incluida: va explicita.
+      images: [SITE_OG_IMAGE],
     },
   };
 }

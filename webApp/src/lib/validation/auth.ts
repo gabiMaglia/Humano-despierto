@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 
 // Espejo de `minimum_password_length` en supabase/config.toml. 72 es el tope de bcrypt: GoTrue
 // rechaza más largo y es mejor decirlo en el formulario que devolver un error genérico.

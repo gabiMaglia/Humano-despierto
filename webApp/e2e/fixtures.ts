@@ -1,4 +1,67 @@
-import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type APIRequestContext,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
+
+// ---------------------------------------------------------------- T-052 · guard de CSP
+// El segundo parametro de cada fixture se llama `provide` y no `use`: con `use` la regla de hooks
+// de React lo toma por el hook de React 19 y falla el lint.
+// Todo spec importa `test` de aca (csp.spec.ts lo verifica). Cualquier violacion de CSP,
+// Report-Only incluida, en cualquier documento que abra el test es un test en rojo: ese verde
+// es el criterio para pasar a enforce.
+type Violation = { directive: string; blocked: string; doc: string };
+
+export const test = base.extend<{ cspGuard: void; allowCsp: { allowed: boolean } }>({
+  allowCsp: async ({}, provide) => {
+    await provide({ allowed: false });
+  },
+  cspGuard: [
+    async ({ context, browser, allowCsp }, provide, testInfo) => {
+      const seen: Violation[] = [];
+      const arm = async (ctx: BrowserContext) => {
+        // A nivel contexto: cubre toda pagina y toda navegacion, tambien las ya abiertas.
+        await ctx.exposeBinding("__reportCsp", (_source, v: Violation) => void seen.push(v));
+        await ctx.addInitScript(() => {
+          document.addEventListener("securitypolicyviolation", (e) => {
+            (window as unknown as { __reportCsp: (v: unknown) => void }).__reportCsp({
+              directive: e.effectiveDirective,
+              blocked: e.blockedURI,
+              doc: e.documentURI,
+            });
+          });
+        });
+        // Segunda red: Chrome escribe cada violacion (tambien las Report-Only) en la consola.
+        ctx.on("console", (m) => {
+          if (/Content Security Policy/i.test(m.text())) seen.push({ directive: "console", blocked: m.text(), doc: m.page()?.url() ?? "" });
+        });
+      };
+      await arm(context);
+      // Specs que abren su propio contexto (browser.newPage/newContext) tambien quedan cubiertos.
+      // newPage pasa por newContext. workers=1 y se restaura al terminar el test.
+      const originalNewContext = browser.newContext.bind(browser);
+      browser.newContext = async (...args: Parameters<Browser["newContext"]>) => {
+        const ctx = await originalNewContext(...args);
+        await arm(ctx);
+        return ctx;
+      };
+      try {
+        await provide();
+      } finally {
+        browser.newContext = originalNewContext;
+      }
+      if (!allowCsp.allowed && seen.length) {
+        testInfo.annotations.push({ type: "csp", description: JSON.stringify(seen) });
+        throw new Error(`Violaciones de CSP: ${JSON.stringify(seen, null, 2)}`);
+      }
+    },
+    { auto: true },
+  ],
+});
+export { expect };
 
 export interface SeedUser {
   email: string;

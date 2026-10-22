@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, SOL, login, loginAs, nonPreviewLessonHref } from "./fixtures";
+import { expect, test, ALUMNA, SOL, login, loginAs, nonPreviewLessonHref } from "./fixtures";
 
 // T-030 · el flujo del ticket de punta a punta. El título lleva marca de tiempo: el stack local es
 // compartido y la pregunta queda (no hay acceso a la base desde Playwright para limpiarla).

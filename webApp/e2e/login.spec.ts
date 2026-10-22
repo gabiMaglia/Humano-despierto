@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { ALUMNA, login } from "./fixtures";
+import { expect, test, ALUMNA, login } from "./fixtures";
 
 test("alumna entra y llega a /panel con la sesion en cookie", async ({ page, context }) => {
   await login(page, ALUMNA);
