@@ -87,7 +87,12 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
                                     chapters, resources, diario posts
 /panel/admin                        Roles, manual enrollments, publish        [admin]
 /panel/admin/resenas                Review moderation: report queue, hide     [admin]
+/api/csp-report                     POST only: logs csp_violation (no query strings), no rate limit yet
+/opengraph-image                    Brand OG image (PNG 1200x630, vendored Cinzel, no network)
+/cursos/[slug]/opengraph-image-<h>  Course OG image: cover (jpg/png) or generative card; 404 if not
+                                    published. Next adds the -<hash> suffix under a dynamic segment
 ```
+Any unknown route renders `src/app/not-found.tsx` (404, `noindex` injected by Next).
 `/guias/[slug]` **is** the "Maestra" screen from the original 9-screen plan, renamed.
 Auth is enforced twice: `src/proxy.ts` (session + JWT role for routing) and the server layouts
 under `(app)/`, which re-read `profiles.role`.
@@ -99,7 +104,7 @@ under `(app)/`, which re-read `profiles.role`.
   credentials (see "External dependencies"); e2e only intercepts `/auth/v1/authorize`.
 - **Profiles are not editable** and there is no Storage usage (T-042).
 - **Mail transport is a bare SMTP client for Mailpit**: no AUTH, no TLS (T-054).
-- **No rate limiting, no error capture, no CSP** (SP-6).
+- **No rate limiting, no error capture** (SP-6). The CSP ships Report-Only (T-052) until its enforce criterion is met.
 
 ## Architecture
 ADRs live in `engram/02_architecture.md` (ADR-001..013).
@@ -172,6 +177,15 @@ covered by mutation tests that fail loudly if you regress them.
    (`columnasConSesion`, `tests/locator-session-class.test.mjs`), not in the anon one. The
    owner teacher (`teacher_id` **and** `profiles.role = 'teacher'`) and the admin open the player
    to answer and moderate, but never write progress or notes (ADR-003 as extended by T-030).
+8. **The CSP lives in `src/proxy.ts`, built by `buildCsp` (`src/lib/security/csp.ts`), with a
+   nonce per request** (T-052). That is why the root layout calls `await connection()`: a
+   prerendered page has no nonce and its scripts die under enforce. Do not make a page static.
+   `style-src 'unsafe-inline'` is deliberate (inline `style={{}}` everywhere) until the reskin.
+   It ships as **Report-Only**; `CSP_ENFORCE=true` only renames the header. Every Playwright test
+   imports `test` from `e2e/fixtures.ts`, whose `cspGuard` fails the test on any violation: that
+   suite green in dev and with `E2E_PROD=1`, `check-seo.sh` green against `next start`, and a
+   manual player session are the criterion to enforce. A new third-party origin goes into
+   `buildCsp` with its test, never into a page.
 
 **Review moderation** (T-037, ADR-012): only the course's teacher or an admin can report a review
 (`course_review_reports`, RLS via `can_report_review`, which reads `profiles.role`). Hiding,

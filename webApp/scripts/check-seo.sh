@@ -133,5 +133,13 @@ else
   [ "$c" = "404" ] && echo "  ok     OG de curso inexistente 404" || { echo "  FALLA  OG de curso inexistente '$c'"; fail=1; }
 fi
 
+echo "== 404 real con pagina propia (c.5) =="
+nf=$(curl -s -w '\n%{http_code}' "$BASE/ruta-que-no-existe-t052")
+code=$(tail -n1 <<<"$nf")
+if [ "$code" != "404" ]; then echo "  FALLA  ruta inexistente respondio '$code'"; fail=1
+elif ! grep -q 'name="robots" content="[^"]*noindex' <<<"$nf"; then echo "  FALLA  la 404 no lleva noindex"; fail=1
+elif ! grep -q "Este camino no existe" <<<"$nf"; then echo "  FALLA  la 404 no es la pagina propia"; fail=1
+else echo "  ok     404 propia con noindex"; fi
+
 [ "$fail" -eq 0 ] && echo "SEO OK" || echo "SEO CON FALLAS"
 exit "$fail"

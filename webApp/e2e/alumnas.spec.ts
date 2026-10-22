@@ -28,7 +28,8 @@ test("curso ajeno da 404 para la docente", async ({ page, request }) => {
   await page.goto(`/panel/docente/cursos/${courseId("reiki-nivel-1")}/alumnas`);
   // El status HTTP llega 200 porque loading.tsx ya empezó a streamear (igual que el editor del curso);
   // lo que importa es que se renderiza notFound() y ninguna alumna ajena.
-  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  // T-052: la 404 de Next (heading "404") paso a ser la propia del sitio; misma intencion.
+  await expect(page.getByText("Este camino no existe")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Delfina");
 });
 

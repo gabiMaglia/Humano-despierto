@@ -117,3 +117,26 @@ test("guard muerde: tambien en una pagina abierta con browser.newPage()", async 
   await other.close();
 });
 
+// ---------------------------------------------------------------- c.5 · 404 propia · c.7 · embebido
+test("c.5 · ruta inexistente: 404 real, pagina propia, noindex", async ({ page }) => {
+  const res = await page.goto("/ruta-que-no-existe-t052");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByText("Este camino no existe")).toBeVisible();
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(page.getByRole("link", { name: /cursos/i })).toHaveAttribute("href", "/cursos");
+});
+
+test("c.5 · un curso inexistente cae en la misma 404 con status 404", async ({ page }) => {
+  const res = await page.goto("/cursos/no-existe-t052");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByText("Este camino no existe")).toBeVisible();
+});
+
+// Por cabecera: un iframe cross-origin exige un segundo origen servido, y en Report-Only
+// frame-ancestors solo reporta; el bloqueo efectivo hoy lo hace X-Frame-Options.
+test("c.7 · /certificado no se deja embeber desde otro origen", async ({ request }) => {
+  const res = await request.get("/certificado/codigo-inexistente-t052");
+  const policy = Object.entries(res.headers()).find(([h]) => /^content-security-policy/.test(h))?.[1] ?? "";
+  expect(policy).toContain("frame-ancestors 'self'");
+  expect(res.headers()["x-frame-options"]).toBe("SAMEORIGIN");
+});
