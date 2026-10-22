@@ -1,6 +1,7 @@
 import "server-only";
 import net from "node:net";
 import { stripHeaderInjection, formatAddress } from "@/lib/mail/address.mjs";
+import { assertTransportTimeout, TRANSPORT_TIMEOUT_MS } from "@/lib/server/mail/limits";
 
 // T-020 · capa de transporte de mail — criterio 5: "reemplazable, el día que haya proveedor
 // real se cambia el transporte y nada más". Por eso la interfaz es chica (un solo método) y no
@@ -26,10 +27,29 @@ export interface MailMessage {
   subject: string;
   html: string;
   text: string;
+  /** Clave de dedupe de `mail_log` con prefijo de entorno (ADR-014, E3); SMTP la ignora. */
+  idempotencyKey?: string;
 }
 
+/** Invariante de toda implementación (ADR-014, E1): `send` termina —resuelve o rechaza— antes
+ * de `HARD_CAP_MS` contando conexión, respuesta y cuerpo, y nunca sigue redirects. El tope de
+ * `send.ts` es la malla, no el límite. */
 export interface MailTransport {
   send(message: MailMessage): Promise<void>;
+}
+
+/** `permanent`: reintentar no cambia el resultado (4xx de config o de payload). `send.ts` lo
+ * propaga para que `notify.ts` retire el turno de `mail_log` sin gastar intentos. */
+export class MailTransportError extends Error {
+  constructor(
+    message: string,
+    readonly permanent: boolean,
+    readonly status?: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "MailTransportError";
+  }
 }
 
 /** RFC 2047 encoded-word: los nombres reales van a tener tildes/ñ. Si el valor es ASCII puro se
@@ -169,10 +189,12 @@ export interface SmtpTransportOptions {
 }
 
 export class SmtpTransport implements MailTransport {
-  constructor(private readonly options: SmtpTransportOptions) {}
+  constructor(private readonly options: SmtpTransportOptions) {
+    assertTransportTimeout(options.timeoutMs ?? TRANSPORT_TIMEOUT_MS);
+  }
 
   async send(message: MailMessage): Promise<void> {
-    const { host, port, timeoutMs = 5000 } = this.options;
+    const { host, port, timeoutMs = TRANSPORT_TIMEOUT_MS } = this.options;
     const socket = net.connect({ host, port });
 
     // UN deadline para TODO el diálogo (conectar + EHLO + ... + QUIT), no solo el connect —

@@ -1,6 +1,6 @@
 import "server-only";
 import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
-import { sendMail } from "@/lib/server/mail/send";
+import { sendMail, type SendMailInput, type SendResult } from "@/lib/server/mail/send";
 import { renderEnrollmentGrantedMail } from "@/lib/server/mail/templates/enrollment-granted";
 import { renderCourseCompletedMail } from "@/lib/server/mail/templates/course-completed";
 import { reviewAnchorPath } from "@/lib/reviews/links.mjs";
@@ -66,6 +66,27 @@ export type MailType =
 interface MailClaim {
   id: string;
   claimedAt: string;
+  // La tupla viaja con el reclamo: la Idempotency-Key sale de acá y no puede divergir del turno.
+  recipientUserId: string;
+  mailType: MailType;
+  scopeKey: string;
+}
+
+// Resend acepta claves de 1 a 256 caracteres.
+const IDEMPOTENCY_KEY_MAX = 256;
+
+/**
+ * ADR-014 (E3): la clave de dedupe de `mail_log` con el host de `getSiteUrl()` adelante. Un
+ * entorno con la base clonada de prod y la misma cuenta de Resend no recibe la respuesta de
+ * prod ni un 409. Sin clave el mail sale igual: es lo que pasaba antes de T-054.
+ */
+export function mailIdempotencyKey(type: MailType, recipientUserId: string, scopeKey: string): string | undefined {
+  const key = `${new URL(getSiteUrl()).host}/${type}/${recipientUserId}/${scopeKey}`;
+  if (key.length > IDEMPOTENCY_KEY_MAX) {
+    console.warn("mail_idempotency_key_too_long", { mail_type: type, length: key.length });
+    return undefined;
+  }
+  return key;
 }
 
 /**
@@ -119,7 +140,7 @@ async function claimOrReclaimMailSlot(
   }
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.id) return null;
-  return { id: row.id, claimedAt: row.claimed_at };
+  return { id: row.id, claimedAt: row.claimed_at, recipientUserId, mailType, scopeKey };
 }
 
 /**
@@ -151,6 +172,44 @@ async function confirmMailSent(claim: MailClaim): Promise<void> {
       `[mail] confirmación de ${claim.id} llegó tarde — el turno ya había sido retomado por otro intento; no se tocó nada (correcto, no un error)`
     );
   }
+}
+
+/** `name` del proveedor reducido al formato que acepta el CHECK de 0036: el texto libre del
+ * proveedor no entra a la base, y un valor raro no puede hacer fallar el retiro. */
+function permanentCause(status: number | undefined, code: string | undefined): string {
+  const name = (code ?? "").toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64);
+  return `permanent:${String(status ?? 0).padStart(3, "0").slice(0, 3)}/${name || "unknown"}`;
+}
+
+/**
+ * Falla permanente (ADR-014): reintentar no cambia nada, así que el turno se retira sin gastar
+ * intentos. `attempts = 3` es el `p_max_attempts` de 0022: ese turno no se reclama más. Mismo
+ * fencing que `confirmMailSent`. `last_error` (0036, E2) deja la causa para que la recuperación
+ * de un 401/403 por mala config borre solo esas filas y nunca un 409.
+ */
+async function retireMailSlot(claim: MailClaim, result: SendResult): Promise<void> {
+  const db = getAdminSupabaseClient();
+  const lastError = permanentCause(result.status, result.code);
+  const { error } = await db
+    .from("mail_log")
+    .update({ attempts: 3, last_error: lastError })
+    .eq("id", claim.id)
+    .eq("claimed_at", claim.claimedAt)
+    .is("sent_at", null);
+  if (error) console.error("mail_slot_retire_failed", { mail_type: claim.mailType, error: error.message });
+  else console.warn("mail_slot_retired", { mail_type: claim.mailType, last_error: lastError });
+}
+
+/** Manda con la clave del turno y cierra el turno según el resultado: confirmado, retirado, o
+ * intacto (reintentable, para el próximo disparo). */
+async function deliverClaimedMail(claim: MailClaim, mail: Omit<SendMailInput, "idempotencyKey">): Promise<SendResult> {
+  const result = await sendMail({
+    ...mail,
+    idempotencyKey: mailIdempotencyKey(claim.mailType, claim.recipientUserId, claim.scopeKey),
+  });
+  if (result.ok) await confirmMailSent(claim);
+  else if (result.permanent) await retireMailSlot(claim, result);
+  return result;
 }
 
 interface CourseInfo {
@@ -226,7 +285,8 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
       // canonica, unica por definicion. La leccion general: **una cota sobre una tupla vale lo
       // que valga la canonicidad de sus componentes**, y un `text` que viene del request no es
       // canonico de nada.
-      const claim = await claimOrReclaimMailSlot(input.studentId, "enrollment_granted", course.id);
+      // `student.id` canónico, no `input.studentId`: misma lección que la ronda 8 para la docente.
+      const claim = await claimOrReclaimMailSlot(student.id, "enrollment_granted", course.id);
       if (claim) {
         try {
           const { subject, html, text } = renderEnrollmentGrantedMail({
@@ -235,8 +295,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             teacherName: course.teacherName,
             courseUrl: `${getSiteUrl()}/cursos/${course.slug}`,
           });
-          const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-          if (result.ok) await confirmMailSent(claim);
+          await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
         } catch (err) {
           console.error("[mail] mail de inscripción a la alumna falló:", err);
         }
@@ -268,8 +327,7 @@ export async function notifyEnrollmentActivated(input: { studentId: string; cour
             courseTitle: course.title,
             courseUrl: `${getSiteUrl()}/panel/docente/cursos/${course.id}`,
           });
-          const result = await sendMail({ to: { email: teacher.email, name: teacher.name }, subject, html, text });
-          if (result.ok) await confirmMailSent(claim);
+          await deliverClaimedMail(claim, { to: { email: teacher.email, name: teacher.name }, subject, html, text });
         } catch (err) {
           console.error("[mail] aviso de alumna nueva a la docente falló:", err);
         }
@@ -297,15 +355,14 @@ export async function notifyWelcome(input: { userId: string }): Promise<void> {
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const claim = await claimOrReclaimMailSlot(input.userId, "welcome", "account");
+    const claim = await claimOrReclaimMailSlot(student.id, "welcome", "account");
     if (!claim) return;
 
     const { subject, html, text } = renderWelcomeMail({
       studentName: student.name,
       catalogUrl: `${getSiteUrl()}/cursos`,
     });
-    const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-    if (result.ok) await confirmMailSent(claim);
+    await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
   } catch (err) {
     console.error("[mail] notifyWelcome falló:", err);
   }
@@ -330,7 +387,7 @@ export async function notifyCourseCompleted(input: {
     const student = await getUserEmail(input.userId);
     if (!student) return;
 
-    const claim = await claimOrReclaimMailSlot(input.userId, "course_completed", input.certificateCode);
+    const claim = await claimOrReclaimMailSlot(student.id, "course_completed", input.certificateCode);
     if (!claim) return;
 
     const { subject, html, text } = renderCourseCompletedMail({
@@ -340,8 +397,7 @@ export async function notifyCourseCompleted(input: {
       // Sin slug (la lectura del curso falló) el link va al panel: mejor que un ancla rota.
       reviewUrl: `${getSiteUrl()}${input.courseSlug ? reviewAnchorPath(input.courseSlug) : "/panel"}`,
     });
-    const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-    if (result.ok) await confirmMailSent(claim);
+    await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
   } catch (err) {
     console.error("[mail] notifyCourseCompleted falló:", err);
   }
@@ -372,8 +428,7 @@ export async function notifyEnrollmentRejected(input: {
       reason: input.reason,
       catalogUrl: `${getSiteUrl()}/cursos`,
     });
-    const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-    if (result.ok) await confirmMailSent(claim);
+    await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
   } catch (err) {
     console.error("[mail] notifyEnrollmentRejected falló:", err);
   }
@@ -454,10 +509,8 @@ export async function notifyAnnouncementPublished(input: { announcementId: strin
           announcementBody: announcement.body,
           courseUrl,
         });
-        const result = await sendMail({ to: { email: student.email, name: student.name }, subject, html, text });
-        if (!result.ok) return "failed";
-        await confirmMailSent(claim);
-        return "sent";
+        const result = await deliverClaimedMail(claim, { to: { email: student.email, name: student.name }, subject, html, text });
+        return result.ok ? "sent" : "failed";
       },
     );
 
