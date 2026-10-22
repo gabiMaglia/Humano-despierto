@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import PanelTabs from "@/components/teacher/PanelTabs";
 import AnnouncementComposer from "@/components/teacher/AnnouncementComposer";
 import PublishAnnouncementControl from "@/components/teacher/PublishAnnouncementControl";
@@ -30,7 +30,7 @@ export default async function TeacherAnnouncementsPage({ searchParams }: Props) 
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <PanelTabs active="anuncios" />
         <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">

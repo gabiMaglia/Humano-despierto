@@ -41,11 +41,15 @@ test("el catálogo muestra el rating del curso con reseñas", async ({ page }) =
   await expect(c.locator(".sr-only")).toContainText("4.5 de 5 estrellas");
 });
 
-test("un curso sin reseñas no dibuja ninguna señal", async ({ page }) => {
+// ADR-015 / spec Brote: sin reseñas la tarjeta dice que el curso es nuevo (decisión del PO
+// 2026-10-22). Sigue sin estrellas, sin promedio y sin conteo inventado.
+test("un curso sin reseñas no dibuja ninguna señal de puntaje", async ({ page }) => {
   await page.goto("/cursos");
   const sin = card(page, "reiki-nivel-1");
   await expect(sin).toBeVisible();
-  await expect(sin).not.toContainText("reseña");
+  await expect(sin).toContainText("Curso nuevo, todavía sin reseñas");
+  await expect(sin).not.toContainText(/\d+ reseñas?/);
+  await expect(sin).not.toContainText("estrellas");
   await expect(sin).not.toContainText("0,0");
   await expect(sin.locator(".sr-only")).toHaveCount(0);
 });

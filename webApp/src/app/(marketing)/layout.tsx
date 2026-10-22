@@ -1,5 +1,5 @@
-import Nav from "@/components/layout/Nav";
-import Footer from "@/components/layout/Footer";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 
 export default function MarketingLayout({
   children,
@@ -8,9 +8,9 @@ export default function MarketingLayout({
 }) {
   return (
     <>
-      <Nav />
-      <div className="pt-[59px]">{children}</div>
-      <Footer />
+      <SiteHeader />
+      <div className="pt-16">{children}</div>
+      <SiteFooter />
     </>
   );
 }

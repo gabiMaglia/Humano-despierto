@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import { requireTeacher } from "@/lib/server/teacher";
 import { getCourseRoster } from "@/lib/server/teacher-metrics";
 import { formatCertificateDate } from "@/lib/utils/format";
@@ -37,7 +37,7 @@ export default async function CourseRosterPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
           <Link

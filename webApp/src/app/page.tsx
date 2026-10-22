@@ -1,6 +1,5 @@
-import Starfield from "@/components/cosmos/Starfield";
-import Nav from "@/components/layout/Nav";
-import Footer from "@/components/layout/Footer";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import HeroSection from "@/components/landing/HeroSection";
 import DisciplinesBar from "@/components/landing/DisciplinesBar";
 import FeaturedCourses from "@/components/landing/FeaturedCourses";
@@ -17,8 +16,7 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-fondo text-tinta">
-      <Starfield />
-      <Nav />
+      <SiteHeader />
       <main>
         <HeroSection stats={stats} />
         <DisciplinesBar disciplines={disciplines} />
@@ -28,7 +26,7 @@ export default async function LandingPage() {
         <TestimonialsSection testimonials={testimonials} />
         <ClosingCTA />
       </main>
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }

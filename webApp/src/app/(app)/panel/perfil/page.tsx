@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import AvatarForm from "@/components/profile/AvatarForm";
 import ProfileForm from "@/components/profile/ProfileForm";
 import { getOwnProfile } from "@/lib/server/profile";
@@ -19,7 +19,7 @@ export default async function PerfilPage() {
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
           <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">— Tu ficha —</p>

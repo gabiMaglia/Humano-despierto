@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCourseRoster } from "@/lib/server/teacher-metrics";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import { requireTeacher, getTeacherCourseDetail } from "@/lib/server/teacher";
 import CourseForm from "@/components/teacher/CourseForm";
 import ModuleBlock from "@/components/teacher/ModuleBlock";
@@ -33,7 +33,7 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">
           <div>

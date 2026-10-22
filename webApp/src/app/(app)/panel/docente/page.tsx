@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import PanelTabs from "@/components/teacher/PanelTabs";
 import TeacherReportList from "@/components/teacher/TeacherReportList";
 import { requireTeacher, listTeacherCourses } from "@/lib/server/teacher";
@@ -19,7 +19,7 @@ export default async function TeacherPanelPage() {
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <PanelTabs active="cursos" />
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">

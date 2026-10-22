@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import { requireTeacher, getTeacherLessonDetail } from "@/lib/server/teacher";
 import LessonFieldsForm from "@/components/teacher/LessonFieldsForm";
 import VideoAttachForm from "@/components/teacher/VideoAttachForm";
@@ -28,7 +28,7 @@ export default async function TeacherLessonEditorPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
           <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">

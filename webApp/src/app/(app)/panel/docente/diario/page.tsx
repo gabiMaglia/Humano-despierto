@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import PanelTabs from "@/components/teacher/PanelTabs";
 import { requireTeacher } from "@/lib/server/teacher";
 import { listTeacherPosts } from "@/lib/server/diario";
@@ -17,7 +17,7 @@ export default async function TeacherDiarioPage() {
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <PanelTabs active="diario" />
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">

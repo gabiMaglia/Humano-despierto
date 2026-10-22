@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import ProgressRing from "@/components/atoms/ProgressRing";
 import LearningCourseRow from "@/components/molecules/LearningCourseRow";
 import LearningTabsNav from "@/components/molecules/LearningTabsNav";
@@ -41,9 +41,8 @@ export default async function DashboardPage({
   if (courses.length === 0 && saved.length === 0 && requests.length === 0) {
     return (
       <div className="min-h-screen bg-fondo text-tinta">
-        <Nav />
+        <SiteHeader />
         <div className="flex flex-col items-center justify-center gap-5 px-6 py-32 text-center">
-          <span className="text-4xl text-miel-800">✦</span>
           <p className="font-display text-eyebrow tracking-[0.25em] text-suave">— El umbral de tu camino —</p>
           <h1 className="max-w-md font-display text-display-md text-tinta">
             Todavía no empezaste ningún <em className="font-quote italic text-miel-800">recorrido</em>
@@ -80,7 +79,7 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-screen mt-[-5] bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
 
         {/* Welcome header */}
@@ -147,7 +146,6 @@ export default async function DashboardPage({
 
           {tabs.counts[tab] === 0 ? (
             <div className="tarjeta flex flex-col items-center gap-4 px-6 py-14 text-center">
-              <span className="font-display text-2xl text-bosque">✧</span>
               <p className="font-body text-sm text-suave">{EMPTY_TAB[tab]}</p>
               <Link href="/cursos" className="btn btn-outline">
                 Explorar el catálogo ↦

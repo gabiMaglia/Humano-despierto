@@ -22,7 +22,6 @@ export default async function FeaturedCourses() {
           {featured.map((course) => (
             <CourseCard
               key={course.slug}
-              num={course.romanNum ?? ""}
               tag={course.discipline}
               level={course.level}
               title={course.title}
@@ -30,7 +29,6 @@ export default async function FeaturedCourses() {
               desc={course.desc ?? ""}
               teacher={course.teacherName}
               price={formatPriceCents(course.priceCents, course.currency)}
-              moon={course.moonGlyph ?? undefined}
               featured={course.featured}
               slug={course.slug}
               coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}

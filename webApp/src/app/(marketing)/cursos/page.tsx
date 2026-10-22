@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Icon from "@/components/atoms/Icon";
 import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
 import PageHeader from "@/components/layout/PageHeader";
@@ -57,7 +58,7 @@ function FilterGroup({
                 item.active ? "border-linea bg-salvia-100 text-miel-800" : "border-linea text-transparent"
               }`}
             >
-              {item.active && "✦"}
+              {item.active && <Icon name="check" className="h-3 w-3" />}
             </span>
             <span className={`font-body text-sm flex-1 ${item.active ? "text-tinta" : "text-suave"}`}>
               {item.label}
@@ -143,7 +144,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
               <input type="hidden" name="duracion" value={state.durations.join(",")} />
             )}
             <div className="flex items-center gap-2.5 rounded-md border border-linea bg-papel px-3.5 py-2.5">
-              <span className="text-miel-800 text-sm">✦</span>
               <input
                 type="text"
                 name="q"
@@ -212,7 +212,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
           {filtered.length === 0 ? (
             <div className="tarjeta flex flex-col items-center gap-4 px-6 py-20 text-center">
-              <span className="font-display text-2xl text-bosque">✧</span>
               <p className="font-body text-sm text-suave max-w-sm">
                 Ningún curso del compendio coincide con estos filtros. Probá con otra combinación o
                 empezá de nuevo.
@@ -228,7 +227,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 {pageCourses.map((course) => (
                   <CourseCard
                     key={course.slug}
-                    num={course.romanNum ?? ""}
                     tag={course.discipline}
                     level={course.level}
                     title={course.title}
@@ -236,7 +234,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     desc={course.desc ?? ""}
                     teacher={course.teacherName}
                     price={formatPriceCents(course.priceCents, course.currency)}
-                    moon={course.moonGlyph ?? undefined}
                     featured={course.featured}
                     slug={course.slug}
                     rating={course.rating}

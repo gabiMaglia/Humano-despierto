@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Nav from "@/components/layout/Nav";
+import SiteHeader from "@/components/layout/SiteHeader";
 import AdminTabs, { type AdminTab } from "./AdminTabs";
 
 interface Props {
@@ -18,7 +18,7 @@ const DEFAULT_HEADING = (
 export default function AdminShell({ active, heading = DEFAULT_HEADING, children }: Props) {
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <Nav />
+      <SiteHeader />
       <div className="pt-16">
         <AdminTabs active={active} />
         <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">

@@ -34,7 +34,6 @@ export default async function CampusGeneralPage() {
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
-          <span className="text-3xl text-miel-800">✦</span>
           <p className="font-display text-eyebrow tracking-wide text-suave">— Todavía nadie escribió acá —</p>
           <p className="max-w-sm font-body text-sm text-suave">
             El hilo general recién arranca. Un espacio nuevo, no uno abandonado.

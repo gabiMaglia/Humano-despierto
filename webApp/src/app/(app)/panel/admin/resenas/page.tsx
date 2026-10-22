@@ -33,7 +33,7 @@ export default async function AdminReviewsPage() {
         {pending.length === 0 ? (
           // ADR-012 c.9: la cola vacía es el estado normal y tiene que verse deliberada.
           <p className="tarjeta p-6 font-body text-sm text-suave">
-            <span aria-hidden="true">✧ </span>No hay reportes pendientes. Cuando una guía reporte una reseña,
+            No hay reportes pendientes. Cuando una guía reporte una reseña,
             aparece acá con el texto completo.
           </p>
         ) : (
