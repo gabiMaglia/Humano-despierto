@@ -8,7 +8,8 @@
  * `server-only`— al bundle del browser, que Next rechaza en build (falla
  * real medida, no hipotética).
  */
-export interface AdminActionState {
+import type { RateLimitFields } from "@/lib/rate-limit/core";
+export interface AdminActionState extends RateLimitFields {
   error: string | null;
   success: string | null;
 }

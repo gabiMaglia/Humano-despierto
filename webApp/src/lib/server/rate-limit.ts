@@ -149,14 +149,15 @@ export interface WithRateLimitOptions<A extends unknown[]> {
 export function withRateLimit<A extends unknown[], R>(
   name: RateLimitName,
   fn: (...args: A) => Promise<R>,
-  onLimited: (denied: RateLimitDenied) => R = throwRateLimited,
+  // Recibe también los argumentos: hay respuestas limitadas que dependen de lo pedido (wishlist).
+  onLimited: (denied: RateLimitDenied, args: NoInfer<A>) => NoInfer<R> = throwRateLimited,
   options: WithRateLimitOptions<A> = {},
 ): (...args: A) => Promise<R> {
   const rule = RATE_LIMITS[name];
   return async (...args: A): Promise<R> => {
     const who = options.subject ? await options.subject(...args) : await currentRateLimitSubject();
     const result = await limit(rateLimitKey(name, who), rule);
-    if (!result.ok) return onLimited(result);
+    if (!result.ok) return onLimited(result, args);
     return fn(...args);
   };
 }

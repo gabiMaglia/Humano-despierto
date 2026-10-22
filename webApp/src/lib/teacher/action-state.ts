@@ -7,7 +7,8 @@
  * `lib/server/teacher.ts`) rompe el build de Next apenas un Client Component
  * lo toca.
  */
-export interface TeacherActionState {
+import type { RateLimitFields } from "@/lib/rate-limit/core";
+export interface TeacherActionState extends RateLimitFields {
   error: string | null;
   success: string | null;
 }
