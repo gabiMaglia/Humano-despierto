@@ -1,4 +1,4 @@
-import { expect, test, ALUMNA, DELFINA } from "./fixtures";
+import { expect, test, userIdByEmail, ALUMNA, DELFINA } from "./fixtures";
 
 // El seed no trae reseñas: se siembran con service_role (única vía que no exige UI de alumna) y
 // se limpian al terminar. Curso con reseñas: tarot-iniciatico; sin reseñas: cualquier otro.
@@ -13,14 +13,12 @@ test.beforeAll(async ({ request }) => {
   test.skip(!SERVICE, "falta SUPABASE_SERVICE_ROLE_KEY (webApp/.env.local)");
   const c = await request.get(`${SUPABASE}/rest/v1/courses?select=id&slug=eq.${CON}`, { headers: H });
   courseId = (await c.json())[0].id;
-  const users = await (await request.get(`${SUPABASE}/auth/v1/admin/users?per_page=200`, { headers: H })).json();
-  const idOf = (email: string) => users.users.find((u: { email: string }) => u.email === email).id as string;
   await request.delete(`${SUPABASE}/rest/v1/course_reviews?course_id=eq.${courseId}`, { headers: H });
   const res = await request.post(`${SUPABASE}/rest/v1/course_reviews`, {
     headers: H,
     data: [
-      { course_id: courseId, user_id: idOf(ALUMNA.email), rating: 5, body: "Muy buen curso" },
-      { course_id: courseId, user_id: idOf(DELFINA.email), rating: 4, body: null },
+      { course_id: courseId, user_id: await userIdByEmail(request, ALUMNA.email), rating: 5, body: "Muy buen curso" },
+      { course_id: courseId, user_id: await userIdByEmail(request, DELFINA.email), rating: 4, body: null },
     ],
   });
   expect(res.ok(), await res.text()).toBe(true);
