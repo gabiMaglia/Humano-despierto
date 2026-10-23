@@ -37,7 +37,7 @@ export default function Avatar({ glyph, src, alt, size = "md", online, className
         )}
       </div>
       {online && (
-        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-papel bg-green-400" />
+        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-papel bg-exito" />
       )}
     </div>
   );

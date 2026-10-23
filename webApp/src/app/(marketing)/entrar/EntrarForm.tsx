@@ -206,7 +206,7 @@ export default function EntrarForm({ next, linkError }: Props) {
             />
 
             {error && (
-              <p role="alert" className="font-body text-xs text-red-400">
+              <p role="alert" className="font-body text-xs text-error">
                 {error}
               </p>
             )}

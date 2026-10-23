@@ -1,6 +1,5 @@
 import { getFeaturedTeacher } from "@/lib/server/guias";
-import Image from "next/image";
-import { placeholderPortrait, unsplashUrl } from "@/content/placeholder-photos";
+import Monogram from "@/components/atoms/Monogram";
 
 export default async function MaestraFeature() {
   const maestra = await getFeaturedTeacher();
@@ -10,16 +9,8 @@ export default async function MaestraFeature() {
     <section className="px-6 py-24 md:px-12">
       <div className="mx-auto max-w-7xl grid gap-16 md:grid-cols-[1fr_1.1fr] items-center">
 
-        {/* PLACEHOLDER (ADR-015): retrato de muestra hasta que la guía destacada tenga el suyo acá (T-061). */}
-        <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-salvia shadow-lift">
-          <Image
-            src={unsplashUrl(placeholderPortrait(maestra.slug).id)}
-            alt=""
-            fill
-            sizes="(min-width: 768px) 45vw, 100vw"
-            className="object-cover"
-          />
-        </div>
+        {/* Sin avatar firmado en la guía destacada (D-62): iniciales, nunca un retrato de stock. */}
+        <Monogram name={maestra.fullName} size="lg" className="aspect-[4/5] rounded-lg" />
 
         {/* Text */}
         <div>

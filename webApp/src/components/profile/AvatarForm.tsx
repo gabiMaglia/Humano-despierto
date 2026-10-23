@@ -36,7 +36,7 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
           onChange={(e) => setTooBig(exceedsAvatarLimit(e.currentTarget.files?.[0]?.size ?? 0))}
           className="max-w-full font-body text-xs text-suave"
         />
-        {tooBig && <p role="alert" className="font-body text-xs text-red-400">La imagen pesa más de 2 MB.</p>}
+        {tooBig && <p role="alert" className="font-body text-xs text-error">La imagen pesa más de 2 MB.</p>}
         <button type="submit" disabled={uploading || tooBig} className="btn btn-primary">
           {uploading ? "Subiendo…" : "Subir imagen"}
         </button>

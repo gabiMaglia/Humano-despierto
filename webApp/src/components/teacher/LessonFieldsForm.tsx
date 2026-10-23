@@ -40,7 +40,7 @@ export default function LessonFieldsForm({ lesson }: { lesson: TeacherLessonFiel
         >
           {isPending ? "Guardando…" : "Guardar"}
         </button>
-        {state.error && <p className="font-body text-xs text-red-400">{state.error}</p>}
+        {state.error && <p className="font-body text-xs text-error">{state.error}</p>}
         {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
       </div>
     </form>

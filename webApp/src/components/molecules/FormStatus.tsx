@@ -4,7 +4,7 @@ import type { ActionState } from "@/lib/action-state";
 export default function FormStatus({ state }: { state: ActionState }) {
   if (state.error) {
     return (
-      <p role="alert" className="font-body text-xs text-red-400">
+      <p role="alert" className="font-body text-xs text-error">
         {state.error}
       </p>
     );

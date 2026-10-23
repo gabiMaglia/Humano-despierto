@@ -61,7 +61,7 @@ export default function EnrollmentRow({ enrollment }: { enrollment: AdminEnrollm
       )}
 
       {state.error && (
-        <p role="alert" className="w-full font-body text-xs text-red-400">
+        <p role="alert" className="w-full font-body text-xs text-error">
           {state.error}
         </p>
       )}

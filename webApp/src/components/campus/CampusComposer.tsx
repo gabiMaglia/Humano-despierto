@@ -43,7 +43,7 @@ export default function CampusComposer({ courseId, courseSlug, authorGlyph, plac
         </button>
       </div>
       {state.error && (
-        <p role="alert" className="mt-2 pl-11 font-body text-xs text-red-400">
+        <p role="alert" className="mt-2 pl-11 font-body text-xs text-error">
           {state.error}
         </p>
       )}

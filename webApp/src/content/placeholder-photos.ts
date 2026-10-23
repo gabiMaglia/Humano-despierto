@@ -2,10 +2,11 @@
  * PLACEHOLDER (ADR-015) · Fotos de Unsplash verificadas a mano, una por una, en
  * `design_handoff_humano_humano/reference/brote/README.md`. Lista cerrada: una foto nueva se mira
  * antes de entrar y su `alt` dice lo que se ve. Prohibida la 1469474968028-56623f02e42e (es la de
- * somosbuenavida.com). Los retratos el README sólo los marca como «retratos»: su alt no inventa rasgos. Un curso o una guía con portada/avatar propio usa el suyo, nunca estas.
+ * somosbuenavida.com). Sin retratos: una foto de stock de una persona junto
+ * al nombre de una guía real le atribuiría una cara ajena (decisión 3 del PO, QA T-060 D1). Un curso o una guía con portada/avatar propio usa el suyo, nunca estas.
  */
 
-export type PhotoUse = "hero" | "oficio" | "retrato";
+export type PhotoUse = "hero" | "oficio";
 
 export interface PlaceholderPhoto {
   id: string;
@@ -26,10 +27,6 @@ export const PLACEHOLDER_PHOTOS = [
   { id: "1567922045116-2a00fae2ed03", alt: "Cuenco de té entre hojas verdes, visto desde arriba", use: "oficio" },
   { id: "1447619297994-b829cc1ab44a", alt: "Dos manos abiertas con las palmas hacia arriba sobre fondo oscuro", use: "oficio" },
   { id: "1762162623066-89e462b3d8f0", alt: "Tres velas encendidas en la oscuridad", use: "oficio" },
-  { id: "1746410848551-ca40cdb57674", alt: "Retrato de muestra de una guía", use: "retrato" },
-  { id: "1544005313-94ddf0286df2", alt: "Retrato de muestra de una guía", use: "retrato" },
-  { id: "1692801439915-ef9194bf0951", alt: "Retrato de muestra de una guía", use: "retrato" },
-  { id: "1643224196036-a61f69ff4144", alt: "Retrato de muestra de una guía", use: "retrato" },
 ] as const satisfies readonly PlaceholderPhoto[];
 
 const byId = new Map<string, PlaceholderPhoto>(PLACEHOLDER_PHOTOS.map((p) => [p.id, p]));
@@ -66,13 +63,4 @@ export function placeholderForDiscipline(discipline: string | null | undefined):
   const d = normalize(discipline ?? "");
   const hit = d ? BY_DISCIPLINE.find(([root]) => d.includes(root)) : undefined;
   return photo(hit ? hit[1] : NEUTRAL);
-}
-
-const PORTRAITS = PLACEHOLDER_PHOTOS.filter((p) => p.use === "retrato");
-
-/** Retrato estable por guía (slug o id): la misma guía no cambia de cara entre renders. */
-export function placeholderPortrait(seed: string): PlaceholderPhoto {
-  let h = 0;
-  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return PORTRAITS[h % PORTRAITS.length];
 }

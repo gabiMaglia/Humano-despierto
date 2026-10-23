@@ -1,6 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
-import { placeholderPortrait, unsplashUrl } from "@/content/placeholder-photos";
+import Monogram from "@/components/atoms/Monogram";
 import type { PublicTeacherCard } from "@/lib/server/guias";
 
 export default function GuiaCard({
@@ -10,16 +9,9 @@ export default function GuiaCard({
     <Link href={`/guias/${slug}`} className="group block">
       <article className="tarjeta overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card cursor-pointer">
 
-        {/* PLACEHOLDER (ADR-015): PublicTeacherCard no trae el avatar firmado; hasta que lo traiga,
-            retrato de muestra estable por guía. */}
-        <div className="relative h-52 overflow-hidden bg-salvia">
-          <Image
-            src={unsplashUrl(placeholderPortrait(slug).id)}
-            alt=""
-            fill
-            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none"
-          />
+        {/* Sin avatar firmado en PublicTeacherCard (D-62): iniciales, nunca un retrato de stock. */}
+        <div className="relative h-52">
+          <Monogram name={fullName} className="h-full w-full" />
           <span className="absolute bottom-3 right-3 rounded-pill bg-papel px-3 py-1 text-xs font-semibold text-bosque">
             {coursesCount} {coursesCount === 1 ? "curso" : "cursos"}
           </span>

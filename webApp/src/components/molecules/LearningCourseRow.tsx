@@ -14,14 +14,23 @@ interface Props {
 /** Una fila de "Mi aprendizaje": curso inscripto con su progreso. */
 export default function LearningCourseRow({ course: c, index, certificateCode }: Props) {
   return (
-    <article className={`tarjeta flex items-center gap-5 p-5 ${c.progressPercent === 100 ? "opacity-60" : ""}`}>
+    // Completado se dice con fondo y etiqueta, no con opacidad: en tema claro un opacity-60
+    // dejaba el texto en 2.4:1 (QA T-060 D2).
+    <article className={`tarjeta flex items-center gap-5 p-5 ${c.progressPercent === 100 ? "bg-salvia-100" : ""}`}>
       <div className="flex flex-col items-center gap-1 flex-none">
         <span className="font-display text-lg tracking-wide text-bosque">{c.romanNum ?? String(index + 1)}</span>
         {c.moonGlyph && <span className="text-base">{c.moonGlyph}</span>}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-display text-eyebrow tracking-wide text-miel-800 uppercase">{c.discipline} · {c.teacherName}</p>
-        <h4 className="font-display text-base tracking-wide text-tinta mb-0.5">{c.title}</h4>
+        <h4 className="font-display text-base tracking-wide text-tinta mb-0.5">
+          {c.title}
+          {c.progressPercent === 100 && (
+            <span className="ml-2 inline-block rounded-pill bg-papel px-2 py-0.5 align-middle text-xs font-semibold text-exito">
+              Completado
+            </span>
+          )}
+        </h4>
         <div className="mt-1 flex items-center gap-2 font-body text-xs text-suave">
           <span>{c.completedLessons}/{c.totalLessons} lecciones</span>
           {c.lastSeenAt && (

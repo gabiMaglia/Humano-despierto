@@ -24,7 +24,7 @@ export default function PublishAnnouncementControl({ courseId, announcementId }:
         Le llega un mail a cada inscripta activa. Después no se puede editar.
       </p>
       {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400">
+        <p role="alert" className="font-body text-xs text-error">
           {state.error}
         </p>
       )}

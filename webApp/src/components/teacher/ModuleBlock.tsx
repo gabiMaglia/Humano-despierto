@@ -64,7 +64,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
               >
                 Cancelar
               </button>
-              {updateState.error && <p className="font-body text-xs text-red-400">{updateState.error}</p>}
+              {updateState.error && <p className="font-body text-xs text-error">{updateState.error}</p>}
             </div>
           </form>
         ) : (
@@ -114,7 +114,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
             <button
               type="submit"
               disabled={deletePending}
-              className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-outline px-2 py-1 text-[10px] text-error disabled:cursor-not-allowed disabled:opacity-40"
             >
               Borrar módulo
             </button>
@@ -122,7 +122,7 @@ export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: 
         </div>
       </div>
       {(deleteState.error || moveState.error) && (
-        <p className="mb-2 font-body text-xs text-red-400">{deleteState.error || moveState.error}</p>
+        <p className="mb-2 font-body text-xs text-error">{deleteState.error || moveState.error}</p>
       )}
 
       <ul className="space-y-1.5">

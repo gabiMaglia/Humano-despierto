@@ -59,7 +59,8 @@ export default function CampusMessage({
 
   if (post.isDeleted) {
     return (
-      <article className="border-b border-linea px-5 py-4 opacity-60">
+      // Borrado = fondo y etiqueta, no opacidad (QA T-060 D2: el texto quedaba en 2.4:1).
+      <article className="border-b border-linea bg-salvia-100 px-5 py-4">
         <div className="flex items-start gap-3">
           <Avatar glyph={post.authorGlyph ?? "·"} size="sm" />
           <div className="min-w-0 flex-1">
@@ -72,6 +73,7 @@ export default function CampusMessage({
               {post.body}
             </p>
             <p className="mt-1.5 font-body text-xs text-suave">
+              <span className="mr-1.5 rounded-pill bg-papel px-2 py-0.5 font-semibold text-bosque">Mensaje borrado</span>
               Borrado por {post.deletedByName ?? "moderación"}
               {post.deletedReason ? ` — motivo: "${post.deletedReason}"` : ""}
             </p>
@@ -121,7 +123,7 @@ export default function CampusMessage({
                   Cancelar
                 </button>
               </div>
-              {editError && <p role="alert" className="mt-1 font-body text-xs text-red-400">{editError}</p>}
+              {editError && <p role="alert" className="mt-1 font-body text-xs text-error">{editError}</p>}
             </form>
           ) : (
             <p className="whitespace-pre-wrap font-body text-sm text-suave leading-relaxed">{post.body}</p>
@@ -140,7 +142,7 @@ export default function CampusMessage({
                     setModError(null);
                     setIsModerating((v) => !v);
                   }}
-                  className="hover:text-red-400 transition-colors"
+                  className="hover:text-error transition-colors"
                 >
                   {isModerating ? "Cancelar" : "Borrar"}
                 </button>
@@ -156,16 +158,16 @@ export default function CampusMessage({
                 name="reason"
                 required
                 placeholder="Motivo del borrado (obligatorio)"
-                className="min-w-[220px] flex-1 rounded-md border border-red-400/30 bg-papel px-3 py-1.5 font-body text-xs text-tinta placeholder:text-suave outline-none focus:border-red-400/60"
+                className="min-w-[220px] flex-1 rounded-md border border-error bg-papel px-3 py-1.5 font-body text-xs text-tinta placeholder:text-suave outline-none focus:border-error"
               />
               <button
                 type="submit"
                 disabled={isModPending}
-                className="rounded-pill border border-red-400/40 bg-red-400/10 px-3 py-1.5 font-display text-eyebrow tracking-wide text-red-400 hover:bg-red-400/20 transition-colors disabled:opacity-60"
+                className="rounded-pill border border-error bg-error/10 px-3 py-1.5 font-display text-eyebrow tracking-wide text-error hover:bg-error/10 transition-colors disabled:opacity-60"
               >
                 {isModPending ? "…" : "Confirmar borrado"}
               </button>
-              {modError && <p role="alert" className="w-full font-body text-xs text-red-400">{modError}</p>}
+              {modError && <p role="alert" className="w-full font-body text-xs text-error">{modError}</p>}
             </form>
           )}
         </div>

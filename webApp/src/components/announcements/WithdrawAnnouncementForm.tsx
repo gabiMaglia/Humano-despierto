@@ -23,7 +23,7 @@ export default function WithdrawAnnouncementForm({ action, announcementId, cours
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="font-display text-eyebrow tracking-wide text-suave hover:text-red-400 transition-colors"
+        className="font-display text-eyebrow tracking-wide text-suave hover:text-error transition-colors"
       >
         {label}
       </button>
@@ -42,13 +42,13 @@ export default function WithdrawAnnouncementForm({ action, announcementId, cours
           required
           maxLength={500}
           autoComplete="off"
-          className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none transition-colors focus:border-red-400/60"
+          className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none transition-colors focus:border-error"
         />
       </label>
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-md border border-red-400/50 px-4 py-2 font-display text-eyebrow tracking-wide text-red-400 transition-colors hover:enabled:bg-red-400/10 disabled:opacity-40"
+        className="rounded-md border border-error px-4 py-2 font-display text-eyebrow tracking-wide text-error transition-colors hover:enabled:bg-error/10 disabled:opacity-40"
       >
         {isPending ? "Retirando…" : "Retirar"}
       </button>
@@ -56,7 +56,7 @@ export default function WithdrawAnnouncementForm({ action, announcementId, cours
         Cancelar
       </button>
       {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400 sm:basis-full">
+        <p role="alert" className="font-body text-xs text-error sm:basis-full">
           {state.error}
         </p>
       )}

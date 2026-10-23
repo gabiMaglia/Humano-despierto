@@ -36,7 +36,7 @@ export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast 
         )}
         <span
           className={`rounded-pill border px-2 py-0.5 ${
-            lesson.hasVideo ? "border-linea text-miel-800" : "border-red-400/30 text-red-400"
+            lesson.hasVideo ? "border-linea text-miel-800" : "border-error text-error"
           }`}
         >
           {lesson.hasVideo ? "Video ✓" : "Sin video"}
@@ -82,14 +82,14 @@ export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast 
         <button
           type="submit"
           disabled={deletePending}
-          className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn btn-outline px-2 py-1 text-[10px] text-error disabled:cursor-not-allowed disabled:opacity-40"
         >
           Borrar
         </button>
       </form>
 
       {(moveState.error || deleteState.error) && (
-        <p role="alert" className="w-full font-body text-xs text-red-400">
+        <p role="alert" className="w-full font-body text-xs text-error">
           {moveState.error || deleteState.error}
         </p>
       )}

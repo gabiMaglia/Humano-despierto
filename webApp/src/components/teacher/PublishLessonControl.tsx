@@ -39,7 +39,7 @@ export default function PublishLessonControl({
         >
           {isPending ? "…" : isPublished ? "Ocultar lección" : "Publicar lección"}
         </button>
-        {state.error && <p className="font-body text-xs text-red-400">{state.error}</p>}
+        {state.error && <p className="font-body text-xs text-error">{state.error}</p>}
         {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
       </form>
 
@@ -54,11 +54,11 @@ export default function PublishLessonControl({
         <button
           type="submit"
           disabled={deletePending}
-          className="font-body text-xs text-red-400/80 hover:text-red-400 disabled:opacity-60"
+          className="font-body text-xs text-error hover:text-error disabled:opacity-60"
         >
           {deletePending ? "Borrando…" : "Borrar lección"}
         </button>
-        {deleteState.error && <p className="font-body text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="font-body text-xs text-error">{deleteState.error}</p>}
       </form>
     </div>
   );

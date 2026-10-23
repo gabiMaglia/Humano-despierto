@@ -177,7 +177,7 @@ export default function CourseForm({ course }: Props) {
           {isPending ? "Guardando…" : course ? "Guardar cambios" : "Crear curso"}
         </button>
         {state.error && (
-          <p role="alert" className="font-body text-xs text-red-400">
+          <p role="alert" className="font-body text-xs text-error">
             {state.error}
           </p>
         )}

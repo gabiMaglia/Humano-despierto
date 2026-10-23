@@ -34,7 +34,7 @@ export default function NewLessonForm({ courseId, moduleId }: { courseId: string
         {isPending ? "…" : "+ Lección"}
       </button>
       {state.error && (
-        <p role="alert" className="w-full font-body text-xs text-red-400">
+        <p role="alert" className="w-full font-body text-xs text-error">
           {state.error}
         </p>
       )}

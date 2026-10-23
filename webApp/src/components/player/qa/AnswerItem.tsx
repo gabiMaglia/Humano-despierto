@@ -53,7 +53,7 @@ export default function AnswerItem({ lessonId, answer, canModerate }: Props) {
         </div>
       )}
       {error && (
-        <p role="alert" className="mt-1 font-body text-xs text-red-400">
+        <p role="alert" className="mt-1 font-body text-xs text-error">
           {error}
         </p>
       )}

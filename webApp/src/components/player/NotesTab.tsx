@@ -105,7 +105,7 @@ export default function NotesTab({ isAuthenticated, canTakeNotes, currentTime, a
           </button>
         </div>
         {api.error && (
-          <p role="alert" className="mt-2 font-body text-xs text-red-400">
+          <p role="alert" className="mt-2 font-body text-xs text-error">
             {api.error}
           </p>
         )}

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   PLACEHOLDER_PHOTOS,
   placeholderForDiscipline,
-  placeholderPortrait,
   unsplashUrl,
 } from "./placeholder-photos";
 
@@ -17,8 +16,8 @@ const README_IDS = [
 ];
 
 describe("PLACEHOLDER_PHOTOS", () => {
-  it("es exactamente la lista verificada del README, sin la foto de somosbuenavida.com", () => {
-    expect(PLACEHOLDER_PHOTOS.map((p) => p.id).sort()).toEqual([...README_IDS].sort());
+  it("sólo trae ids verificados del README, sin la foto de somosbuenavida.com", () => {
+    for (const p of PLACEHOLDER_PHOTOS) expect(README_IDS).toContain(p.id);
     expect(PLACEHOLDER_PHOTOS.map((p) => p.id)).not.toContain("1469474968028-56623f02e42e");
   });
 
@@ -52,12 +51,10 @@ describe("placeholderForDiscipline", () => {
   });
 });
 
-describe("placeholderPortrait", () => {
-  it("siempre devuelve un retrato y la misma semilla da el mismo", () => {
-    const a = placeholderPortrait("sol-mayor");
-    expect(a.use).toBe("retrato");
-    expect(placeholderPortrait("sol-mayor").id).toBe(a.id);
-    const vistos = new Set(["a", "b", "c", "d", "e", "f", "g", "h"].map((s) => placeholderPortrait(s).id));
-    expect(vistos.size).toBeGreaterThan(1);
+describe("sin retratos de stock (decisión 3 del PO, QA T-060 D1)", () => {
+  it("ninguna foto de muestra es una persona: nunca va una cara ajena junto al nombre de una guía real", async () => {
+    expect(PLACEHOLDER_PHOTOS.every((p) => (p.use as string) !== "retrato")).toBe(true);
+    const mod: Record<string, unknown> = await import("./placeholder-photos");
+    expect(mod.placeholderPortrait).toBeUndefined();
   });
 });

@@ -73,7 +73,7 @@ function ResourceRow({
           >
             Cancelar
           </button>
-          {updateState.error && <p className="w-full font-body text-xs text-red-400">{updateState.error}</p>}
+          {updateState.error && <p className="w-full font-body text-xs text-error">{updateState.error}</p>}
         </form>
       </li>
     );
@@ -100,12 +100,12 @@ function ResourceRow({
         <button
           type="submit"
           disabled={deletePending}
-          className="btn btn-outline px-2 py-1 text-[10px] text-red-400 disabled:opacity-40"
+          className="btn btn-outline px-2 py-1 text-[10px] text-error disabled:opacity-40"
         >
           Borrar
         </button>
       </form>
-      {deleteState.error && <p className="w-full font-body text-xs text-red-400">{deleteState.error}</p>}
+      {deleteState.error && <p className="w-full font-body text-xs text-error">{deleteState.error}</p>}
     </li>
   );
 }
@@ -179,7 +179,7 @@ export default function ResourcesSection({
         </button>
       </form>
       {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400">
+        <p role="alert" className="font-body text-xs text-error">
           {state.error}
         </p>
       )}

@@ -7,7 +7,7 @@ type Variant = "default" | "active" | "danger";
 const VARIANT: Record<Variant, string> = {
   default: "text-miel-800 hover:text-miel-800 disabled:hover:text-miel-800",
   active: "text-miel-800 hover:text-miel-800",
-  danger: "text-suave hover:text-red-400",
+  danger: "text-suave hover:text-error",
 };
 
 interface Props extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "className"> {

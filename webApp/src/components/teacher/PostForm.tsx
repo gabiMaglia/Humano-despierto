@@ -70,7 +70,7 @@ export default function PostForm({ post }: Props) {
           {isPending ? "Guardando…" : post ? "Guardar cambios" : "Crear post"}
         </button>
         {state.error && (
-          <p role="alert" className="font-body text-xs text-red-400">
+          <p role="alert" className="font-body text-xs text-error">
             {state.error}
           </p>
         )}

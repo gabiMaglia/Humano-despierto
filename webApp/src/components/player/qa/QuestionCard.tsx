@@ -73,7 +73,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
       {canAsk && !q.isDeleted && <AnswerComposer lessonId={lessonId} questionId={q.id} />}
 
       {error && (
-        <p role="alert" className="mt-2 font-body text-xs text-red-400">
+        <p role="alert" className="mt-2 font-body text-xs text-error">
           {error}
         </p>
       )}

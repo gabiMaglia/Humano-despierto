@@ -37,7 +37,7 @@ export default function RecuperarForm() {
         placeholder="tu@email.com"
       />
       {state.status === "invalid" && (
-        <p role="alert" className="font-body text-xs text-red-400">
+        <p role="alert" className="font-body text-xs text-error">
           {state.message}
         </p>
       )}
