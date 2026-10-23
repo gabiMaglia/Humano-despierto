@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 815 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 825 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -57,7 +57,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~21.5k LOC** (non-test). 33 routes (`page.tsx`), 106 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (594 unit tests in 72 files, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 35 migrations (last `0036`; `0032` applies before `0031` by timestamp, independent), 21 tables, RLS + per-column grants + guard triggers, 815 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 36 migrations (last `0037`; `0032` applies before `0031` by timestamp, independent), 22 tables, RLS + per-column grants + guard triggers, 825 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC, complete — but **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -96,7 +96,7 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 /invitacion/[token]                 Route Handler: accepts a teacher          [auth]
                                     invitation, refreshes the session claim
 /invitacion/invalida                Neutral "invalid or expired" page
-/api/csp-report                     POST only: logs csp_violation (no query strings), no rate limit yet
+/api/csp-report                     POST only: logs csp_violation (no query strings), 20/min per IP
 /opengraph-image                    Brand OG image (PNG 1200x630, vendored Cinzel, no network)
 /cursos/[slug]/opengraph-image-<h>  Course OG image: cover (jpg/png) or generative card; 404 if not
                                     published. Next adds the -<hash> suffix under a dynamic segment
@@ -120,7 +120,7 @@ under `(app)/`, which re-read `profiles.role`.
   (`permanent:<status>/<name>`, migration 0036). After fixing a bad key or domain, recover with
   `delete from mail_log where sent_at is null and last_error ~ '^permanent:(401|403)/'` —
   never delete the `409` rows: that mail may already have gone out.
-- **No rate limiting, no error capture** (SP-6). The CSP ships Report-Only (T-052) until its enforce criterion is met.
+- **No error capture** (SP-6). The CSP ships Report-Only (T-052) until its enforce criterion is met.
 
 ## Architecture
 ADRs live in `engram/02_architecture.md` (ADR-001..013).
@@ -211,6 +211,15 @@ covered by mutation tests that fail loudly if you regress them.
     suite green in dev and with `E2E_PROD=1`, `check-seo.sh` green against `next start`, and a
     manual player session are the criterion to enforce. A new third-party origin goes into
     `buildCsp` with its test, never into a page.
+11. **Every write a client can trigger is rate-limited** (T-050). Each export of a `"use server"`
+    file and each `route.ts` method goes through `withRateLimit("<its own name>", fn, onLimited)`
+    with a limit in `src/lib/rate-limit/limits.ts`, or sits in `RATE_LIMIT_EXEMPT` with a written
+    reason; `src/lib/rate-limit/coverage.test.ts` fails otherwise (and on `export default`/`{ }`/`*`
+    in those files). Counters live in `rate_limit_buckets` (`check_rate_limit`, `service_role`
+    only, fixed window). The quota is per `getClaims().sub`, else per IP from `x-forwarded-for`
+    (the production proxy must REPLACE that header). If the limiter is down or mute the action
+    proceeds and logs `rate_limit_backend_down` (fail-open, on purpose). `sendMail` has its own
+    global and per-recipient cap. Auth flows are limited by GoTrue, not here.
 
 **Review moderation** (T-037, ADR-012): only the course's teacher or an admin can report a review
 (`course_review_reports`, RLS via `can_report_review`, which reads `profiles.role`). Hiding,

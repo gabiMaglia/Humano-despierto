@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+// T-050: sin esto el sujeto real abre un cliente de Supabase y gasta el cupo de "ip:unknown"
+// compartido entre tests; acá cada test arranca con el limitador vacío y una usuaria fija.
+const { rateLimitSubject } = vi.hoisted(() => ({ rateLimitSubject: vi.fn() }));
+vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: rateLimitSubject }));
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -14,6 +18,12 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { moderateAnnouncement } from "./actions";
 import { ADMIN_ACTION_INITIAL_STATE } from "@/lib/admin/action-state";
+import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
+
+beforeEach(() => {
+  __resetRateLimiterForTests();
+  rateLimitSubject.mockResolvedValue({ kind: "user", id: "u-test" });
+});
 
 const ANN = "a3100000-0000-4000-8000-000000000001";
 const ADMIN = { id: "30000000-0000-4000-8000-000000000001", role: "admin" };

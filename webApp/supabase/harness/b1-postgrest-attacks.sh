@@ -892,6 +892,32 @@ afirmar "(i12) token vencido"                   "$VENC" "false"
 x "update public.profiles set role='student' where id='$INVITADA';
    delete from public.teacher_invitations where email='b1-invitada@test.local';"
 
+echo ""
+echo "── T-050 · check_rate_limit y rate_limit_buckets: solo service_role"
+RL_BODY='{"p_key":"b1-rl:ataque","p_max":5,"p_window_seconds":60}'
+esperar "(rl1) check_rate_limit como anon"               403 POST "rpc/check_rate_limit" "$ANON" "$RL_BODY"
+esperar "(rl2) check_rate_limit como alumna"             403 POST "rpc/check_rate_limit" "$ALUMNA_JWT" "$RL_BODY"
+esperar "(rl3) leer rate_limit_buckets como alumna"      403 GET  "rate_limit_buckets?select=key" "$ALUMNA_JWT"
+esperar "(rl4) sembrar un bucket como alumna"            403 POST "rate_limit_buckets" "$ALUMNA_JWT" \
+  '{"key":"b1-rl:x","window_start":"2026-01-01T00:00:00Z","expires_at":"2027-01-01T00:00:00Z","hits":0}'
+# Control positivo: sin esto, una función rota para TODOS también daría verde arriba.
+esperar "(rl+) check_rate_limit como service_role"       200 POST "rpc/check_rate_limit" "$SRV" "$RL_BODY"
+
+# (rl5) Concurrencia REAL: PGlite serializa, este Postgres no. 20 llamadas en paralelo sobre la
+# misma clave tienen que sumar 20; un update perdido daría menos. Se suma por clave (no por fila)
+# por si la corrida cruza el borde de la ventana de una hora.
+RL_KEY="b1-rl:par:$(date +%s)"
+for _ in $(seq 1 20); do
+  curl -s -o /dev/null -X POST "$API/rest/v1/rpc/check_rate_limit" -H "apikey: $ANON" \
+    -H "Authorization: Bearer $SRV" -H "Content-Type: application/json" \
+    -d "{\"p_key\":\"$RL_KEY\",\"p_max\":100,\"p_window_seconds\":3600}" &
+done
+wait
+RL_TOT=$(q "select coalesce(sum(hits),0) from public.rate_limit_buckets where key='$RL_KEY';")
+if [ "$RL_TOT" = "20" ]; then printf '  ok    %-52s hits=%s\n' "(rl5) 20 llamadas en paralelo, ninguna perdida" "$RL_TOT"
+else printf '  FALLA %-52s hits=%s (esperaba 20)\n' "(rl5) 20 llamadas en paralelo, ninguna perdida" "$RL_TOT"; fallos=$((fallos+1)); fi
+x "delete from public.rate_limit_buckets where key like 'b1-rl:%';"
+
 echo "── caminos legitimos que NO se deben haber roto"
 esperar "catalogo de lecciones (titulos)"  200 GET "lessons?select=title,position" "$ALUMNA_JWT"
 esperar "catalogo de recursos (name,type)" 200 GET "lesson_resources?select=name,type" "$ALUMNA_JWT"

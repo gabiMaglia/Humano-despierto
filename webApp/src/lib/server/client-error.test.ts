@@ -3,12 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const headersMock = vi.fn();
 vi.mock("next/headers", () => ({ headers: () => headersMock() }));
 
-import { reportClientError, resetClientErrorLimiter } from "./client-error";
+import { reportClientError } from "./client-error";
 
 let err: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  resetClientErrorLimiter();
   headersMock.mockResolvedValue(new Headers({ "x-forwarded-for": "9.9.9.9, 1.1.1.1" }));
   err = vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -25,17 +24,9 @@ describe("reportClientError", () => {
     expect(JSON.stringify(l)).not.toContain("secreto");
   });
 
-  it("11 reportes de la misma IP en un minuto: el 11 se descarta sin log", async () => {
-    for (let i = 0; i < 11; i++) await reportClientError({ digest: String(i), message: "m", path: "/" });
-    expect(lines()).toHaveLength(10);
-  });
-
-  it("otra IP no comparte el cupo", async () => {
-    for (let i = 0; i < 10; i++) await reportClientError({ digest: "a", message: "m", path: "/" });
-    headersMock.mockResolvedValue(new Headers({ "x-forwarded-for": "2.2.2.2" }));
-    await reportClientError({ digest: "b", message: "m", path: "/" });
-    expect(lines()).toHaveLength(11);
-  });
+  // El tope por IP ya no vive acá (D-50): lo pone withRateLimit sobre la action, con la IP de
+  // clientIpFrom. Sus casos (11 en un minuto, otra IP, header inventado) están en
+  // app/actions/report-error.actions.test.ts.
 
   it("entrada que no es del tipo esperado se ignora sin lanzar", async () => {
     await expect(reportClientError({ digest: 5, message: {}, path: null } as never)).resolves.toBeUndefined();

@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+// T-050: sin esto el sujeto real abre un cliente de Supabase y gasta el cupo de "ip:unknown"
+// compartido entre tests; acá cada test arranca con el limitador vacío y una usuaria fija.
+const { rateLimitSubject } = vi.hoisted(() => ({ rateLimitSubject: vi.fn() }));
+vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: rateLimitSubject }));
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -19,6 +23,12 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 import { inviteTeacherAction, resendInvitationAction, revokeInvitationAction } from "./actions";
 import { INVITE_ACTION_INITIAL_STATE as IDLE, INVITE_COPY } from "@/lib/admin/invite-state";
 import { ADMIN_ACTION_INITIAL_STATE } from "@/lib/admin/action-state";
+import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
+
+beforeEach(() => {
+  __resetRateLimiterForTests();
+  rateLimitSubject.mockResolvedValue({ kind: "user", id: "u-test" });
+});
 
 const ADMIN = { id: "30000000-0000-4000-8000-000000000001", email: null, fullName: "Admin", glyph: null, role: "admin" as const };
 const EXPIRES = "2026-10-28T12:00:00.123456+00:00";
@@ -37,6 +47,20 @@ beforeEach(() => {
 });
 
 describe("inviteTeacherAction", () => {
+  it("T-050 · la sexta invitación en la hora no manda mail y no ofrece reenviar", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:05:00Z"), toFake: ["Date"] });
+    for (let i = 0; i < 5; i++) await inviteTeacherAction(IDLE, form({ email: `x${i}@mail.com` }));
+    await expect(inviteTeacherAction(IDLE, form({ email: "x6@mail.com" }))).resolves.toEqual({
+      error: "Demasiados intentos. Esperá 55 minutos y volvé a probar.",
+      success: null,
+      code: "rate_limited",
+      retryAfter: 3300,
+      resendEmail: null,
+    });
+    expect(mocks.inviteTeacher).toHaveBeenCalledTimes(5);
+    vi.useRealTimers();
+  });
+
   it("una alumna no invita: rechaza y no crea nada", async () => {
     mocks.getCurrentUser.mockResolvedValue({ ...ADMIN, role: "student" });
     await expect(inviteTeacherAction(IDLE, form({ email: "x@mail.com" }))).rejects.toThrow(/No autorizado/);

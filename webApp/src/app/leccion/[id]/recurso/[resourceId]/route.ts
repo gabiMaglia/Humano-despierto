@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { getLessonResourceRedirect } from "@/lib/server/lesson-resources";
 import { log } from "@/lib/server/log";
+import { withRateLimit } from "@/lib/server/rate-limit";
+import type { RateLimitDenied } from "@/lib/rate-limit/core";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -13,22 +15,30 @@ function denied(): Response {
   return new Response(null, { status: 403, headers: HEADERS });
 }
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string; resourceId: string }> },
-): Promise<Response> {
-  const { id, resourceId } = await params;
-  if (!UUID.test(id) || !UUID.test(resourceId)) return denied();
-
-  let target: string | null;
-  try {
-    target = await getLessonResourceRedirect(id, resourceId);
-  } catch (err) {
-    log.error("resource_unresolved", { resource_id: resourceId, err });
-    return denied();
-  }
-  if (!target) return denied();
-
-  // 302 y no NextResponse.redirect (307 por defecto): lo pide el spec y deja el handler sin runtime de Next.
-  return new Response(null, { status: 302, headers: { ...HEADERS, Location: target } });
+function tooManyRequests(rejected: RateLimitDenied): Response {
+  return new Response(null, { status: 429, headers: { ...HEADERS, "Retry-After": String(rejected.retryAfter) } });
 }
+
+export const GET = withRateLimit(
+  "lessonResourceGet",
+  async function GET(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string; resourceId: string }> },
+  ): Promise<Response> {
+    const { id, resourceId } = await params;
+    if (!UUID.test(id) || !UUID.test(resourceId)) return denied();
+
+    let target: string | null;
+    try {
+      target = await getLessonResourceRedirect(id, resourceId);
+    } catch (err) {
+      log.error("resource_unresolved", { resource_id: resourceId, err });
+      return denied();
+    }
+    if (!target) return denied();
+
+    // 302 y no NextResponse.redirect (307 por defecto): lo pide el spec y deja el handler sin runtime de Next.
+    return new Response(null, { status: 302, headers: { ...HEADERS, Location: target } });
+  },
+  tooManyRequests,
+);
