@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils/cn";
 const PATHS = {
   "arrow-right": "M3 8h10M9 4l4 4-4 4",
   "arrow-up": "M8 13V3M3 8l5-5 5 5",
+  "arrow-left": "M13 8H3M7 4L3 8l4 4",
+  download: "M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10",
   "chevron-down": "M4 6l4 4 4-4",
   check: "M3 8.5l3 3 7-7",
   circle: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z",

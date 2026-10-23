@@ -8,26 +8,34 @@ export default function StudentRequests({ requests }: { requests: StudentRequest
   if (requests.length === 0) return null;
 
   return (
-    <section aria-labelledby="solicitudes-enviadas" className="mx-auto max-w-4xl px-6 pt-10 md:px-12">
-      <h2 id="solicitudes-enviadas" className="mb-5 font-display text-lg tracking-wide text-tinta">
+    <section aria-labelledby="solicitudes-enviadas">
+      <h3 id="solicitudes-enviadas" className="mb-4 text-lg">
         Solicitudes enviadas
-      </h2>
+      </h3>
       <ul className="space-y-3">
         {requests.map((r) => (
-          <li key={r.courseId} className="tarjeta p-4">
-            <Link
-              href={`/cursos/${r.slug}`}
-              className="font-display text-sm tracking-wide text-tinta transition-colors hover:text-bosque"
-            >
-              {r.title}
-            </Link>
-            <p className="font-body text-xs text-suave">
-              {r.status === "requested"
-                ? `Enviada${r.requestedAt ? ` el ${formatCertificateDate(r.requestedAt)}` : ""} · la escuela la está revisando`
-                : "No aprobada"}
-            </p>
+          <li key={r.courseId} className="tarjeta p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Link href={`/cursos/${r.slug}`} className="text-lg font-semibold text-bosque underline-offset-4 hover:underline">
+                {r.title}
+              </Link>
+              <span
+                className={
+                  r.status === "requested"
+                    ? "rounded-pill bg-miel-100 px-3 py-0.5 text-xs font-semibold text-miel-800"
+                    : "rounded-pill bg-salvia-100 px-3 py-0.5 text-xs font-semibold text-error"
+                }
+              >
+                {r.status === "requested" ? "En revisión" : "No aprobada"}
+              </span>
+            </div>
+            {r.status === "requested" && (
+              <p className="mt-1 text-sm text-suave">
+                Enviada{r.requestedAt ? ` el ${formatCertificateDate(r.requestedAt)}` : ""} · la escuela la está revisando
+              </p>
+            )}
             {r.status === "rejected" && r.decidedReason && (
-              <p className="mt-1 font-quote italic text-sm text-suave">{r.decidedReason}</p>
+              <p className="mt-2 border-l-2 border-salvia pl-3 text-sm text-tinta">{r.decidedReason}</p>
             )}
           </li>
         ))}

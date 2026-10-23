@@ -12,7 +12,7 @@ export default function ProgressRing({ value, size = 72 }: Props) {
   const supSize = size < 56 ? 7 : 9;
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-label={`${value}%`}>
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={`${value}% completado`}>
       <circle
         cx={half} cy={half} r={r}
         fill="none" stroke="var(--salvia)" strokeWidth={3}

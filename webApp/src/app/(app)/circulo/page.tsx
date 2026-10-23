@@ -2,6 +2,8 @@ import { getCampusThread } from "@/lib/server/campus";
 import { getCurrentUser } from "@/lib/server/auth";
 import CampusComposer from "@/components/campus/CampusComposer";
 import CampusMessage from "@/components/campus/CampusMessage";
+import ThreadEmpty from "@/components/campus/ThreadEmpty";
+import ThreadHeader from "@/components/campus/ThreadHeader";
 
 // El hilo GENERAL: lo lee y escribe cualquier sesión, sin inscripción a ningún curso.
 // Es el único hilo del Campus legible sin inscripción — pero eso NO lo hace el único con
@@ -18,27 +20,23 @@ export default async function CampusGeneralPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-linea p-5">
-        <div>
-          <h2 className="font-display text-lg tracking-wide text-tinta">{thread.title}</h2>
-          <p className="font-body text-xs text-suave">Lo que se conversa sin necesidad de estar cursando nada en particular</p>
-        </div>
-      </div>
+      <ThreadHeader
+        title={thread.title}
+        subtitle="Lo que se conversa sin necesidad de estar cursando nada en particular"
+      />
 
       <CampusComposer
         courseId={null}
         courseSlug={null}
         authorGlyph={user?.glyph ?? null}
+        authorName={user?.fullName ?? null}
         placeholder="Compartí una pregunta, una observación, una presentación..."
       />
 
       {posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
-          <p className="font-display text-eyebrow tracking-wide text-suave">— Todavía nadie escribió acá —</p>
-          <p className="max-w-sm font-body text-sm text-suave">
-            El hilo general recién arranca. Un espacio nuevo, no uno abandonado.
-          </p>
-        </div>
+        <ThreadEmpty title="Todavía nadie escribió acá">
+          El hilo general recién arranca. Un espacio nuevo, no uno abandonado.
+        </ThreadEmpty>
       ) : (
         <div>
           {posts.map((post) => (

@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 import ErrorMark from "@/components/atoms/ErrorMark";
 import { cn } from "@/lib/utils/cn";
+import { fieldA11y } from "@/lib/ui/field";
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   id: string;
@@ -13,7 +14,7 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
 // `htmlFor` + `id`: sin la asociación el lector de pantalla no anuncia el campo y Playwright no
 // lo encuentra por su label.
 export default function AuthField({ id, label, aside, error, className, ...input }: Props) {
-  const errorId = `${id}-error`;
+  const a11y = fieldA11y(id, error, input["aria-describedby"]);
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between gap-3">
@@ -25,8 +26,8 @@ export default function AuthField({ id, label, aside, error, className, ...input
       <input
         id={id}
         {...input}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : input["aria-describedby"]}
+        aria-invalid={a11y["aria-invalid"]}
+        aria-describedby={a11y["aria-describedby"]}
         className={cn(
           "min-h-12 w-full rounded-md border bg-papel px-4 py-3 text-base text-tinta placeholder:text-suave transition-colors",
           error ? "border-error" : "border-suave",
@@ -34,7 +35,7 @@ export default function AuthField({ id, label, aside, error, className, ...input
         )}
       />
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 flex items-start gap-2 text-sm font-medium text-error">
+        <p id={a11y.errorId} role="alert" className="mt-1.5 flex items-start gap-2 text-sm font-medium text-error">
           <ErrorMark />
           {error}
         </p>

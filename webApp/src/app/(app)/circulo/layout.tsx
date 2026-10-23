@@ -1,4 +1,5 @@
 import SiteHeader from "@/components/layout/SiteHeader";
+import AppPageHeader from "@/components/layout/AppPageHeader";
 import CampusSidebar from "@/components/campus/CampusSidebar";
 import { getCampusSidebar } from "@/lib/server/campus";
 
@@ -22,39 +23,44 @@ export default async function CampusLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen bg-fondo text-tinta">
       <SiteHeader />
-      <div className="pt-16">
-        <header className="border-b border-linea bg-papel px-6 py-10 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">— Campus —</p>
-          <h1 className="mb-2 font-display text-display-md text-tinta">
-            Las que ya están <em className="font-quote italic text-miel-800">adentro</em>
-          </h1>
-          <p className="max-w-xl font-quote italic text-suave">
-            Un hilo por curso, y un hilo general. Sin métricas, sin algoritmo.
-          </p>
-        </header>
-
-        <div className="mx-auto grid max-w-6xl gap-0 lg:grid-cols-[240px_1fr_260px]">
-          <aside className="hidden lg:block border-r border-linea p-5">
-            <p className="mb-4 font-display text-eyebrow tracking-wide text-suave uppercase">Hilos</p>
-            <CampusSidebar threads={threads} />
-          </aside>
-
-          <main className="min-w-0 border-r border-linea">{children}</main>
-
-          <aside className="hidden lg:block p-5">
-            <p className="mb-3 font-display text-eyebrow tracking-wide text-suave uppercase">Código del círculo</p>
-            <ul className="space-y-2">
-              {PACT.map((p, i) => (
-                <li key={p} className="flex items-start gap-2">
-                  <span className="flex-none font-display text-eyebrow text-bosque w-4">
-                    {["I", "II", "III", "IV"][i]}
-                  </span>
-                  <span className="font-body text-[11px] text-suave leading-relaxed">{p}</span>
-                </li>
-              ))}
-            </ul>
-          </aside>
+      <AppPageHeader
+        eyebrow="Campus"
+        title="Las que ya están adentro"
+        subtitle="Un hilo por curso, y un hilo general. Sin métricas, sin algoritmo."
+      >
+        <div className="lg:hidden">
+          <CampusSidebar threads={threads} variant="chips" />
         </div>
+      </AppPageHeader>
+
+      <div className="mx-auto grid max-w-[1200px] items-start gap-8 px-6 py-10 lg:grid-cols-[260px_minmax(0,1fr)_260px]">
+        <aside aria-labelledby="hilos" className="tarjeta hidden p-4 lg:block">
+          <h2 id="hilos" className="mb-3 px-3 text-base">
+            Hilos
+          </h2>
+          <CampusSidebar threads={threads} />
+        </aside>
+
+        <main className="tarjeta min-w-0 overflow-hidden">{children}</main>
+
+        <aside aria-labelledby="codigo" className="rounded-lg bg-salvia-100 p-6">
+          <h2 id="codigo" className="mb-4 text-base">
+            Código del círculo
+          </h2>
+          <ol className="space-y-3">
+            {PACT.map((p, i) => (
+              <li key={p} className="grid grid-cols-[28px_1fr] items-start gap-3 text-sm leading-relaxed text-tinta">
+                <span
+                  aria-hidden="true"
+                  className="grid h-7 w-7 place-items-center rounded-full bg-papel text-xs font-bold text-bosque"
+                >
+                  {i + 1}
+                </span>
+                {p}
+              </li>
+            ))}
+          </ol>
+        </aside>
       </div>
     </div>
   );

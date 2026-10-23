@@ -42,7 +42,7 @@ test("c.3 autoplay ON: cuenta regresiva y navega a la siguiente", async ({ page 
   await fireEnded(page);
   await expect(page.getByText(/Siguiente lección en \d s/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Cancelar" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Siguiente: .+ →$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Siguiente: .+$/ })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`${hrefs[1]}$`), { timeout: 15_000 });
 });
 
@@ -64,7 +64,7 @@ test("c.3 autoplay OFF (default): no navega sola; c.1 tarjeta Siguiente", async 
   const hrefs = await lessonHrefs(page, ALUMNA.enrolledSlug);
   await page.goto(hrefs[0]);
   await fireEnded(page);
-  const link = page.getByRole("link", { name: /^Siguiente: .+ →$/ });
+  const link = page.getByRole("link", { name: /^Siguiente: .+$/ });
   await expect(link).toHaveAttribute("href", hrefs[1]);
   await page.waitForTimeout(8000);
   await expect(page).toHaveURL(new RegExp(`${hrefs[0]}$`));
@@ -78,7 +78,7 @@ test("c.2 ultima leccion, curso incompleto -> /panel", async ({ page }) => {
   await page.goto(hrefs[hrefs.length - 1]);
   await fireEnded(page);
   await expect(page.getByText("Terminaste el curso")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continuar →" })).toHaveAttribute("href", "/panel");
+  await expect(page.getByRole("link", { name: "Continuar", exact: true })).toHaveAttribute("href", "/panel");
 });
 
 test("c.2 ultima leccion, curso completo -> /certificado/<code>", async ({ page }) => {
@@ -87,7 +87,7 @@ test("c.2 ultima leccion, curso completo -> /certificado/<code>", async ({ page 
   const hrefs = await lessonHrefs(page, DELFINA.enrolledSlug);
   await page.goto(hrefs[hrefs.length - 1]);
   await fireEnded(page);
-  const link = page.getByRole("link", { name: "Continuar →" });
+  const link = page.getByRole("link", { name: "Continuar", exact: true });
   await expect(link).toHaveAttribute("href", /^\/certificado\/[A-Za-z0-9-]+$/);
 });
 
@@ -106,5 +106,5 @@ test("D-32 anónima que termina la última preview cae en la ficha del curso, no
   const hrefs = await lessonHrefs(page, ALUMNA.enrolledSlug);
   await page.goto(hrefs[hrefs.length - 1]);
   await fireEnded(page);
-  await expect(page.getByRole("link", { name: "Continuar →" })).toHaveAttribute("href", `/cursos/${ALUMNA.enrolledSlug}`);
+  await expect(page.getByRole("link", { name: "Continuar", exact: true })).toHaveAttribute("href", `/cursos/${ALUMNA.enrolledSlug}`);
 });

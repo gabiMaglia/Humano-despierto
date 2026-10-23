@@ -18,7 +18,7 @@ interface Props {
 /**
  * Único `tablist` del player. Agregar una pestaña (p. ej. "Preguntas", T-030) es sumar un
  * elemento a `tabs`: el teclado ← →, los roles y los ids salen de acá, no de cada pestaña.
- * Layout: debajo del video en móvil, columna lateral desde md (mismo DOM, sin drawer).
+ * Layout: debajo del video hasta lg, columna lateral desde lg (mismo DOM, sin drawer).
  */
 export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
   const [activeId, setActiveId] = useState(initialTabId ?? tabs[0].id);
@@ -36,8 +36,8 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
   }
 
   return (
-    <aside className="w-full md:w-72 flex-none border-t md:border-t-0 md:border-l border-linea flex flex-col">
-      <div role="tablist" aria-label={label} onKeyDown={handleKeys} className="flex border-b border-linea">
+    <aside className="flex w-full flex-none flex-col border-t border-linea bg-papel lg:sticky lg:top-0 lg:max-h-screen lg:w-[380px] lg:self-start lg:border-l lg:border-t-0">
+      <div role="tablist" aria-label={label} onKeyDown={handleKeys} className="flex border-b border-linea px-2">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -49,8 +49,9 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
             tabIndex={active.id === t.id ? 0 : -1}
             onClick={() => setActiveId(t.id)}
             className={cn(
-              "flex-1 py-3 font-display text-eyebrow tracking-wide transition-colors",
-              active.id === t.id ? "text-miel-800 border-b-2 border-linea" : "text-suave hover:text-suave"
+              // Subrayado miel-800 (5.3:1 sobre papel): la pestaña activa no se dice sólo con el peso.
+              "-mb-px min-h-12 flex-1 border-b-[3px] px-1 text-sm font-semibold transition-colors",
+              active.id === t.id ? "border-miel-800 text-bosque" : "border-transparent text-suave hover:text-bosque"
             )}
           >
             {t.label}
@@ -59,13 +60,14 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
       </div>
 
       {/* Un solo panel: sólo se renderiza la pestaña activa, así que el id y el
-          aria-labelledby siguen a la activa en vez de haber un contenedor por pestaña. */}
+          aria-labelledby siguen a la activa en vez de haber un contenedor por pestaña.
+          `relative`: sin él, los `.sr-only` (absolute) de adentro escapan del scroll y estiran la página. */}
       <div
         id={`panel-${active.id}`}
         role="tabpanel"
         aria-labelledby={`tab-${active.id}`}
         tabIndex={0}
-        className="flex-1 overflow-auto p-4 max-h-[60vh] md:max-h-none"
+        className="relative max-h-[70vh] min-h-0 flex-1 overflow-auto p-5 lg:max-h-none"
       >
         {active.panel}
       </div>
