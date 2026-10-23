@@ -171,6 +171,15 @@
   .btn-ghost:hover:not(:disabled) {
     background: var(--salvia-100);
   }
+  /* Acción destructiva confirmada (borrar con motivo): contorno en `error`, 6.4:1 sobre fondo. */
+  .btn-danger {
+    background: transparent;
+    border-color: currentColor;
+    color: var(--error);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: var(--salvia-100);
+  }
   .btn .btn-arrow {
     width: 16px;
     height: 16px;
