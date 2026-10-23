@@ -1,27 +1,30 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/atoms/Button";
 import LeafIllustration from "@/components/atoms/LeafIllustration";
+import SiteFooter from "@/components/layout/SiteFooter";
+import SiteHeader from "@/components/layout/SiteHeader";
 
 // Sin metadata propia (not-found.tsx no la acepta): el noindex lo inyecta Next en todo 404.
-// 404 real solo mientras ningun loading.tsx arriba empiece a streamear antes (C-01).
+// 404 real sólo mientras ningún loading.tsx arriba empiece a streamear antes (C-01).
 export default function NotFound() {
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-fondo px-6 text-center text-tinta">
-      <LeafIllustration className="w-[110px]" />
-      <p className="eyebrow relative">Este camino no existe</p>
-      <h1 className="relative max-w-md font-display text-display-md text-tinta">
-        La página que buscás <em className="font-quote italic text-miel-800">no está</em>
-      </h1>
-      <p className="relative max-w-md font-body text-sm text-suave">
-        Puede que el enlace haya cambiado o que el curso ya no esté publicado.
-      </p>
-      <div className="relative mt-2 flex flex-wrap items-center justify-center gap-3">
-        <Link href="/cursos" className="btn btn-primary">
-          Ver los cursos
-        </Link>
-        <Link href="/" className="btn btn-outline">
-          Ir al inicio
-        </Link>
-      </div>
-    </main>
+    <>
+      <SiteHeader />
+      <main className="flex min-h-[80vh] flex-col items-center justify-center gap-4 bg-fondo px-6 pb-20 pt-32 text-center">
+        <LeafIllustration className="w-[110px]" />
+        <h1 className="max-w-[16ch] text-display-md leading-[1.12]">Esta página no existe</h1>
+        <p className="max-w-md text-suave">
+          Puede que el enlace haya cambiado o que el curso ya no esté publicado.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+          <ButtonLink href="/cursos" arrow>
+            Ver los cursos
+          </ButtonLink>
+          <ButtonLink href="/" variant="outline">
+            Ir al inicio
+          </ButtonLink>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

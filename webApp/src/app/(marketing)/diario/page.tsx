@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PageHeader from "@/components/layout/PageHeader";
+import Icon from "@/components/atoms/Icon";
+import PageIntro from "@/components/layout/PageIntro";
 import { getPublishedPosts } from "@/lib/server/diario";
 import { formatCertificateDate } from "@/lib/utils/format";
 
@@ -10,7 +11,7 @@ import { formatCertificateDate } from "@/lib/utils/format";
 
 export const metadata: Metadata = {
   title: "Diario",
-  description: "Escritos de las guías de la escuela sobre los oficios sutiles del alma.",
+  description: "Lo que escriben las guías de la escuela entre clase y clase.",
 };
 
 export default async function DiarioPage() {
@@ -18,56 +19,37 @@ export default async function DiarioPage() {
 
   return (
     <div className="min-h-screen bg-fondo">
-      <PageHeader
-        badge={posts.length > 0 ? `${posts.length} anotaci${posts.length === 1 ? "ón" : "ones"}` : "Diario"}
-        title={
-          <>
-            Anotaciones <em className="font-quote italic text-miel-800">al margen</em> del oficio
-          </>
-        }
-        subtitle="Lo que las guías escriben entre clase y clase. Ensayos, cartas a estudiantes, notas de campo de la práctica."
+      <PageIntro
+        title="Diario"
+        lead="Lo que las guías escriben entre clase y clase: ensayos, cartas a sus alumnas y notas de la práctica."
       />
-
-      <div className="mx-auto max-w-3xl px-6 py-12 md:px-12">
+      <div className="mx-auto max-w-[1200px] px-6 pb-24">
         {posts.length === 0 ? (
           // Criterio 5: estado vacío digno, no roto.
-          <div className="tarjeta p-10 text-center">
-            <p className="mb-1 font-display text-base tracking-wide text-tinta">
-              Todavía no hay anotaciones publicadas.
-            </p>
-            <p className="font-body text-sm text-suave">Las guías están escribiendo — volvé pronto.</p>
+          <div className="rounded-lg bg-salvia-100 p-10">
+            <p className="text-lg font-semibold text-bosque">Todavía no hay escritos publicados.</p>
+            <p className="mt-1 text-suave">Las guías están escribiendo. Volvé pronto.</p>
           </div>
         ) : (
-          <div className="space-y-0 divide-y divide-linea">
-            {posts.map((p, i) => (
-              <Link
-                key={p.slug}
-                href={`/diario/${p.slug}`}
-                className="group -mx-3 flex items-start gap-4 rounded-md px-3 py-6 transition-colors hover:bg-papel"
-              >
-                <span className="w-8 flex-none pt-1 font-display text-eyebrow text-bosque">
-                  {String(i + 1)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h2 className="mb-1.5 font-display text-lg tracking-wide text-tinta leading-snug group-hover:text-bosque transition-colors">
+          <ul className="max-w-3xl divide-y divide-linea border-y border-linea">
+            {posts.map((p) => (
+              <li key={p.slug} className="group relative py-8">
+                <p className="text-sm text-suave">
+                  <span className="font-semibold text-miel-800">{p.teacherName}</span> · {formatCertificateDate(p.publishedAt)}
+                </p>
+                <h2 className="mt-2 text-2xl leading-snug md:text-[28px]">
+                  <Link href={`/diario/${p.slug}`} className="after:absolute after:inset-0 group-hover:text-miel-800">
                     {p.title}
-                  </h2>
-                  {p.excerpt && (
-                    <p className="mb-2 font-quote italic text-sm text-suave leading-relaxed">{p.excerpt}</p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
-                    {p.teacherGlyph && <span className="text-miel-800">{p.teacherGlyph}</span>}
-                    <span>{p.teacherName}</span>
-                    <span className="text-miel-800">·</span>
-                    <span>{formatCertificateDate(p.publishedAt)}</span>
-                  </div>
-                </div>
-                <span className="flex-none font-display text-sm text-suave transition-colors group-hover:text-bosque">
-                 
+                  </Link>
+                </h2>
+                {p.excerpt && <p className="mt-2 max-w-[60ch] text-suave">{p.excerpt}</p>}
+                <span aria-hidden="true" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-miel-800">
+                  Leer
+                  <Icon name="arrow-right" className="transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
                 </span>
-              </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>

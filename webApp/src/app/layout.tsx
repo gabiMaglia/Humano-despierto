@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { getSiteUrl } from "@/lib/server/site-url";
+import { jakarta } from "@/styles/fonts";
 import "@/styles/globals.css";
 
-// ADR-015 · una sola familia. next/font la sirve desde el propio origen: `font-src 'self'` alcanza.
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -19,7 +12,7 @@ export const metadata: Metadata = {
     default: "Humano Despierto — Escuela Holística",
     template: "%s — Humano Despierto",
   },
-  description: "Una escuela para oficios sutiles del alma. Astrología, tarot, herbalismo y reiki por guías con linaje.",
+  description: "Escuela online de tarot, astrología, herbolaria, reiki y magia, con guías que practican lo que enseñan.",
 };
 
 export default async function RootLayout({
