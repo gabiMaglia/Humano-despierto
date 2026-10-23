@@ -57,4 +57,15 @@ describe("sin retratos de stock (decisión 3 del PO, QA T-060 D1)", () => {
     const mod: Record<string, unknown> = await import("./placeholder-photos");
     expect(mod.placeholderPortrait).toBeUndefined();
   });
+
+  // QA T-060 r2: el `use` no alcanza; un retrato del README reintroducido como "oficio" pasaría.
+  it.each([
+    "1746410848551-ca40cdb57674",
+    "1544005313-94ddf0286df2",
+    "1692801439915-ef9194bf0951",
+    "1643224196036-a61f69ff4144",
+    "1469474968028-56623f02e42e",
+  ])("excluye explícitamente el id %s (retrato o prohibido)", (id) => {
+    expect(PLACEHOLDER_PHOTOS.map((p) => p.id)).not.toContain(id);
+  });
 });
