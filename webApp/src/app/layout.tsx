@@ -32,6 +32,8 @@ export default async function RootLayout({
     <html
       lang="es"
       className={jakarta.variable}
+      // Next desactiva el scroll suave de globals.css durante las transiciones de ruta solo si lo declaramos.
+      data-scroll-behavior="smooth"
     >
       {/* Las extensiones del navegador inyectan atributos en <body> antes de que React
           hidrate (ColorZilla pone cz-shortcut-listen, Grammarly pone data-gr-*), y eso
