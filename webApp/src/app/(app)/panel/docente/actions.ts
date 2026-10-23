@@ -13,6 +13,9 @@ import {
   firstIssueMessage,
 } from "@/lib/validation/teacher";
 import type { TeacherActionState } from "@/lib/teacher/action-state";
+import { log } from "@/lib/server/log";
+import { withRateLimit } from "@/lib/server/rate-limit";
+import { limitedState } from "@/lib/rate-limit/core";
 
 function readCourseForm(formData: FormData) {
   return courseFormSchema.safeParse({
@@ -40,212 +43,228 @@ function readCourseForm(formData: FormData) {
 // `courses_insert_own` (RLS) exige `teacher_id = auth.uid()`, y `guard_courses_insert`
 // (0006) rechaza cualquier `status` que no sea 'draft' — nace en borrador sin que este
 // código tenga que declararlo dos veces.
-export async function createCourseAction(
-  _prevState: TeacherActionState,
-  formData: FormData
-): Promise<TeacherActionState> {
-  const teacher = await requireTeacher();
-  const parsed = readCourseForm(formData);
-  if (!parsed.success) {
-    return { error: firstIssueMessage(parsed.error), success: null };
-  }
-  const v = parsed.data;
+export const createCourseAction = withRateLimit(
+  "createCourseAction",
+  async function createCourseAction(
+    _prevState: TeacherActionState,
+    formData: FormData
+  ): Promise<TeacherActionState> {
+    const teacher = await requireTeacher();
+    const parsed = readCourseForm(formData);
+    if (!parsed.success) {
+      return { error: firstIssueMessage(parsed.error), success: null };
+    }
+    const v = parsed.data;
 
-  let newCourseId: string | null = null;
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("courses")
-      .insert({
-        slug: v.slug,
-        title: v.title,
-        title_em: v.titleEm || null,
-        subtitle: v.subtitle || null,
-        intro: v.intro || null,
-        discipline: v.discipline,
-        level: v.level,
-        price_cents: priceToCents(v.price),
-        currency: v.currency,
-        roman_num: v.romanNum || null,
-        moon_glyph: v.moonGlyph || null,
-        includes: includesToArray(v.includes),
-        description: v.description || null,
-        learning_objectives: includesToArray(v.learningObjectives),
-        prerequisites: includesToArray(v.prerequisites),
-        language: v.language,
-        promo_video_id: v.promoVideoId || null,
-        teacher_id: teacher.id,
-      })
-      .select("id")
-      .single();
+    let newCourseId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("courses")
+        .insert({
+          slug: v.slug,
+          title: v.title,
+          title_em: v.titleEm || null,
+          subtitle: v.subtitle || null,
+          intro: v.intro || null,
+          discipline: v.discipline,
+          level: v.level,
+          price_cents: priceToCents(v.price),
+          currency: v.currency,
+          roman_num: v.romanNum || null,
+          moon_glyph: v.moonGlyph || null,
+          includes: includesToArray(v.includes),
+          description: v.description || null,
+          learning_objectives: includesToArray(v.learningObjectives),
+          prerequisites: includesToArray(v.prerequisites),
+          language: v.language,
+          promo_video_id: v.promoVideoId || null,
+          teacher_id: teacher.id,
+        })
+        .select("id")
+        .single();
 
-    if (error) {
-      if (error.code === "23505") {
-        return { error: "Ya existe un curso con ese slug. Elegí otro.", success: null };
+      if (error) {
+        if (error.code === "23505") {
+          return { error: "Ya existe un curso con ese slug. Elegí otro.", success: null };
+        }
+        // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
+        // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
+        // Sin esta traduccion la docente ve un error crudo del motor.
+        if (error.code === "42501") {
+          return { error: "Alguno de los campos públicos del curso contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en la ficha, que se lee sin inscripción.", success: null };
+        }
+
+        return { error: `No se pudo crear el curso: ${error.message}`, success: null };
       }
-      // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
-      // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
-      // Sin esta traduccion la docente ve un error crudo del motor.
-      if (error.code === "42501") {
-        return { error: "Alguno de los campos públicos del curso contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en la ficha, que se lee sin inscripción.", success: null };
+      newCourseId = data.id;
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "No se pudo crear el curso.", success: null };
+    }
+
+    revalidatePath("/panel/docente");
+    redirect(`/panel/docente/cursos/${newCourseId}`);
+  },
+  limitedState,
+);
+
+export const updateCourseAction = withRateLimit(
+  "updateCourseAction",
+  async function updateCourseAction(
+    _prevState: TeacherActionState,
+    formData: FormData
+  ): Promise<TeacherActionState> {
+    const teacher = await requireTeacher();
+    const courseId = String(formData.get("courseId") ?? "");
+    if (!courseId) return { error: "Falta el curso.", success: null };
+
+    const parsed = readCourseForm(formData);
+    if (!parsed.success) return { error: firstIssueMessage(parsed.error), success: null };
+    const v = parsed.data;
+
+    try {
+      await assertOwnsCourse(courseId, teacher.id);
+      const supabase = await createClient();
+      const { error } = await supabase
+        .from("courses")
+        .update({
+          slug: v.slug,
+          title: v.title,
+          title_em: v.titleEm || null,
+          subtitle: v.subtitle || null,
+          intro: v.intro || null,
+          discipline: v.discipline,
+          level: v.level,
+          price_cents: priceToCents(v.price),
+          currency: v.currency,
+          roman_num: v.romanNum || null,
+          moon_glyph: v.moonGlyph || null,
+          includes: includesToArray(v.includes),
+          description: v.description || null,
+          learning_objectives: includesToArray(v.learningObjectives),
+          prerequisites: includesToArray(v.prerequisites),
+          language: v.language,
+          promo_video_id: v.promoVideoId || null,
+        })
+        .eq("id", courseId);
+
+      if (error) {
+        if (error.code === "23505") return { error: "Ya existe un curso con ese slug.", success: null };
+        // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
+        // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
+        // Sin esta traduccion la docente ve un error crudo del motor.
+        if (error.code === "42501") {
+          return { error: "Alguno de los campos públicos del curso contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en la ficha, que se lee sin inscripción.", success: null };
+        }
+
+        return { error: `No se pudo guardar: ${error.message}`, success: null };
       }
-
-      return { error: `No se pudo crear el curso: ${error.message}`, success: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "No se pudo guardar el curso.", success: null };
     }
-    newCourseId = data.id;
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "No se pudo crear el curso.", success: null };
-  }
 
-  revalidatePath("/panel/docente");
-  redirect(`/panel/docente/cursos/${newCourseId}`);
-}
+    revalidatePath(`/panel/docente/cursos/${courseId}`);
+    revalidatePath("/panel/docente");
+    return { error: null, success: "Curso actualizado." };
+  },
+  limitedState,
+);
 
-export async function updateCourseAction(
-  _prevState: TeacherActionState,
-  formData: FormData
-): Promise<TeacherActionState> {
-  const teacher = await requireTeacher();
-  const courseId = String(formData.get("courseId") ?? "");
-  if (!courseId) return { error: "Falta el curso.", success: null };
+export const deleteCourseAction = withRateLimit(
+  "deleteCourseAction",
+  async function deleteCourseAction(
+    _prevState: TeacherActionState,
+    formData: FormData
+  ): Promise<TeacherActionState> {
+    const teacher = await requireTeacher();
+    const courseId = String(formData.get("courseId") ?? "");
+    if (!courseId) return { error: "Falta el curso.", success: null };
 
-  const parsed = readCourseForm(formData);
-  if (!parsed.success) return { error: firstIssueMessage(parsed.error), success: null };
-  const v = parsed.data;
-
-  try {
-    await assertOwnsCourse(courseId, teacher.id);
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("courses")
-      .update({
-        slug: v.slug,
-        title: v.title,
-        title_em: v.titleEm || null,
-        subtitle: v.subtitle || null,
-        intro: v.intro || null,
-        discipline: v.discipline,
-        level: v.level,
-        price_cents: priceToCents(v.price),
-        currency: v.currency,
-        roman_num: v.romanNum || null,
-        moon_glyph: v.moonGlyph || null,
-        includes: includesToArray(v.includes),
-        description: v.description || null,
-        learning_objectives: includesToArray(v.learningObjectives),
-        prerequisites: includesToArray(v.prerequisites),
-        language: v.language,
-        promo_video_id: v.promoVideoId || null,
-      })
-      .eq("id", courseId);
-
-    if (error) {
-      if (error.code === "23505") return { error: "Ya existe un curso con ese slug.", success: null };
-      // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
-      // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
-      // Sin esta traduccion la docente ve un error crudo del motor.
-      if (error.code === "42501") {
-        return { error: "Alguno de los campos públicos del curso contiene el identificador de un video o de un archivo de una lección. Ese dato es de contenido pago y no puede aparecer en la ficha, que se lee sin inscripción.", success: null };
+    try {
+      await assertOwnsCourse(courseId, teacher.id);
+      const supabase = await createClient();
+      const { data: current } = await supabase.from("courses").select("cover_path").eq("id", courseId).maybeSingle();
+      // RLS `courses_delete_own_draft` (0004) solo deja borrar en 'draft': un curso publicado
+      // no se borra desde acá (tendría inscripciones colgando) — el error de Postgres ya lo dice.
+      const { error } = await supabase.from("courses").delete().eq("id", courseId);
+      if (error) {
+        return {
+          error: `No se pudo borrar el curso (¿está publicado?): ${error.message}`,
+          success: null,
+        };
       }
-
-      return { error: `No se pudo guardar: ${error.message}`, success: null };
+      // Borrado el curso, `owns_course` da falso y la sesion ya no puede borrar el objeto. El path
+      // salio de la fila propia que se acaba de borrar y el CHECK lo ata a `covers/<courseId>/`.
+      if (current?.cover_path) {
+        const { error: removeError } = await createServiceRoleClient()
+          .storage.from(UPLOADS_BUCKET)
+          .remove([current.cover_path]);
+        if (removeError) log.error("cover_storage_orphan", { reason: "course_deleted", path: current.cover_path, message: removeError.message });
+      }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "No se pudo borrar el curso.", success: null };
     }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "No se pudo guardar el curso.", success: null };
-  }
 
-  revalidatePath(`/panel/docente/cursos/${courseId}`);
-  revalidatePath("/panel/docente");
-  return { error: null, success: "Curso actualizado." };
-}
-
-export async function deleteCourseAction(
-  _prevState: TeacherActionState,
-  formData: FormData
-): Promise<TeacherActionState> {
-  const teacher = await requireTeacher();
-  const courseId = String(formData.get("courseId") ?? "");
-  if (!courseId) return { error: "Falta el curso.", success: null };
-
-  try {
-    await assertOwnsCourse(courseId, teacher.id);
-    const supabase = await createClient();
-    const { data: current } = await supabase.from("courses").select("cover_path").eq("id", courseId).maybeSingle();
-    // RLS `courses_delete_own_draft` (0004) solo deja borrar en 'draft': un curso publicado
-    // no se borra desde acá (tendría inscripciones colgando) — el error de Postgres ya lo dice.
-    const { error } = await supabase.from("courses").delete().eq("id", courseId);
-    if (error) {
-      return {
-        error: `No se pudo borrar el curso (¿está publicado?): ${error.message}`,
-        success: null,
-      };
-    }
-    // Borrado el curso, `owns_course` da falso y la sesion ya no puede borrar el objeto. El path
-    // salio de la fila propia que se acaba de borrar y el CHECK lo ata a `covers/<courseId>/`.
-    if (current?.cover_path) {
-      const { error: removeError } = await createServiceRoleClient()
-        .storage.from(UPLOADS_BUCKET)
-        .remove([current.cover_path]);
-      if (removeError) console.error("[T-047] portada de curso borrado sin limpiar", current.cover_path, removeError.message);
-    }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "No se pudo borrar el curso.", success: null };
-  }
-
-  revalidatePath("/panel/docente");
-  redirect("/panel/docente");
-}
+    revalidatePath("/panel/docente");
+    redirect("/panel/docente");
+  },
+  limitedState,
+);
 
 // Criterio 7: publicar/despublicar un curso propio, con la validación de que no
 // se publica un curso sin al menos un módulo con una lección. `courses.status` está
 // fuera del grant/guard del cliente (0003 + 0005 `guard_courses`): esto SIEMPRE es
 // service_role, tras verificar acá que quien pide el cambio es la dueña.
-export async function setCoursePublishedAction(
-  _prevState: TeacherActionState,
-  formData: FormData
-): Promise<TeacherActionState> {
-  const teacher = await requireTeacher();
-  const courseId = String(formData.get("courseId") ?? "");
-  const nextStatus = String(formData.get("nextStatus") ?? "");
-  if (!courseId || (nextStatus !== "published" && nextStatus !== "draft")) {
-    return { error: "Datos inválidos.", success: null };
-  }
+export const setCoursePublishedAction = withRateLimit(
+  "setCoursePublishedAction",
+  async function setCoursePublishedAction(
+    _prevState: TeacherActionState,
+    formData: FormData
+  ): Promise<TeacherActionState> {
+    const teacher = await requireTeacher();
+    const courseId = String(formData.get("courseId") ?? "");
+    const nextStatus = String(formData.get("nextStatus") ?? "");
+    if (!courseId || (nextStatus !== "published" && nextStatus !== "draft")) {
+      return { error: "Datos inválidos.", success: null };
+    }
 
-  try {
-    await assertOwnsCourse(courseId, teacher.id);
+    try {
+      await assertOwnsCourse(courseId, teacher.id);
 
-    if (nextStatus === "published") {
-      const supabase = await createClient();
-      const { count, error } = await supabase
-        .from("lessons")
-        .select("id", { count: "exact", head: true })
-        .eq("course_id", courseId);
-      if (error) return { error: `No se pudo validar el curso: ${error.message}`, success: null };
-      if (!count) {
-        return {
-          error: "No se puede publicar: el curso necesita al menos un módulo con una lección.",
-          success: null,
-        };
+      if (nextStatus === "published") {
+        const supabase = await createClient();
+        const { count, error } = await supabase
+          .from("lessons")
+          .select("id", { count: "exact", head: true })
+          .eq("course_id", courseId);
+        if (error) return { error: `No se pudo validar el curso: ${error.message}`, success: null };
+        if (!count) {
+          return {
+            error: "No se puede publicar: el curso necesita al menos un módulo con una lección.",
+            success: null,
+          };
+        }
       }
+
+      const service = createServiceRoleClient();
+      const { error: updateError } = await service
+        .from("courses")
+        .update({ status: nextStatus })
+        .eq("id", courseId);
+      if (updateError) {
+        return { error: `No se pudo actualizar el estado: ${updateError.message}`, success: null };
+      }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "No se pudo actualizar el curso.", success: null };
     }
 
-    const service = createServiceRoleClient();
-    const { error: updateError } = await service
-      .from("courses")
-      .update({ status: nextStatus })
-      .eq("id", courseId);
-    if (updateError) {
-      return { error: `No se pudo actualizar el estado: ${updateError.message}`, success: null };
-    }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "No se pudo actualizar el curso.", success: null };
-  }
-
-  revalidatePath(`/panel/docente/cursos/${courseId}`);
-  revalidatePath("/panel/docente");
-  revalidatePath("/cursos");
-  return {
-    error: null,
-    success: nextStatus === "published" ? "Curso publicado." : "Curso pasado a borrador.",
-  };
-}
+    revalidatePath(`/panel/docente/cursos/${courseId}`);
+    revalidatePath("/panel/docente");
+    revalidatePath("/cursos");
+    return {
+      error: null,
+      success: nextStatus === "published" ? "Curso publicado." : "Curso pasado a borrador.",
+    };
+  },
+  limitedState,
+);

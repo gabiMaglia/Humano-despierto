@@ -1,6 +1,7 @@
 // Fuera del archivo "use server": ahí solo se exportan funciones async y los formularios cliente
 // necesitan el estado inicial como valor.
-export interface QaActionState {
+import type { RateLimitFields } from "@/lib/rate-limit/core";
+export interface QaActionState extends RateLimitFields {
   error: string | null;
   success: string | null;
 }

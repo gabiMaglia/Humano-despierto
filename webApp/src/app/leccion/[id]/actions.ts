@@ -18,6 +18,9 @@ import {
   traducirErrorQa,
   votar,
 } from "@/lib/lesson-qa/write.mjs";
+import { log } from "@/lib/server/log";
+import { withRateLimit } from "@/lib/server/rate-limit";
+import { limitedState } from "@/lib/rate-limit/core";
 
 /**
  * Destino del cierre de la última lección. Se resuelve al terminar el video y no al renderizar:
@@ -28,7 +31,7 @@ export async function resolveClosingHref(courseId: string): Promise<string> {
   try {
     return closingHref(await ensureCertificate(courseId));
   } catch (err) {
-    console.error("[player] no se pudo resolver el certificado:", err);
+    log.error("player_certificate_unresolved", { err });
     return closingHref(null);
   }
 }
@@ -79,13 +82,13 @@ async function maybeNotifyCourseCompleted(
       certificateCode: code,
     });
   } catch (err) {
-    console.error("[mail] maybeNotifyCourseCompleted falló:", err);
+    log.error("mail_course_completed_failed", { err });
   }
 }
 
 /**
- * Persiste `seconds_watched` (T-006 c.5, con throttle del lado del cliente — este action no
- * throttlea nada, sólo escribe lo que le llega). `completed`/`completed_at` NO se mandan: son
+ * Persiste `seconds_watched` (T-006 c.5). El throttle de 5 s del cliente no es un control; el
+ * tope lo pone `withRateLimit` (T-050, 30/min). `completed`/`completed_at` NO se mandan: son
  * columnas derivadas (ADR-007) que calcula un trigger contra `lessons.duration_seconds`; lo que
  * se devuelve acá es lo que el guard efectivamente calculó, no lo que se pidió.
  *
@@ -95,103 +98,106 @@ async function maybeNotifyCourseCompleted(
  * del payload (incluidas `user_id`/`course_id`/`lesson_id`), lo que exigiría UPDATE sobre
  * columnas que el cliente no tiene — 42501 aunque el valor no cambie.
  */
-export async function saveLessonProgress(
-  lessonId: string,
-  secondsWatched: number
-): Promise<ProgressResult> {
-  if (!Number.isFinite(secondsWatched) || secondsWatched < 0) {
-    throw new Error("seconds_watched inválido.");
-  }
-  const seconds = Math.floor(secondsWatched);
-  const nowIso = new Date().toISOString();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado.");
-
-  const { data: updated, error: updateError } = await supabase
-    .from("lesson_progress")
-    .update({ seconds_watched: seconds, last_seen_at: nowIso })
-    .eq("user_id", user.id)
-    .eq("lesson_id", lessonId)
-    .select("seconds_watched, completed, completed_at, course_id")
-    .maybeSingle();
-
-  if (updateError) {
-    throw new Error(`No se pudo guardar el progreso: ${updateError.message}`);
-  }
-  if (updated) {
-    if (updated.completed) {
-      await maybeNotifyCourseCompleted(user.id, updated.course_id);
+export const saveLessonProgress = withRateLimit(
+  "saveLessonProgress",
+  async function saveLessonProgress(
+    lessonId: string,
+    secondsWatched: number
+  ): Promise<ProgressResult> {
+    if (!Number.isFinite(secondsWatched) || secondsWatched < 0) {
+      throw new Error("seconds_watched inválido.");
     }
-    return {
-      secondsWatched: updated.seconds_watched,
-      completed: updated.completed,
-      completedAt: updated.completed_at,
-    };
-  }
+    const seconds = Math.floor(secondsWatched);
+    const nowIso = new Date().toISOString();
 
-  // No había fila: primera escritura de progreso de este usuario en esta lección.
-  // course_id lo resuelve el servidor (no se confía en lo que mande el cliente): sólo las
-  // columnas leíbles por el grant de 0003_privileges.sql.
-  const { data: lesson, error: lessonError } = await supabase
-    .from("lessons")
-    .select("course_id")
-    .eq("id", lessonId)
-    .maybeSingle();
-  if (lessonError || !lesson) {
-    throw new Error("Lección no encontrada.");
-  }
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No autenticado.");
 
-  const { data: inserted, error: insertError } = await supabase
-    .from("lesson_progress")
-    .insert({
-      user_id: user.id,
-      course_id: lesson.course_id,
-      lesson_id: lessonId,
-      seconds_watched: seconds,
-      last_seen_at: nowIso,
-    })
-    .select("seconds_watched, completed, completed_at")
-    .single();
+    const { data: updated, error: updateError } = await supabase
+      .from("lesson_progress")
+      .update({ seconds_watched: seconds, last_seen_at: nowIso })
+      .eq("user_id", user.id)
+      .eq("lesson_id", lessonId)
+      .select("seconds_watched, completed, completed_at, course_id")
+      .maybeSingle();
 
-  if (insertError) {
-    // Carrera real: dos pestañas escribiendo el progreso inicial a la vez. La segunda pierde
-    // el INSERT (23505, unique lesson_progress_user_lesson_key) y cae a UPDATE.
-    if (insertError.code === "23505") {
-      const { data: retried, error: retryError } = await supabase
-        .from("lesson_progress")
-        .update({ seconds_watched: seconds, last_seen_at: nowIso })
-        .eq("user_id", user.id)
-        .eq("lesson_id", lessonId)
-        .select("seconds_watched, completed, completed_at")
-        .single();
-      if (retryError) {
-        throw new Error(`No se pudo guardar el progreso: ${retryError.message}`);
-      }
-      if (retried.completed) {
-        await maybeNotifyCourseCompleted(user.id, lesson.course_id);
+    if (updateError) {
+      throw new Error(`No se pudo guardar el progreso: ${updateError.message}`);
+    }
+    if (updated) {
+      if (updated.completed) {
+        await maybeNotifyCourseCompleted(user.id, updated.course_id);
       }
       return {
-        secondsWatched: retried.seconds_watched,
-        completed: retried.completed,
-        completedAt: retried.completed_at,
+        secondsWatched: updated.seconds_watched,
+        completed: updated.completed,
+        completedAt: updated.completed_at,
       };
     }
-    throw new Error(`No se pudo iniciar el progreso: ${insertError.message}`);
-  }
 
-  if (inserted.completed) {
-    await maybeNotifyCourseCompleted(user.id, lesson.course_id);
-  }
-  return {
-    secondsWatched: inserted.seconds_watched,
-    completed: inserted.completed,
-    completedAt: inserted.completed_at,
-  };
-}
+    // No había fila: primera escritura de progreso de este usuario en esta lección.
+    // course_id lo resuelve el servidor (no se confía en lo que mande el cliente): sólo las
+    // columnas leíbles por el grant de 0003_privileges.sql.
+    const { data: lesson, error: lessonError } = await supabase
+      .from("lessons")
+      .select("course_id")
+      .eq("id", lessonId)
+      .maybeSingle();
+    if (lessonError || !lesson) {
+      throw new Error("Lección no encontrada.");
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("lesson_progress")
+      .insert({
+        user_id: user.id,
+        course_id: lesson.course_id,
+        lesson_id: lessonId,
+        seconds_watched: seconds,
+        last_seen_at: nowIso,
+      })
+      .select("seconds_watched, completed, completed_at")
+      .single();
+
+    if (insertError) {
+      // Carrera real: dos pestañas escribiendo el progreso inicial a la vez. La segunda pierde
+      // el INSERT (23505, unique lesson_progress_user_lesson_key) y cae a UPDATE.
+      if (insertError.code === "23505") {
+        const { data: retried, error: retryError } = await supabase
+          .from("lesson_progress")
+          .update({ seconds_watched: seconds, last_seen_at: nowIso })
+          .eq("user_id", user.id)
+          .eq("lesson_id", lessonId)
+          .select("seconds_watched, completed, completed_at")
+          .single();
+        if (retryError) {
+          throw new Error(`No se pudo guardar el progreso: ${retryError.message}`);
+        }
+        if (retried.completed) {
+          await maybeNotifyCourseCompleted(user.id, lesson.course_id);
+        }
+        return {
+          secondsWatched: retried.seconds_watched,
+          completed: retried.completed,
+          completedAt: retried.completed_at,
+        };
+      }
+      throw new Error(`No se pudo iniciar el progreso: ${insertError.message}`);
+    }
+
+    if (inserted.completed) {
+      await maybeNotifyCourseCompleted(user.id, lesson.course_id);
+    }
+    return {
+      secondsWatched: inserted.seconds_watched,
+      completed: inserted.completed,
+      completedAt: inserted.completed_at,
+    };
+  },
+);
 
 export interface NoteResult {
   id: string;
@@ -201,91 +207,100 @@ export interface NoteResult {
 }
 
 /** Nota propia (T-006 c.7): RLS la ata a `user_id = auth.uid()` en lectura y escritura. */
-export async function saveLessonNote(lessonId: string, atSeconds: number, body: string): Promise<NoteResult> {
-  const trimmed = body.trim();
-  if (!trimmed) throw new Error("La nota no puede estar vacía.");
-  if (!Number.isFinite(atSeconds) || atSeconds < 0) {
-    throw new Error("at_seconds inválido.");
-  }
+export const saveLessonNote = withRateLimit(
+  "saveLessonNote",
+  async function saveLessonNote(lessonId: string, atSeconds: number, body: string): Promise<NoteResult> {
+    const trimmed = body.trim();
+    if (!trimmed) throw new Error("La nota no puede estar vacía.");
+    if (!Number.isFinite(atSeconds) || atSeconds < 0) {
+      throw new Error("at_seconds inválido.");
+    }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado.");
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No autenticado.");
 
-  const { data: lesson, error: lessonError } = await supabase
-    .from("lessons")
-    .select("course_id")
-    .eq("id", lessonId)
-    .maybeSingle();
-  if (lessonError || !lesson) {
-    throw new Error("Lección no encontrada.");
-  }
+    const { data: lesson, error: lessonError } = await supabase
+      .from("lessons")
+      .select("course_id")
+      .eq("id", lessonId)
+      .maybeSingle();
+    if (lessonError || !lesson) {
+      throw new Error("Lección no encontrada.");
+    }
 
-  const { data, error } = await supabase
-    .from("lesson_notes")
-    .insert({
-      user_id: user.id,
-      course_id: lesson.course_id,
-      lesson_id: lessonId,
-      at_seconds: Math.floor(atSeconds),
-      body: trimmed,
-    })
-    .select("id, at_seconds, body, created_at")
-    .single();
+    const { data, error } = await supabase
+      .from("lesson_notes")
+      .insert({
+        user_id: user.id,
+        course_id: lesson.course_id,
+        lesson_id: lessonId,
+        at_seconds: Math.floor(atSeconds),
+        body: trimmed,
+      })
+      .select("id, at_seconds, body, created_at")
+      .single();
 
-  if (error) {
-    throw new Error(`No se pudo guardar la nota: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`No se pudo guardar la nota: ${error.message}`);
+    }
 
-  return { id: data.id, atSeconds: data.at_seconds, body: data.body, createdAt: data.created_at };
-}
+    return { id: data.id, atSeconds: data.at_seconds, body: data.body, createdAt: data.created_at };
+  },
+);
 
 // La RLS (`user_id = auth.uid()`) es el control; el `.eq("user_id")` es defensa en profundidad.
 // Una nota ajena no da 403: PostgREST filtra en silencio y devuelve 0 filas, por eso 0 filas es error.
 const NOTE_NOT_FOUND = "No se encontró la nota.";
 
 /** Edita el texto de una nota propia. `at_seconds` no está en el payload: se conserva. */
-export async function updateLessonNote(noteId: string, body: string): Promise<NoteResult> {
-  const trimmed = body.trim();
-  if (!trimmed) throw new Error("La nota no puede estar vacía.");
+export const updateLessonNote = withRateLimit(
+  "updateLessonNote",
+  async function updateLessonNote(noteId: string, body: string): Promise<NoteResult> {
+    const trimmed = body.trim();
+    if (!trimmed) throw new Error("La nota no puede estar vacía.");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado.");
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No autenticado.");
 
-  const { data, error } = await supabase
-    .from("lesson_notes")
-    .update({ body: trimmed })
-    .eq("id", noteId)
-    .eq("user_id", user.id)
-    .select("id, at_seconds, body, created_at");
-  if (error) throw new Error(`No se pudo editar la nota: ${error.message}`);
-  const row = data?.[0];
-  if (!row) throw new Error(NOTE_NOT_FOUND);
+    const { data, error } = await supabase
+      .from("lesson_notes")
+      .update({ body: trimmed })
+      .eq("id", noteId)
+      .eq("user_id", user.id)
+      .select("id, at_seconds, body, created_at");
+    if (error) throw new Error(`No se pudo editar la nota: ${error.message}`);
+    const row = data?.[0];
+    if (!row) throw new Error(NOTE_NOT_FOUND);
 
-  return { id: row.id, atSeconds: row.at_seconds, body: row.body, createdAt: row.created_at };
-}
+    return { id: row.id, atSeconds: row.at_seconds, body: row.body, createdAt: row.created_at };
+  },
+);
 
-export async function deleteLessonNote(noteId: string): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado.");
+export const deleteLessonNote = withRateLimit(
+  "deleteLessonNote",
+  async function deleteLessonNote(noteId: string): Promise<void> {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No autenticado.");
 
-  const { data, error } = await supabase
-    .from("lesson_notes")
-    .delete()
-    .eq("id", noteId)
-    .eq("user_id", user.id)
-    .select("id");
-  if (error) throw new Error(`No se pudo borrar la nota: ${error.message}`);
-  if (!data?.length) throw new Error(NOTE_NOT_FOUND);
-}
+    const { data, error } = await supabase
+      .from("lesson_notes")
+      .delete()
+      .eq("id", noteId)
+      .eq("user_id", user.id)
+      .select("id");
+    if (error) throw new Error(`No se pudo borrar la nota: ${error.message}`);
+    if (!data?.length) throw new Error(NOTE_NOT_FOUND);
+  },
+);
 
 // ---------------------------------------------------------------------------------- T-030 · Q&A
 // Finos a propósito (patrón de circulo/actions.ts): validan forma, escriben con el cliente de
@@ -313,70 +328,90 @@ function done(lessonId: string, success: string): QaActionState {
 }
 
 function translated(error: { code?: string | null; message: string }, duplicado: string): QaActionState {
-  console.error("[qa] escritura rechazada:", error.code, error.message);
+  log.error("qa_write_rejected", { pg_code: error.code, message: error.message });
   return qaFail(traducirErrorQa(error, { duplicado, fallback: GENERIC_QA_ERROR }));
 }
 
-export async function askQuestion(lessonId: string, _prev: QaActionState, formData: FormData): Promise<QaActionState> {
-  if (!ids(lessonId)) return qaFail("La lección no es válida.");
-  const parsed = questionSchema.safeParse({
-    title: String(formData.get("title") ?? ""),
-    body: String(formData.get("body") ?? ""),
-  });
-  if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Revisá la pregunta.");
+export const askQuestion = withRateLimit(
+  "askQuestion",
+  async function askQuestion(lessonId: string, _prev: QaActionState, formData: FormData): Promise<QaActionState> {
+    if (!ids(lessonId)) return qaFail("La lección no es válida.");
+    const parsed = questionSchema.safeParse({
+      title: String(formData.get("title") ?? ""),
+      body: String(formData.get("body") ?? ""),
+    });
+    if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Revisá la pregunta.");
 
-  const { supabase, uid } = await qaSession();
-  if (!uid) return qaFail("Necesitás iniciar sesión.");
-  const { error } = await preguntar(supabase, { lessonId, authorId: uid, ...parsed.data });
-  if (error) return translated(error, "Esa pregunta ya existe.");
-  return done(lessonId, "Pregunta publicada.");
-}
+    const { supabase, uid } = await qaSession();
+    if (!uid) return qaFail("Necesitás iniciar sesión.");
+    const { error } = await preguntar(supabase, { lessonId, authorId: uid, ...parsed.data });
+    if (error) return translated(error, "Esa pregunta ya existe.");
+    return done(lessonId, "Pregunta publicada.");
+  },
+  limitedState,
+);
 
-export async function answerQuestion(
-  lessonId: string,
-  questionId: string,
-  _prev: QaActionState,
-  formData: FormData,
-): Promise<QaActionState> {
-  if (!ids(lessonId, questionId)) return qaFail("La pregunta no es válida.");
-  const parsed = answerSchema.safeParse({ body: String(formData.get("body") ?? "") });
-  if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Revisá la respuesta.");
+export const answerQuestion = withRateLimit(
+  "answerQuestion",
+  async function answerQuestion(
+    lessonId: string,
+    questionId: string,
+    _prev: QaActionState,
+    formData: FormData,
+  ): Promise<QaActionState> {
+    if (!ids(lessonId, questionId)) return qaFail("La pregunta no es válida.");
+    const parsed = answerSchema.safeParse({ body: String(formData.get("body") ?? "") });
+    if (!parsed.success) return qaFail(parsed.error.issues[0]?.message ?? "Revisá la respuesta.");
 
-  const { supabase, uid } = await qaSession();
-  if (!uid) return qaFail("Necesitás iniciar sesión.");
-  const { error } = await responder(supabase, { questionId, authorId: uid, body: parsed.data.body });
-  if (error) return translated(error, "Esa respuesta ya existe.");
-  return done(lessonId, "Respuesta publicada.");
-}
+    const { supabase, uid } = await qaSession();
+    if (!uid) return qaFail("Necesitás iniciar sesión.");
+    const { error } = await responder(supabase, { questionId, authorId: uid, body: parsed.data.body });
+    if (error) return translated(error, "Esa respuesta ya existe.");
+    return done(lessonId, "Respuesta publicada.");
+  },
+  limitedState,
+);
 
-export async function voteQuestion(lessonId: string, questionId: string, vote: boolean): Promise<QaActionState> {
-  if (!ids(lessonId, questionId) || typeof vote !== "boolean") return qaFail("La pregunta no es válida.");
-  const { supabase, uid } = await qaSession();
-  if (!uid) return qaFail("Necesitás iniciar sesión.");
-  const { error } = vote
-    ? await votar(supabase, { questionId, userId: uid })
-    : await quitarVoto(supabase, { questionId, userId: uid });
-  if (error) return translated(error, "Ya votaste esta pregunta.");
-  return done(lessonId, vote ? "Voto sumado." : "Voto quitado.");
-}
+export const voteQuestion = withRateLimit(
+  "voteQuestion",
+  async function voteQuestion(lessonId: string, questionId: string, vote: boolean): Promise<QaActionState> {
+    if (!ids(lessonId, questionId) || typeof vote !== "boolean") return qaFail("La pregunta no es válida.");
+    const { supabase, uid } = await qaSession();
+    if (!uid) return qaFail("Necesitás iniciar sesión.");
+    const { error } = vote
+      ? await votar(supabase, { questionId, userId: uid })
+      : await quitarVoto(supabase, { questionId, userId: uid });
+    if (error) return translated(error, "Ya votaste esta pregunta.");
+    return done(lessonId, vote ? "Voto sumado." : "Voto quitado.");
+  },
+  limitedState,
+);
 
-export async function resolveQuestion(lessonId: string, questionId: string, resolved: boolean): Promise<QaActionState> {
-  if (!ids(lessonId, questionId) || typeof resolved !== "boolean") return qaFail("La pregunta no es válida.");
-  const { supabase, uid } = await qaSession();
-  if (!uid) return qaFail("Necesitás iniciar sesión.");
-  const { error } = await marcarResuelta(supabase, { questionId, resolved });
-  if (error) return translated(error, GENERIC_QA_ERROR);
-  return done(lessonId, resolved ? "Marcada como resuelta." : "Pregunta reabierta.");
-}
+export const resolveQuestion = withRateLimit(
+  "resolveQuestion",
+  async function resolveQuestion(lessonId: string, questionId: string, resolved: boolean): Promise<QaActionState> {
+    if (!ids(lessonId, questionId) || typeof resolved !== "boolean") return qaFail("La pregunta no es válida.");
+    const { supabase, uid } = await qaSession();
+    if (!uid) return qaFail("Necesitás iniciar sesión.");
+    const { error } = await marcarResuelta(supabase, { questionId, resolved });
+    if (error) return translated(error, GENERIC_QA_ERROR);
+    return done(lessonId, resolved ? "Marcada como resuelta." : "Pregunta reabierta.");
+  },
+  limitedState,
+);
 
-export async function featureAnswer(lessonId: string, answerId: string, featured: boolean): Promise<QaActionState> {
-  if (!ids(lessonId, answerId) || typeof featured !== "boolean") return qaFail("La respuesta no es válida.");
-  const { supabase, uid } = await qaSession();
-  if (!uid) return qaFail("Necesitás iniciar sesión.");
-  const { error } = await destacar(supabase, { answerId, featured });
-  if (error) return translated(error, "Esta pregunta ya tiene una respuesta destacada. Quitala primero.");
-  return done(lessonId, featured ? "Respuesta destacada." : "Destacado quitado.");
-}
+export const featureAnswer = withRateLimit(
+  "featureAnswer",
+  async function featureAnswer(lessonId: string, answerId: string, featured: boolean): Promise<QaActionState> {
+    if (!ids(lessonId, answerId) || typeof featured !== "boolean") return qaFail("La respuesta no es válida.");
+    const { supabase, uid } = await qaSession();
+    if (!uid) return qaFail("Necesitás iniciar sesión.");
+    const { error } = await destacar(supabase, { answerId, featured });
+    if (error) return translated(error, "Esta pregunta ya tiene una respuesta destacada. Quitala primero.");
+    return done(lessonId, featured ? "Respuesta destacada." : "Destacado quitado.");
+  },
+  limitedState,
+);
 
 async function moderate(
   tabla: "lesson_questions" | "lesson_answers",
@@ -395,20 +430,28 @@ async function moderate(
   return done(lessonId, "Mensaje borrado.");
 }
 
-export async function moderateQuestion(
-  lessonId: string,
-  questionId: string,
-  _prev: QaActionState,
-  formData: FormData,
-): Promise<QaActionState> {
-  return moderate("lesson_questions", lessonId, questionId, formData);
-}
+export const moderateQuestion = withRateLimit(
+  "moderateQuestion",
+  async function moderateQuestion(
+    lessonId: string,
+    questionId: string,
+    _prev: QaActionState,
+    formData: FormData,
+  ): Promise<QaActionState> {
+    return moderate("lesson_questions", lessonId, questionId, formData);
+  },
+  limitedState,
+);
 
-export async function moderateAnswer(
-  lessonId: string,
-  answerId: string,
-  _prev: QaActionState,
-  formData: FormData,
-): Promise<QaActionState> {
-  return moderate("lesson_answers", lessonId, answerId, formData);
-}
+export const moderateAnswer = withRateLimit(
+  "moderateAnswer",
+  async function moderateAnswer(
+    lessonId: string,
+    answerId: string,
+    _prev: QaActionState,
+    formData: FormData,
+  ): Promise<QaActionState> {
+    return moderate("lesson_answers", lessonId, answerId, formData);
+  },
+  limitedState,
+);

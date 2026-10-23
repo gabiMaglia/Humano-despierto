@@ -1,7 +1,8 @@
 // Sin `server-only`: lo importan la action de la ficha, las del admin y los formularios cliente
 // (valor inicial de `useActionState`). Son strings y una función pura.
+import type { RateLimitFields } from "@/lib/rate-limit/core";
 
-export interface EnrollmentRequestState {
+export interface EnrollmentRequestState extends RateLimitFields {
   error: string | null;
   success: string | null;
 }

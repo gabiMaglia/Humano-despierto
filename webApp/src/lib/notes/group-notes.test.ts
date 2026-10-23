@@ -56,18 +56,18 @@ describe("groupNotes", () => {
     expect(g.modules[0].lessons[0].notes[0].href).toBeNull();
   });
 
-  it("dato roto (leccion sin modulo, sin leccion o curso desconocido) se omite con console.error", () => {
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("dato roto (leccion sin modulo, sin leccion o curso desconocido) se omite y avisa por onSkip", () => {
+    const skipped = vi.fn();
     const rows = [
       N("n1", 1, LESSON("la", "c1", 1, null)),
       N("n2", 1, null),
       N("n3", 1, LESSON("lz", "zz", 1, { title: "M", position: 1 })),
       N("n4", 1, LESSON("lb", "c1", 1, { title: "M1", position: 1 })),
     ];
-    const groups = groupNotes(rows, COURSES, new Set(["c1"]));
+    const groups = groupNotes(rows, COURSES, new Set(["c1"]), skipped);
     expect(groups).toHaveLength(1);
     expect(groups[0].modules[0].lessons.map((l) => l.lessonId)).toEqual(["lb"]);
-    expect(err).toHaveBeenCalledTimes(3);
+    expect(skipped.mock.calls.map((c) => c[0])).toEqual(["n1", "n2", "n3"]);
   });
 
   it("sin notas no hay grupos", () => {

@@ -1,7 +1,9 @@
 "use client";
 
+import { useReportError } from "@/hooks/useReportError";
 import CampusError from "@/components/campus/CampusError";
 
 export default function CampusCourseError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  return <CampusError message={error.message} onRetry={reset} />;
+  useReportError(error);
+  return <CampusError message={error.message} digest={error.digest} onRetry={reset} />;
 }

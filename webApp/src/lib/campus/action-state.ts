@@ -6,7 +6,8 @@
  * `CAMPUS_ACTION_INITIAL_STATE` (importar eso desde un módulo `server-only`
  * arrastraría ese sentinel al bundle del browser, que Next rechaza en build).
  */
-export interface CampusActionState {
+import type { RateLimitFields } from "@/lib/rate-limit/core";
+export interface CampusActionState extends RateLimitFields {
   error: string | null;
   success: string | null;
 }

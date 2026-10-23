@@ -14,74 +14,82 @@ import { createClient } from "@/lib/supabase/server";
 import { idSchema, reasonSchema as announcementReasonSchema } from "@/lib/announcements/validation";
 import { retirar, traducirErrorAnuncio } from "@/lib/announcements/write.mjs";
 import type { AppRole } from "@/lib/stores/useAuthStore";
+import { log } from "@/lib/server/log";
+import { withRateLimit } from "@/lib/server/rate-limit";
+import { limitedState } from "@/lib/rate-limit/core";
 
 const ROLES: AppRole[] = ["student", "teacher", "admin"];
 const COURSE_STATUSES = ["draft", "published", "archived"] as const;
 const ENROLLMENT_STATUSES = ["active", "revoked"] as const;
 
-export async function updateUserRoleAction(
-  _prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  await requireAdmin();
+export const updateUserRoleAction = withRateLimit(
+  "updateUserRoleAction",
+  async function updateUserRoleAction(
+    _prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    await requireAdmin();
 
-  const userId = String(formData.get("userId") ?? "");
-  const nextRole = String(formData.get("role") ?? "") as AppRole;
+    const userId = String(formData.get("userId") ?? "");
+    const nextRole = String(formData.get("role") ?? "") as AppRole;
 
-  if (!userId || !ROLES.includes(nextRole)) {
-    return { error: "Datos inválidos.", success: null };
-  }
+    if (!userId || !ROLES.includes(nextRole)) {
+      return { error: "Datos inválidos.", success: null };
+    }
 
-  const db = getAdminSupabaseClient();
+    const db = getAdminSupabaseClient();
 
-  const { data: target, error: targetError } = await db
-    .from("profiles")
-    .select("id, role, full_name")
-    .eq("id", userId)
-    .single();
-
-  if (targetError || !target) {
-    return { error: "Usuario no encontrado.", success: null };
-  }
-
-  // Criterio 5: nadie puede dejar al sistema sin un solo admin. No importa
-  // si quien lo intenta es el propio admin u otro: si el objetivo es el
-  // único admin que queda, el downgrade se rechaza acá — no hay forma de
-  // recuperarlo después desde la aplicación.
-  if (target.role === "admin" && nextRole !== "admin") {
-    const { count, error: countError } = await db
+    const { data: target, error: targetError } = await db
       .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
+      .select("id, role, full_name")
+      .eq("id", userId)
+      .single();
 
-    if (countError) {
-      return { error: "No se pudo verificar cuántos admins quedan.", success: null };
+    if (targetError || !target) {
+      return { error: "Usuario no encontrado.", success: null };
     }
-    if ((count ?? 0) <= 1) {
-      return {
-        error: "No se puede quitar el rol admin: es el único administrador del sistema.",
-        success: null,
-      };
+
+    // Criterio 5: nadie puede dejar al sistema sin un solo admin. No importa
+    // si quien lo intenta es el propio admin u otro: si el objetivo es el
+    // único admin que queda, el downgrade se rechaza acá — no hay forma de
+    // recuperarlo después desde la aplicación.
+    if (target.role === "admin" && nextRole !== "admin") {
+      const { count, error: countError } = await db
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin");
+
+      if (countError) {
+        return { error: "No se pudo verificar cuántos admins quedan.", success: null };
+      }
+      if ((count ?? 0) <= 1) {
+        return {
+          error: "No se puede quitar el rol admin: es el único administrador del sistema.",
+          success: null,
+        };
+      }
     }
-  }
 
-  const { error: updateError } = await db
-    .from("profiles")
-    .update({ role: nextRole })
-    .eq("id", userId);
+    const { error: updateError } = await db
+      .from("profiles")
+      .update({ role: nextRole })
+      .eq("id", userId);
 
-  if (updateError) {
-    return { error: `No se pudo actualizar el rol: ${updateError.message}`, success: null };
-  }
+    if (updateError) {
+      return { error: `No se pudo actualizar el rol: ${updateError.message}`, success: null };
+    }
 
-  revalidatePath("/panel/admin", "layout");
-  return {
-    error: null,
-    success: `${target.full_name || "Usuario"} ahora es ${nextRole}.`,
-  };
-}
+    revalidatePath("/panel/admin", "layout");
+    return {
+      error: null,
+      success: `${target.full_name || "Usuario"} ahora es ${nextRole}.`,
+    };
+  },
+  limitedState,
+);
 
-export async function setEnrollmentAction(
+// Sin envolver: grantEnrollmentByEmailAction delega acá y no tiene que gastar dos cupos por pedido.
+async function setEnrollment(
   _prevState: AdminActionState,
   formData: FormData
 ): Promise<AdminActionState> {
@@ -142,37 +150,43 @@ export async function setEnrollmentAction(
   };
 }
 
-export async function setCourseStatusAction(
-  _prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  await requireAdmin();
+export const setEnrollmentAction = withRateLimit("setEnrollmentAction", setEnrollment, limitedState);
 
-  const courseId = String(formData.get("courseId") ?? "");
-  const status = String(formData.get("status") ?? "");
+export const setCourseStatusAction = withRateLimit(
+  "setCourseStatusAction",
+  async function setCourseStatusAction(
+    _prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    await requireAdmin();
 
-  if (!courseId || !(COURSE_STATUSES as readonly string[]).includes(status)) {
-    return { error: "Datos inválidos.", success: null };
-  }
+    const courseId = String(formData.get("courseId") ?? "");
+    const status = String(formData.get("status") ?? "");
 
-  const db = getAdminSupabaseClient();
+    if (!courseId || !(COURSE_STATUSES as readonly string[]).includes(status)) {
+      return { error: "Datos inválidos.", success: null };
+    }
 
-  const { error } = await db
-    .from("courses")
-    .update({
-      status,
-      published_at: status === "published" ? new Date().toISOString() : null,
-    })
-    .eq("id", courseId);
+    const db = getAdminSupabaseClient();
 
-  if (error) {
-    return { error: `No se pudo actualizar el curso: ${error.message}`, success: null };
-  }
+    const { error } = await db
+      .from("courses")
+      .update({
+        status,
+        published_at: status === "published" ? new Date().toISOString() : null,
+      })
+      .eq("id", courseId);
 
-  revalidatePath("/panel/admin", "layout");
-  revalidatePath("/cursos");
-  return { error: null, success: "Estado del curso actualizado." };
-}
+    if (error) {
+      return { error: `No se pudo actualizar el curso: ${error.message}`, success: null };
+    }
+
+    revalidatePath("/panel/admin", "layout");
+    revalidatePath("/cursos");
+    return { error: null, success: "Estado del curso actualizado." };
+  },
+  limitedState,
+);
 
 const enrollmentIdSchema = z.uuid();
 
@@ -187,71 +201,79 @@ const reasonSchema = z
  * UPDATE no la encuentra, no hay mail desde acá y se avisa (c.6). `rejected` también es origen
  * válido: el admin puede reconsiderar un rechazo (c.9). El mail lo deduplica igual `mail_log`.
  */
-export async function approveEnrollmentRequestAction(
-  _prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+export const approveEnrollmentRequestAction = withRateLimit(
+  "approveEnrollmentRequestAction",
+  async function approveEnrollmentRequestAction(
+    _prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    const admin = await requireAdmin();
 
-  const id = enrollmentIdSchema.safeParse(formData.get("enrollmentId"));
-  if (!id.success) return { error: ENROLLMENT_COPY.invalidData, success: null };
+    const id = enrollmentIdSchema.safeParse(formData.get("enrollmentId"));
+    if (!id.success) return { error: ENROLLMENT_COPY.invalidData, success: null };
 
-  const db = getAdminSupabaseClient();
-  const now = new Date().toISOString();
-  const { data, error } = await db
-    .from("enrollments")
-    .update({ status: "active", granted_by: admin.id, enrolled_at: now, decided_at: now, decided_reason: null })
-    .eq("id", id.data)
-    .in("status", ["requested", "rejected"])
-    .select("user_id, course_id");
+    const db = getAdminSupabaseClient();
+    const now = new Date().toISOString();
+    const { data, error } = await db
+      .from("enrollments")
+      .update({ status: "active", granted_by: admin.id, enrolled_at: now, decided_at: now, decided_reason: null })
+      .eq("id", id.data)
+      .in("status", ["requested", "rejected"])
+      .select("user_id, course_id");
 
-  if (error) return { error: translateEnrollmentError(error), success: null };
-  const row = data?.[0];
-  if (!row) return { error: translateEnrollmentError({ code: NO_ROWS, message: "" }), success: null };
+    if (error) return { error: translateEnrollmentError(error), success: null };
+    const row = data?.[0];
+    if (!row) return { error: translateEnrollmentError({ code: NO_ROWS, message: "" }), success: null };
 
-  // Después de guardar y sin try/catch: `notify*` atrapa todo (T-020), un SMTP caído no deshace
-  // la aprobación ni cambia esta respuesta (c.11).
-  await notifyEnrollmentActivated({ studentId: row.user_id, courseId: row.course_id });
+    // Después de guardar y sin try/catch: `notify*` atrapa todo (T-020), un SMTP caído no deshace
+    // la aprobación ni cambia esta respuesta (c.11).
+    await notifyEnrollmentActivated({ studentId: row.user_id, courseId: row.course_id });
 
-  revalidatePath("/panel/admin", "layout");
-  revalidatePath("/cursos/[slug]", "page");
-  return { error: null, success: ENROLLMENT_COPY.approved };
-}
+    revalidatePath("/panel/admin", "layout");
+    revalidatePath("/cursos/[slug]", "page");
+    return { error: null, success: ENROLLMENT_COPY.approved };
+  },
+  limitedState,
+);
 
 /** T-043 · rechazar, con motivo opcional que lee la alumna (R-3 en las dos mitades). */
-export async function rejectEnrollmentRequestAction(
-  _prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  await requireAdmin();
+export const rejectEnrollmentRequestAction = withRateLimit(
+  "rejectEnrollmentRequestAction",
+  async function rejectEnrollmentRequestAction(
+    _prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    await requireAdmin();
 
-  const id = enrollmentIdSchema.safeParse(formData.get("enrollmentId"));
-  if (!id.success) return { error: ENROLLMENT_COPY.invalidData, success: null };
+    const id = enrollmentIdSchema.safeParse(formData.get("enrollmentId"));
+    if (!id.success) return { error: ENROLLMENT_COPY.invalidData, success: null };
 
-  const reason = reasonSchema.safeParse(String(formData.get("reason") ?? ""));
-  if (!reason.success) {
-    return { error: reason.error.issues[0]?.message ?? ENROLLMENT_COPY.invalidData, success: null };
-  }
-  const decidedReason = reason.data === "" ? null : reason.data;
+    const reason = reasonSchema.safeParse(String(formData.get("reason") ?? ""));
+    if (!reason.success) {
+      return { error: reason.error.issues[0]?.message ?? ENROLLMENT_COPY.invalidData, success: null };
+    }
+    const decidedReason = reason.data === "" ? null : reason.data;
 
-  const db = getAdminSupabaseClient();
-  const { data, error } = await db
-    .from("enrollments")
-    .update({ status: "rejected", decided_at: new Date().toISOString(), decided_reason: decidedReason })
-    .eq("id", id.data)
-    .eq("status", "requested")
-    .select("user_id, course_id");
+    const db = getAdminSupabaseClient();
+    const { data, error } = await db
+      .from("enrollments")
+      .update({ status: "rejected", decided_at: new Date().toISOString(), decided_reason: decidedReason })
+      .eq("id", id.data)
+      .eq("status", "requested")
+      .select("user_id, course_id");
 
-  if (error) return { error: translateEnrollmentError(error), success: null };
-  const row = data?.[0];
-  if (!row) return { error: translateEnrollmentError({ code: NO_ROWS, message: "" }), success: null };
+    if (error) return { error: translateEnrollmentError(error), success: null };
+    const row = data?.[0];
+    if (!row) return { error: translateEnrollmentError({ code: NO_ROWS, message: "" }), success: null };
 
-  await notifyEnrollmentRejected({ studentId: row.user_id, courseId: row.course_id, reason: decidedReason });
+    await notifyEnrollmentRejected({ studentId: row.user_id, courseId: row.course_id, reason: decidedReason });
 
-  revalidatePath("/panel/admin", "layout");
-  revalidatePath("/cursos/[slug]", "page");
-  return { error: null, success: ENROLLMENT_COPY.rejected };
-}
+    revalidatePath("/panel/admin", "layout");
+    revalidatePath("/cursos/[slug]", "page");
+    return { error: null, success: ENROLLMENT_COPY.rejected };
+  },
+  limitedState,
+);
 
 // ---------------------------------------------------------------- T-037 · moderación de reseñas
 
@@ -275,125 +297,145 @@ const MODERATION_REASON_MAX = 1000;
 // Toda la moderación pasa por `moderate_*` (0032): ocultar y resolver los reportes es una
 // transacción, y es el único código que escribe `hidden_*`/`resolved_*` (ADR-012 c.6). El id del
 // admin sale de la sesión; con service_role `auth.uid()` es nulo y la base no sabe quién llamó.
-export async function hideReviewAction(
-  reviewId: string,
-  _prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  const admin = await requireAdmin();
-  if (!moderationIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
-  const reason = String(formData.get("reason") ?? "").trim();
-  if (reason.length === 0 || reason.length > MODERATION_REASON_MAX) {
-    return { error: "El motivo va de 1 a 1000 caracteres.", success: null };
-  }
+export const hideReviewAction = withRateLimit(
+  "hideReviewAction",
+  async function hideReviewAction(
+    reviewId: string,
+    _prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    const admin = await requireAdmin();
+    if (!moderationIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (reason.length === 0 || reason.length > MODERATION_REASON_MAX) {
+      return { error: "El motivo va de 1 a 1000 caracteres.", success: null };
+    }
 
-  const { data, error } = await getAdminSupabaseClient().rpc("moderate_hide_review", {
-    p_review_id: reviewId,
-    p_admin_id: admin.id,
-    p_reason: reason,
-  });
-  if (error) {
-    console.error(`[moderacion] ocultar ${reviewId}: ${error.code}`);
-    return { error: moderationError(error.code, "No se pudo ocultar la reseña."), success: null };
-  }
+    const { data, error } = await getAdminSupabaseClient().rpc("moderate_hide_review", {
+      p_review_id: reviewId,
+      p_admin_id: admin.id,
+      p_reason: reason,
+    });
+    if (error) {
+      log.error("review_hide_failed", { review_id: reviewId, pg_code: error.code });
+      return { error: moderationError(error.code, "No se pudo ocultar la reseña."), success: null };
+    }
 
-  revalidateModeration();
-  const n = Number(data ?? 0);
-  const detalle = n === 0 ? "" : n === 1 ? " Se resolvió 1 reporte." : ` Se resolvieron ${n} reportes.`;
-  return { error: null, success: `Reseña oculta.${detalle}` };
-}
+    revalidateModeration();
+    const n = Number(data ?? 0);
+    const detalle = n === 0 ? "" : n === 1 ? " Se resolvió 1 reporte." : ` Se resolvieron ${n} reportes.`;
+    return { error: null, success: `Reseña oculta.${detalle}` };
+  },
+  limitedState,
+);
 
-export async function unhideReviewAction(
-  reviewId: string,
-  _prevState: AdminActionState,
-  _formData: FormData
-): Promise<AdminActionState> {
-  const admin = await requireAdmin();
-  if (!moderationIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
+export const unhideReviewAction = withRateLimit(
+  "unhideReviewAction",
+  async function unhideReviewAction(
+    reviewId: string,
+    _prevState: AdminActionState,
+    _formData: FormData
+  ): Promise<AdminActionState> {
+    const admin = await requireAdmin();
+    if (!moderationIdSchema.safeParse(reviewId).success) return { error: "Reseña inválida.", success: null };
 
-  const { data, error } = await getAdminSupabaseClient().rpc("moderate_unhide_review", {
-    p_review_id: reviewId,
-    p_admin_id: admin.id,
-  });
-  if (error) {
-    console.error(`[moderacion] desocultar ${reviewId}: ${error.code}`);
-    return { error: moderationError(error.code, "No se pudo volver a mostrar la reseña."), success: null };
-  }
-  if (data !== true) return { error: "La reseña no estaba oculta.", success: null };
+    const { data, error } = await getAdminSupabaseClient().rpc("moderate_unhide_review", {
+      p_review_id: reviewId,
+      p_admin_id: admin.id,
+    });
+    if (error) {
+      log.error("review_unhide_failed", { review_id: reviewId, pg_code: error.code });
+      return { error: moderationError(error.code, "No se pudo volver a mostrar la reseña."), success: null };
+    }
+    if (data !== true) return { error: "La reseña no estaba oculta.", success: null };
 
-  revalidateModeration();
-  return { error: null, success: "La reseña vuelve a estar visible." };
-}
+    revalidateModeration();
+    return { error: null, success: "La reseña vuelve a estar visible." };
+  },
+  limitedState,
+);
 
-export async function dismissReportAction(
-  reportId: string,
-  _prevState: AdminActionState,
-  _formData: FormData
-): Promise<AdminActionState> {
-  const admin = await requireAdmin();
-  if (!moderationIdSchema.safeParse(reportId).success) return { error: "Reporte inválido.", success: null };
+export const dismissReportAction = withRateLimit(
+  "dismissReportAction",
+  async function dismissReportAction(
+    reportId: string,
+    _prevState: AdminActionState,
+    _formData: FormData
+  ): Promise<AdminActionState> {
+    const admin = await requireAdmin();
+    if (!moderationIdSchema.safeParse(reportId).success) return { error: "Reporte inválido.", success: null };
 
-  const { data, error } = await getAdminSupabaseClient().rpc("moderate_dismiss_report", {
-    p_report_id: reportId,
-    p_admin_id: admin.id,
-  });
-  if (error) {
-    console.error(`[moderacion] desestimar ${reportId}: ${error.code}`);
-    return { error: moderationError(error.code, "No se pudo desestimar el reporte."), success: null };
-  }
-  if (data !== true) return { error: "Ese reporte ya estaba resuelto.", success: null };
+    const { data, error } = await getAdminSupabaseClient().rpc("moderate_dismiss_report", {
+      p_report_id: reportId,
+      p_admin_id: admin.id,
+    });
+    if (error) {
+      log.error("review_report_dismiss_failed", { report_id: reportId, pg_code: error.code });
+      return { error: moderationError(error.code, "No se pudo desestimar el reporte."), success: null };
+    }
+    if (data !== true) return { error: "Ese reporte ya estaba resuelto.", success: null };
 
-  revalidateModeration();
-  return { error: null, success: "Reporte desestimado. La reseña sigue visible." };
-}
+    revalidateModeration();
+    return { error: null, success: "Reporte desestimado. La reseña sigue visible." };
+  },
+  limitedState,
+);
 
 /**
  * T-031 · moderar un anuncio. Con el cliente de SESIÓN, no con service_role: así el guard exige y
  * firma `deleted_by = auth.uid()` y RLS decide por `profiles.role` (ADR-012, R-2), igual que Campus.
  */
-export async function moderateAnnouncement(
-  _prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  const admin = await requireAdmin();
-  const announcementId = String(formData.get("announcementId") ?? "");
-  if (!idSchema.safeParse(announcementId).success) return { error: "Datos inválidos.", success: null };
-  const parsed = announcementReasonSchema.safeParse({ reason: String(formData.get("reason") ?? "") });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Retirar exige un motivo.", success: null };
+export const moderateAnnouncement = withRateLimit(
+  "moderateAnnouncement",
+  async function moderateAnnouncement(
+    _prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    const admin = await requireAdmin();
+    const announcementId = String(formData.get("announcementId") ?? "");
+    if (!idSchema.safeParse(announcementId).success) return { error: "Datos inválidos.", success: null };
+    const parsed = announcementReasonSchema.safeParse({ reason: String(formData.get("reason") ?? "") });
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Retirar exige un motivo.", success: null };
 
-  const supabase = await createClient();
-  const { error } = await retirar(supabase, { id: announcementId, moderatorId: admin.id, reason: parsed.data.reason });
-  if (error) {
-    console.error("[anuncios] moderación rechazada:", error.code, error.message);
-    return { error: traducirErrorAnuncio(error, "No se pudo retirar el anuncio."), success: null };
-  }
+    const supabase = await createClient();
+    const { error } = await retirar(supabase, { id: announcementId, moderatorId: admin.id, reason: parsed.data.reason });
+    if (error) {
+      log.error("announcement_moderation_rejected", { pg_code: error.code, message: error.message });
+      return { error: traducirErrorAnuncio(error, "No se pudo retirar el anuncio."), success: null };
+    }
 
-  revalidatePath("/panel/admin/anuncios");
-  revalidatePath("/panel");
-  revalidatePath("/cursos/[slug]", "page");
-  return { error: null, success: "Anuncio retirado." };
-}
+    revalidatePath("/panel/admin/anuncios");
+    revalidatePath("/panel");
+    revalidatePath("/cursos/[slug]", "page");
+    return { error: null, success: "Anuncio retirado." };
+  },
+  limitedState,
+);
 
 const COURSE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** T-049: el formulario ya no recibe todas las cuentas y cursos; resuelve mail y slug en el
- *  servidor y delega en setEnrollmentAction, que sigue siendo el único que inscribe. */
-export async function grantEnrollmentByEmailAction(
-  prevState: AdminActionState,
-  formData: FormData
-): Promise<AdminActionState> {
-  await requireAdmin();
-  const email = normalizeEmail(formData.get("email"));
-  const courseSlug = String(formData.get("courseSlug") ?? "").trim().toLowerCase();
-  if (!email || courseSlug.length > 120 || !COURSE_SLUG.test(courseSlug)) {
-    return { error: "Datos inválidos.", success: null };
-  }
-  const target = await resolveGrantTarget({ email, courseSlug });
-  if (!target.ok) return { error: target.error, success: null };
+ *  servidor y delega en setEnrollment (el cuerpo de setEnrollmentAction), que sigue siendo el único que inscribe. */
+export const grantEnrollmentByEmailAction = withRateLimit(
+  "grantEnrollmentByEmailAction",
+  async function grantEnrollmentByEmailAction(
+    prevState: AdminActionState,
+    formData: FormData
+  ): Promise<AdminActionState> {
+    await requireAdmin();
+    const email = normalizeEmail(formData.get("email"));
+    const courseSlug = String(formData.get("courseSlug") ?? "").trim().toLowerCase();
+    if (!email || courseSlug.length > 120 || !COURSE_SLUG.test(courseSlug)) {
+      return { error: "Datos inválidos.", success: null };
+    }
+    const target = await resolveGrantTarget({ email, courseSlug });
+    if (!target.ok) return { error: target.error, success: null };
 
-  const delegated = new FormData();
-  delegated.set("userId", target.userId);
-  delegated.set("courseId", target.courseId);
-  delegated.set("status", "active");
-  return setEnrollmentAction(prevState, delegated);
-}
+    const delegated = new FormData();
+    delegated.set("userId", target.userId);
+    delegated.set("courseId", target.courseId);
+    delegated.set("status", "active");
+    return setEnrollment(prevState, delegated);
+  },
+  limitedState,
+);

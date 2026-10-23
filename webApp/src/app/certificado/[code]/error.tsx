@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
 import Button from "@/components/atoms/Button";
+import { ErrorReference } from "@/components/ErrorReference";
+import { useReportError } from "@/hooks/useReportError";
+import { errorDigest } from "@/lib/errors/client-error-report";
 
 export default function CertificadoError({ error, retry }: { error: unknown; retry: () => void }) {
-  useEffect(() => {
-    console.error("Error cargando el certificado:", error);
-  }, [error]);
+  useReportError(error);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-fondo px-6 text-center">
@@ -14,6 +14,7 @@ export default function CertificadoError({ error, retry }: { error: unknown; ret
       <p className="max-w-md text-suave">
         Puede ser un problema pasajero de conexión. El certificado en sí no se pierde: probá de nuevo.
       </p>
+      <ErrorReference digest={errorDigest(error)} />
       <Button onClick={retry} className="mt-2">
         Reintentar
       </Button>

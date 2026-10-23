@@ -3,6 +3,7 @@ import { getAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import { getSiteUrl } from "@/lib/server/site-url";
 import { notifyTeacherInvitation } from "@/lib/server/mail/notify";
 import { hashInvitationToken, invitationPath, newInvitationToken } from "@/lib/server/invitation-token";
+import { log } from "@/lib/server/log";
 
 // Todo acá corre con service_role DESPUÉS de requireAdmin (invitar, revocar) o de getUser
 // (aceptar). La tabla no tiene acceso de cliente: no hay otro camino.
@@ -84,7 +85,7 @@ export async function acceptInvitation(input: { token: string; userId: string })
   const db = getAdminSupabaseClient();
   const { data, error } = await db.rpc("accept_teacher_invitation", { p_token_hash: tokenHash, p_user_id: input.userId });
   if (error) {
-    console.error(`[invitacion] la aceptación falló en la base: ${error.message}`);
+    log.error("invitation_accept_failed", { message: error.message });
     return false;
   }
   return data === true;

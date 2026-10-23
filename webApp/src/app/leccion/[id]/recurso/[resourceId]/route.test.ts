@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { getLessonResourceRedirect } = vi.hoisted(() => ({ getLessonResourceRedirect: vi.fn() }));
 vi.mock("@/lib/server/lesson-resources", () => ({ getLessonResourceRedirect }));
+const { subject } = vi.hoisted(() => ({ subject: vi.fn() }));
+vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: subject }));
 
 import { GET } from "./route";
+import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
 
 const LESSON = "11111111-1111-4111-8111-111111111111";
 const RESOURCE = "44444444-4444-4444-8444-444444444444";
@@ -28,7 +31,23 @@ const DENIED = { status: 403, body: "", cacheControl: "private, no-store", robot
 describe("GET /leccion/[id]/recurso/[resourceId]", () => {
   beforeEach(() => {
     getLessonResourceRedirect.mockReset();
+    __resetRateLimiterForTests();
+    subject.mockResolvedValue({ kind: "user", id: "u-1" });
     vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("T-050 · pasado el tope responde 429 con Retry-After, sin consultar el recurso", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:05:00Z"), toFake: ["Date"] });
+    getLessonResourceRedirect.mockResolvedValue("https://drive.google.com/file/d/X");
+    for (let i = 0; i < 60; i++) expect((await call(LESSON, RESOURCE)).status).toBe(302);
+    getLessonResourceRedirect.mockClear();
+    const res = await call(LESSON, RESOURCE);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("300");
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
+    expect(res.headers.get("location")).toBeNull();
+    expect(getLessonResourceRedirect).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("con destino: 302 al destino, privado y sin cache", async () => {

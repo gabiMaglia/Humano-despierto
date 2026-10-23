@@ -1,8 +1,12 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { getMailConfig } from "@/lib/server/env";
 import { HARD_CAP_MS, TRANSPORT_TIMEOUT_MS } from "@/lib/server/mail/limits";
 import { MailTransportError, SmtpTransport, type MailTransport, type MailMessage } from "@/lib/server/mail/transport";
 import { ResendTransport } from "@/lib/server/mail/transport-resend";
+import { log } from "@/lib/server/log";
+import { limit } from "@/lib/server/rate-limit";
+import { MAIL_LIMITS } from "@/lib/rate-limit/limits";
 
 // T-020 criterio 2: "el envío no puede romper la operación". Este módulo es el ÚNICO choke
 // point de mail de toda la app — cada `notify*` de `notify.ts` llama a `sendMail`, nunca al
@@ -48,6 +52,11 @@ function resolveTransport(): Resolved {
   return cached;
 }
 
+// Hash y no la dirección: la tabla de límites no tiene por qué juntar mails.
+function recipientKey(email: string): string {
+  return `mail:to:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 32)}`;
+}
+
 export interface SendMailInput {
   to: MailMessage["to"];
   subject: string;
@@ -61,9 +70,19 @@ export interface SendMailInput {
  * timeout, config ausente, 4xx/5xx de Resend) se atrapa acá y se loguea; el resultado es
  * informativo, no una excepción que el caller tenga que manejar para no romper su propia
  * operación. Tampoco cuelga más de `HARD_CAP_MS`: cada transporte ya corta antes (E1); este
- * `race` es la malla para uno que no cumpla su invariante.
+ * `race` es la malla para uno que no cumpla su invariante. Pasado el tope global o por
+ * destinatario (T-050, `MAIL_LIMITS`) tampoco envía: devuelve `{ ok:false, error:'rate_limited' }`.
  */
 export async function sendMail(input: SendMailInput): Promise<SendResult> {
+  // T-050: tope contra amplificación de mail. Devuelve fallo como cualquier otro: quien llama no se
+  // rompe (R-12) y `mail_log` lo trata como un intento fallido (consume 1 de sus 3). `limit` no
+  // lanza: con el limitador caído deja pasar (fail-open).
+  const global = await limit("mail:global", MAIL_LIMITS.global);
+  const perRecipient = global.ok ? await limit(recipientKey(input.to.email), MAIL_LIMITS.perRecipient) : global;
+  if (!global.ok || !perRecipient.ok) {
+    await log.error("mail_rate_limited", { scope: global.ok ? "recipient" : "global" });
+    return { ok: false, error: "rate_limited" };
+  }
   try {
     const { transport, from } = resolveTransport();
     await Promise.race([
@@ -80,7 +99,7 @@ export async function sendMail(input: SendMailInput): Promise<SendResult> {
     const error = err instanceof Error ? err.message : String(err);
     const providerError = err instanceof MailTransportError ? err : null;
     // Nunca la dirección del destinatario en un log.
-    console.error("mail_send_failed", {
+    await log.error("mail_send_failed", {
       error,
       permanent: providerError?.permanent ?? false,
       status: providerError?.status,

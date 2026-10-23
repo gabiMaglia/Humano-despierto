@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { roundAverage } from "@/lib/reviews/rating";
 import { elegirDestacada } from "@/lib/reviews/featured.mjs";
 import { reportStatus, type ReportStatus } from "@/lib/reviews/report-status";
+import { log } from "@/lib/server/log";
 
 export interface CourseReview {
   id: string;
@@ -81,7 +82,7 @@ export async function getCourseReviews(courseId: string): Promise<CourseReviewsD
 
   if (error) {
     // Una ficha de curso no se cae porque la sección de reseñas falle.
-    console.error(`[reviews] no se pudieron leer las reseñas de ${courseId}: ${error.message}`);
+    log.error("reviews_read_failed", { course_id: courseId, message: error.message });
     return {
       summary: EMPTY_SUMMARY,
       reviews: [],

@@ -17,6 +17,12 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "blob-report/**",
   ]),
+  // T-051: toda salida pasa por lib/server/log.ts (los tests quedan fuera, spían console).
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/server/log.ts", "src/**/*.test.{ts,tsx}"],
+    rules: { "no-console": "error" },
+  },
 ]);
 
 export default eslintConfig;

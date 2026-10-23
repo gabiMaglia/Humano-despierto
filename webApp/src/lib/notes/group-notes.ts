@@ -64,6 +64,7 @@ export function groupNotes(
   rows: NoteRow[],
   courses: NoteCourse[],
   accessibleCourseIds: Set<string>,
+  onSkip?: (noteId: string) => void,
 ): NoteCourseGroup[] {
   const courseById = new Map(courses.map((c) => [c.id, c]));
   const groups = new Map<string, NoteCourseGroup>();
@@ -73,7 +74,7 @@ export function groupNotes(
     const mod = lesson ? first(lesson.module) : null;
     const course = lesson ? courseById.get(lesson.course_id) : undefined;
     if (!lesson || !mod || !course) {
-      console.error(`[notas] nota ${row.id} omitida: lección, módulo o curso no resueltos`);
+      onSkip?.(row.id);
       continue;
     }
 
