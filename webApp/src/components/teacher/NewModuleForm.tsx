@@ -2,6 +2,8 @@
 
 import { useActionState, useRef, useEffect } from "react";
 import { createModuleAction } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import { PanelInput } from "@/components/panel/PanelField";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 
 export default function NewModuleForm({ courseId }: { courseId: string }) {
@@ -13,38 +15,13 @@ export default function NewModuleForm({ courseId }: { courseId: string }) {
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="tarjeta flex flex-wrap items-end gap-3 p-4">
+    <form ref={formRef} action={formAction} className="tarjeta flex flex-wrap items-start gap-x-4 gap-y-3 p-5">
       <input type="hidden" name="courseId" value={courseId} />
-      <div className="min-w-[200px] flex-1">
-        <label className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
-          Nuevo módulo
-        </label>
-        <input
-          name="title"
-          required
-          placeholder="Título del módulo"
-          className="w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none focus:border-linea focus:bg-fondo"
-        />
-      </div>
-      <div className="min-w-[200px] flex-1">
-        <input
-          name="description"
-          placeholder="Descripción (opcional)"
-          className="w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none focus:border-linea focus:bg-fondo"
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={isPending}
-        className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPending ? "…" : "+ Módulo"}
-      </button>
-      {state.error && (
-        <p role="alert" className="w-full font-body text-xs text-error">
-          {state.error}
-        </p>
-      )}
+      <PanelInput className="min-w-56 flex-1" label="Nuevo módulo" name="title" required placeholder="Título del módulo" error={state.error} />
+      <PanelInput className="min-w-56 flex-1" label="Descripción (opcional)" name="description" />
+      <Button type="submit" disabled={isPending} aria-busy={isPending} className="sm:mt-[1.625rem]">
+        {isPending ? "Agregando…" : "+ Módulo"}
+      </Button>
     </form>
   );
 }

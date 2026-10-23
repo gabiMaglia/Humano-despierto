@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import SiteHeader from "@/components/layout/SiteHeader";
+import PanelFrame from "@/components/panel/PanelFrame";
+import PanelSection from "@/components/panel/PanelSection";
 import { requireTeacher } from "@/lib/server/teacher";
 import { getTeacherPost } from "@/lib/server/diario";
 import PostForm from "@/components/teacher/PostForm";
@@ -24,28 +25,17 @@ export default async function TeacherDiarioEditorPage({ params }: Props) {
   if (!post) notFound();
 
   return (
-    <div className="min-h-screen bg-fondo text-tinta">
-      <SiteHeader />
-      <div className="pt-16">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">
-          <div>
-            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">
-              — /diario/{post.slug} —
-            </p>
-            <h1 className="font-display text-display-md text-tinta">{post.title}</h1>
-          </div>
-          <PublishPostControl postId={post.id} status={post.status} />
-        </header>
+    <PanelFrame
+      title={post.title}
+      context={`/diario/${post.slug}`}
+      back={{ href: "/panel/docente/diario", label: "Tu diario" }}
+      actions={<PublishPostControl postId={post.id} status={post.status} />}
+    >
+      <PanelSection id="post-titulo" title="El post">
+        <PostForm post={post} />
+      </PanelSection>
 
-        <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 md:px-12">
-          <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">El post</h2>
-            <PostForm post={post} />
-          </section>
-
-          <DeletePostControl postId={post.id} postTitle={post.title} />
-        </div>
-      </div>
-    </div>
+      <DeletePostControl postId={post.id} postTitle={post.title} />
+    </PanelFrame>
   );
 }
