@@ -20,6 +20,14 @@ export interface CoverageIssue {
 }
 
 const USE_SERVER = /^["']use server["']/;
+// Lo que puede preceder a la directiva sin anularla: espacios, comentarios de línea y de bloque.
+const LEADING_TRIVIA = /^(?:\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*/;
+
+/** `"use server"` como directiva: primera sentencia del archivo, aunque la precedan comentarios
+ * (Next la acepta ahí). Una cabecera comentada no puede sacar al archivo del guard. */
+export function hasUseServerDirective(source: string): boolean {
+  return USE_SERVER.test(source.replace(LEADING_TRIVIA, ""));
+}
 const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 const UNAUDITED_EXPORT = /^export\s+(?:default\b|\{|\*)/m;
 const EXPORT = /^export\s+(?:async\s+function\s*\*?\s*(\w+)|function\s+(\w+)|const\s+(\w+)\s*=\s*(withRateLimit\(\s*["'](\w+)["'])?)/gm;
@@ -34,7 +42,9 @@ export function auditRateLimitCoverage(
   const usedExempt = new Set<string>();
 
   for (const file of files) {
-    const isServer = USE_SERVER.test(file.source.trimStart());
+    const isServer = hasUseServerDirective(file.source);
+    // Un handler se reconoce por el nombre del archivo, no por su contenido: los comentarios de
+    // cabecera no lo pueden esconder.
     const isRoute = /(^|\/)route\.ts$/.test(file.path);
     if (!isServer && !isRoute) continue;
     if (UNAUDITED_EXPORT.test(file.source)) {

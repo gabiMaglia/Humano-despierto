@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { auditRateLimitCoverage, type SourceFile } from "./coverage";
+import { auditRateLimitCoverage, hasUseServerDirective, type SourceFile } from "./coverage";
 import { RATE_LIMITS, RATE_LIMIT_EXEMPT } from "./limits";
 
 const SRC = fileURLToPath(new URL("../..", import.meta.url));
@@ -37,6 +37,9 @@ describe("meta: cada regla del guard falla sola (playbook: un verificador se pru
     ["exención que ya no existe", ok, { viejaAction: "motivo" }, /exención sin export/],
     ["export default en use server", [...ok, { path: "y/actions.ts", source: `${USE_SERVER}export default async function x() {}` }], {}, /forma de export/],
     ["re-export en use server", [...ok, { path: "y/actions.ts", source: `${USE_SERVER}export { fooAction as barAction } from "./x";` }], {}, /forma de export/],
+    ["use server tras comentarios de línea (M5)", [...ok, { path: "y/actions.ts", source: `// cabecera\n\n// otra\n${USE_SERVER}export async function barAction() {}` }], {}, /sin withRateLimit/],
+    ["use server tras comentario de bloque", [...ok, { path: "y/actions.ts", source: `/**\n * cabecera\n */\n${USE_SERVER}export async function barAction() {}` }], {}, /sin withRateLimit/],
+    ["route.ts con comentario de cabecera", [ok[0], { path: "x/route.ts", source: `// cabecera\n/* más */\nexport async function GET() { return new Response(); }` }], {}, /sin withRateLimit/],
     ["mismo límite usado dos veces", [...ok, { path: "z/route.ts", source: `export const POST = withRateLimit("recursoGet", async () => new Response());` }], {}, /dos veces/],
   ])("%s", (_name, files, exempt, problem) => {
     const issues = auditRateLimitCoverage(files as SourceFile[], LIMITS, exempt);
@@ -46,6 +49,11 @@ describe("meta: cada regla del guard falla sola (playbook: un verificador se pru
   it("una exención con motivo deja pasar el export", () => {
     const files = [...ok, { path: "x/actions.ts", source: `${USE_SERVER}export async function lecturaAction() {}` }];
     expect(auditRateLimitCoverage(files, LIMITS, { lecturaAction: "solo lee" })).toEqual([]);
+  });
+
+  it("una directiva que no está al principio (después de código) no es directiva", () => {
+    expect(hasUseServerDirective(`const x = 1;\n${USE_SERVER}`)).toBe(false);
+    expect(hasUseServerDirective(`// a\n/* b */\n\n'use server'\n`)).toBe(true);
   });
 
   it("ignora archivos que no son use server ni route.ts", () => {
@@ -58,7 +66,7 @@ describe("el código real", () => {
   it("toda Server Action y todo Route Handler tiene límite o exención con motivo", () => {
     const files = sources();
     // Cero archivos revisados no es "todo bien" (playbook): es buscar en el lugar equivocado.
-    expect(files.filter((f) => /^["']use server["']/.test(f.source.trimStart())).length).toBeGreaterThanOrEqual(14);
+    expect(files.filter((f) => hasUseServerDirective(f.source)).length).toBeGreaterThanOrEqual(14);
     expect(files.filter((f) => f.path.endsWith("/route.ts")).length).toBeGreaterThanOrEqual(4);
     const issues = auditRateLimitCoverage(files, RATE_LIMITS, RATE_LIMIT_EXEMPT);
     expect(issues, issues.map((i) => `${i.path} ${i.name}: ${i.problem}`).join("\n")).toEqual([]);
