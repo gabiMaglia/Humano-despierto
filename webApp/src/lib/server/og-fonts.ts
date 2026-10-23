@@ -13,11 +13,14 @@ async function load(file: string): Promise<ArrayBuffer> {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
 }
 
-// Una lectura por proceso: la fuente no cambia y cada imagen OG la necesita.
+export const OG_FONT_FAMILY = "Plus Jakarta Sans";
+
+// Una lectura por proceso: la fuente no cambia y cada imagen OG la necesita. TTF estáticas por
+// peso (satori no lee WOFF2 ni elige instancias de una variable), OFL en OFL-PlusJakartaSans.txt.
 export function loadOgFonts(): Promise<OgFont[]> {
-  cache ??= Promise.all([load("Cinzel-Regular.ttf"), load("Cinzel-Bold.ttf")]).then(([regular, bold]) => [
-    { name: "Cinzel", data: regular, weight: 400, style: "normal" },
-    { name: "Cinzel", data: bold, weight: 700, style: "normal" },
+  cache ??= Promise.all([load("PlusJakartaSans-Regular.ttf"), load("PlusJakartaSans-Bold.ttf")]).then(([regular, bold]) => [
+    { name: OG_FONT_FAMILY, data: regular, weight: 400, style: "normal" },
+    { name: OG_FONT_FAMILY, data: bold, weight: 700, style: "normal" },
   ]);
   return cache;
 }
