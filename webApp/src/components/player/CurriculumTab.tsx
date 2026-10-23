@@ -19,71 +19,61 @@ interface Props {
 
 export default function CurriculumTab({ modules, currentCompleted }: Props) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {modules.map((m) => {
         const done = m.lessons.filter(
           (l) => l.state === "done" || (l.state === "current" && currentCompleted)
         ).length;
         return (
-          <div
-            key={m.position}
-            className={cn(
-              "rounded-md border p-3",
-              m.lessons.some((l) => l.state === "current")
-                ? "border-linea bg-salvia-100"
-                : "border-linea"
-            )}
-          >
-            <div className="flex items-center gap-2.5 mb-1">
-              <span className="font-display text-sm text-bosque w-5">{String(m.position)}</span>
-              <span className="flex-1 font-display text-[11px] tracking-wide text-tinta">{m.title}</span>
+          <section key={m.position} aria-label={`Módulo ${m.position}: ${m.title}`} className="overflow-hidden rounded-md border border-linea">
+            <div className="flex items-start gap-3 bg-fondo px-4 py-3">
+              <span className="w-5 flex-none pt-0.5 text-sm font-bold tabular-nums text-bosque">{String(m.position)}</span>
+              <span className="flex-1 text-sm font-semibold leading-snug text-bosque">{m.title}</span>
               <span
-                className="font-display text-eyebrow tracking-wide text-suave"
+                className="flex-none text-xs font-semibold tabular-nums text-suave"
                 aria-label={`${done} de ${m.lessons.length} completadas`}
               >
                 {done}/{m.lessons.length}
               </span>
             </div>
             {m.lessons.length > 0 && (
-              <div className="ml-7 mt-2 space-y-1">
+              <ul className="divide-y divide-linea border-t border-linea">
                 {m.lessons.map((l) => {
                   const shown: PlayerLessonState = l.state === "current" && currentCompleted ? "done" : l.state;
                   return (
-                    <a
-                      key={l.id}
-                      href={l.state === "locked" ? undefined : `/leccion/${l.id}`}
-                      aria-disabled={l.state === "locked"}
-                      aria-current={l.state === "current" ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-2 py-1.5 rounded px-2",
-                        l.state === "current" && "bg-miel-100 border border-miel",
-                        l.state === "locked" && "pointer-events-none opacity-60"
-                      )}
-                    >
-                      <span
-                        role="img"
-                        aria-label={STATE_LABEL[shown]}
-                        className="inline-flex">
-                        <LessonStateIcon state={shown} />
-                      </span>
-                      <span className="font-display text-[9px] text-suave w-4">{l.position}</span>
-                      <span
+                    <li key={l.id}>
+                      <a
+                        href={l.state === "locked" ? undefined : `/leccion/${l.id}`}
+                        aria-disabled={l.state === "locked"}
+                        aria-current={l.state === "current" ? "page" : undefined}
                         className={cn(
-                          "flex-1 font-body text-[11px] truncate",
-                          l.state === "current" ? "text-miel-800" : "text-suave"
+                          "flex min-h-11 items-center gap-3 px-4 py-2 transition-colors",
+                          l.state === "current" ? "bg-miel-100" : "hover:bg-salvia-100",
+                          // Inactiva: atenuada a propósito (WCAG 1.4.3 exime los controles inactivos).
+                          l.state === "locked" && "pointer-events-none opacity-60"
                         )}
                       >
-                        {l.title}
-                      </span>
-                      <span className="font-display text-[9px] text-suave">
-                        {formatDurationSeconds(l.durationSeconds)}
-                      </span>
-                    </a>
+                        <span role="img" aria-label={STATE_LABEL[shown]} className="inline-flex">
+                          <LessonStateIcon state={shown} />
+                        </span>
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 text-sm leading-snug",
+                            l.state === "current" ? "font-semibold text-bosque" : "text-tinta"
+                          )}
+                        >
+                          {l.position}. {l.title}
+                        </span>
+                        <span className="flex-none text-xs tabular-nums text-suave">
+                          {formatDurationSeconds(l.durationSeconds)}
+                        </span>
+                      </a>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
-          </div>
+          </section>
         );
       })}
     </div>

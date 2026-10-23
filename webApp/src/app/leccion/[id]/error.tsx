@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Button from "@/components/atoms/Button";
 
 export default function LeccionError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -10,17 +11,13 @@ export default function LeccionError({ error, reset }: { error: Error & { digest
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-fondo px-6 text-center text-tinta">
       <p className="eyebrow">Algo se cortó</p>
-      <h1 className="font-display text-lg text-tinta">No pudimos cargar esta lección.</h1>
-      <p className="max-w-md font-body text-sm text-suave">
+      <h1 className="text-2xl">No pudimos cargar esta lección.</h1>
+      <p className="max-w-md text-base text-suave">
         Puede ser un problema pasajero de conexión con el video o con tu progreso guardado.
       </p>
-      <button
-        type="button"
-        onClick={reset}
-        className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors"
-      >
+      <Button variant="outline" onClick={reset}>
         Reintentar
-      </button>
+      </Button>
     </div>
   );
 }
