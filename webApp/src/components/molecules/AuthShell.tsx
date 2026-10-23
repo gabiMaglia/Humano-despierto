@@ -1,24 +1,32 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils/cn";
+import type { AuthAsideKey } from "@/content/auth-aside";
+import AuthFrame from "./AuthFrame";
 
 interface Props {
   title: string;
   accent: string;
   lead: string;
+  aside?: AuthAsideKey;
   children: ReactNode;
 }
 
-export default function AuthShell({ title, accent, lead, children }: Props) {
+export function AuthHeading({ title, accent, lead, className }: Omit<Props, "children" | "aside"> & { className?: string }) {
   return (
-    <div className="flex justify-center px-4 py-12">
-      <div className="w-full max-w-[520px] bg-papel px-8 py-6 md:px-14">
-        <div className="mb-5">
-          <h1 className="mb-1.5 font-display text-2xl tracking-wide text-tinta">
-            {title} <em className="font-quote italic text-miel-800 normal-case">{accent}</em>
-          </h1>
-          <p className="font-body text-sm text-suave">{lead}</p>
-        </div>
-        {children}
-      </div>
+    <div className={cn("mb-6", className)}>
+      <h1 className="mb-2 text-3xl font-bold tracking-tight text-bosque">
+        {title} <span className="text-miel-800">{accent}</span>
+      </h1>
+      <p className="text-base text-suave">{lead}</p>
     </div>
+  );
+}
+
+export default function AuthShell({ title, accent, lead, aside = "entrar", children }: Props) {
+  return (
+    <AuthFrame aside={aside}>
+      <AuthHeading title={title} accent={accent} lead={lead} />
+      {children}
+    </AuthFrame>
   );
 }
