@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lunarDays, lunarPhase } from "./lunar";
+import { lunarDays, lunarPhase, phaseLabel } from "./lunar";
 
 // Efemerides publicadas (USNO / timeanddate, UTC): luna nueva 2026-01-18 19:52,
 // luna llena 2026-02-01 22:09. El modelo es la media sinodica: error de hasta ~14 h, de ahi
@@ -39,5 +39,21 @@ describe("lunarDays", () => {
     expect(days[0].phase).toBe("new");
     expect(days[4].phase).toBe("full");
     expect(days[1].date.getTime() - days[0].date.getTime()).toBeCloseTo(3.69 * DIA, -6);
+  });
+});
+
+// T-061 · el calendario Brote nombra cada fase en texto: el dibujo es aria-hidden.
+describe("phaseLabel", () => {
+  it.each([
+    ["new", true, "Luna nueva"],
+    ["crescent", true, "Creciente"],
+    ["half", true, "Cuarto creciente"],
+    ["gibbous", true, "Gibosa creciente"],
+    ["full", false, "Luna llena"],
+    ["gibbous", false, "Gibosa menguante"],
+    ["half", false, "Cuarto menguante"],
+    ["crescent", false, "Menguante"],
+  ] as const)("%s (creciente=%s) → %s", (phase, waxing, label) => {
+    expect(phaseLabel(phase, waxing)).toBe(label);
   });
 });

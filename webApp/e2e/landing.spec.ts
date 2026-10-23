@@ -54,4 +54,5 @@ test("la portada no trae cifras inventadas y los testimonios son reseñas reales
   await expect(page.getByText("Iris Maldonado")).toHaveCount(0);
 
   await expect(page.getByText(/^\d+ cursos?$/).first()).toBeVisible();
+  await expect(page.getByText("Calendario lunar")).toBeVisible();
 });

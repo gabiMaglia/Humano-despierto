@@ -7,6 +7,8 @@ import Cifras from "@/components/landing/Cifras";
 import GuiasSection from "@/components/landing/GuiasSection";
 import Testimonios from "@/components/landing/Testimonios";
 import Empezar from "@/components/landing/Empezar";
+import LunarCalendar from "@/components/landing/LunarCalendar";
+import { lunarDays } from "@/lib/lunar";
 import { LANDING } from "@/content/landing";
 import { freeClassClaim } from "@/lib/catalog/free-class";
 import { getLandingData } from "@/lib/server/landing";
@@ -40,6 +42,7 @@ export default async function LandingPage() {
         <Manifiesto />
         <FeaturedCourses courses={featured} covers={covers} total={courses.length} disciplines={disciplines} />
         <Cifras stats={stats} disciplines={disciplines} />
+        <LunarCalendar days={lunarDays(new Date())} />
         <GuiasSection guias={guias.slice(0, 3)} total={guias.length} />
         <Testimonios items={testimonials} />
         <Empezar claim={claim} />
