@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+// T-050: sin esto el sujeto real abre un cliente de Supabase y gasta el cupo de "ip:unknown"
+// compartido entre tests; acá cada test arranca con el limitador vacío y una usuaria fija.
+const { rateLimitSubject } = vi.hoisted(() => ({ rateLimitSubject: vi.fn() }));
+vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: rateLimitSubject }));
 
 // vi.mock se eleva sobre los imports: lo que usa la factory tiene que existir antes, via vi.hoisted.
 const { createClient, createServiceRoleClient } = vi.hoisted(() => ({
@@ -13,6 +17,12 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { updateProfileAction, uploadAvatarAction } from "./actions";
 import { MAX_AVATAR_BYTES } from "@/lib/validation/image";
+import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
+
+beforeEach(() => {
+  __resetRateLimiterForTests();
+  rateLimitSubject.mockResolvedValue({ kind: "user", id: "u-test" });
+});
 
 const INITIAL = { error: null, success: null };
 const UID = "20000000-0000-4000-8000-00000000000a";

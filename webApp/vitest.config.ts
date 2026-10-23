@@ -15,5 +15,7 @@ export default defineConfig({
     exclude: ["e2e/**", "node_modules/**", ".next/**"],
     passWithNoTests: false,
     reporters: ["default"],
+    // T-050: el limitador por defecto es Postgres; en unidad no hay base. Solo acá se elige memoria.
+    env: { RATE_LIMIT_BACKEND: "memory" },
   },
 });

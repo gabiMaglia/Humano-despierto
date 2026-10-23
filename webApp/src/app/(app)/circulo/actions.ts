@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/server/auth";
 import { CAMPUS_ACTION_INITIAL_STATE, type CampusActionState } from "@/lib/campus/action-state";
+import { withRateLimit } from "@/lib/server/rate-limit";
+import { limitedState } from "@/lib/rate-limit/core";
 
 // T-021 · Campus. Los tres Server Actions del hilo (crear, editar, moderar) son deliberadamente
 // finos: la autoridad real de "quién puede escribir/editar/borrar qué" vive en RLS + el guard
@@ -33,105 +35,117 @@ function threadPath(courseSlug: string | null): string {
   return courseSlug ? `/circulo/${courseSlug}` : "/circulo";
 }
 
-export async function createCampusPostAction(
-  _prevState: CampusActionState,
-  formData: FormData
-): Promise<CampusActionState> {
-  const user = await requireSession();
+export const createCampusPostAction = withRateLimit(
+  "createCampusPostAction",
+  async function createCampusPostAction(
+    _prevState: CampusActionState,
+    formData: FormData
+  ): Promise<CampusActionState> {
+    const user = await requireSession();
 
-  const courseId = String(formData.get("courseId") ?? "").trim() || null;
-  const courseSlug = String(formData.get("courseSlug") ?? "").trim() || null;
-  const body = String(formData.get("body") ?? "").trim();
+    const courseId = String(formData.get("courseId") ?? "").trim() || null;
+    const courseSlug = String(formData.get("courseSlug") ?? "").trim() || null;
+    const body = String(formData.get("body") ?? "").trim();
 
-  if (!body) return { error: "Escribí algo antes de publicar.", success: null };
-  if (body.length > 4000) return { error: "El mensaje es demasiado largo (máximo 4000 caracteres).", success: null };
+    if (!body) return { error: "Escribí algo antes de publicar.", success: null };
+    if (body.length > 4000) return { error: "El mensaje es demasiado largo (máximo 4000 caracteres).", success: null };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("campus_posts").insert({
-    course_id: courseId,
-    author_id: user.id,
-    body,
-  });
+    const supabase = await createClient();
+    const { error } = await supabase.from("campus_posts").insert({
+      course_id: courseId,
+      author_id: user.id,
+      body,
+    });
 
-  if (error) {
-    if (error.code === PRIV_DENIED) {
-      return {
-        error: courseId
-          ? "No podés escribir en este hilo: hace falta inscripción activa en el curso."
-          : "No se pudo publicar — ¿tenés sesión iniciada?",
-        success: null,
-      };
+    if (error) {
+      if (error.code === PRIV_DENIED) {
+        return {
+          error: courseId
+            ? "No podés escribir en este hilo: hace falta inscripción activa en el curso."
+            : "No se pudo publicar — ¿tenés sesión iniciada?",
+          success: null,
+        };
+      }
+      if (error.code === CHECK_VIOLATION) {
+        return { error: "Ese mensaje no se puede guardar: revisá que no tenga un link (acá no están permitidos).", success: null };
+      }
+      return { error: `No se pudo publicar: ${error.message}`, success: null };
     }
-    if (error.code === CHECK_VIOLATION) {
-      return { error: "Ese mensaje no se puede guardar: revisá que no tenga un link (acá no están permitidos).", success: null };
+
+    revalidatePath(threadPath(courseSlug));
+    return { ...CAMPUS_ACTION_INITIAL_STATE, success: "Publicado." };
+  },
+  limitedState,
+);
+
+export const updateCampusPostAction = withRateLimit(
+  "updateCampusPostAction",
+  async function updateCampusPostAction(
+    _prevState: CampusActionState,
+    formData: FormData
+  ): Promise<CampusActionState> {
+    await requireSession();
+
+    const postId = String(formData.get("postId") ?? "");
+    const courseSlug = String(formData.get("courseSlug") ?? "").trim() || null;
+    const body = String(formData.get("body") ?? "").trim();
+
+    if (!postId) return { error: "Falta el mensaje a editar.", success: null };
+    if (!body) return { error: "El mensaje no puede quedar vacío.", success: null };
+    if (body.length > 4000) return { error: "El mensaje es demasiado largo (máximo 4000 caracteres).", success: null };
+
+    const supabase = await createClient();
+    const { error } = await supabase.from("campus_posts").update({ body }).eq("id", postId);
+
+    if (error) {
+      if (error.code === PRIV_DENIED) {
+        return { error: "Solo quien escribió el mensaje puede editarlo.", success: null };
+      }
+      if (error.code === CHECK_VIOLATION) {
+        return { error: "Ese mensaje no se puede guardar: revisá que no tenga un link (acá no están permitidos).", success: null };
+      }
+      return { error: `No se pudo editar: ${error.message}`, success: null };
     }
-    return { error: `No se pudo publicar: ${error.message}`, success: null };
-  }
 
-  revalidatePath(threadPath(courseSlug));
-  return { ...CAMPUS_ACTION_INITIAL_STATE, success: "Publicado." };
-}
+    revalidatePath(threadPath(courseSlug));
+    return { ...CAMPUS_ACTION_INITIAL_STATE, success: "Editado." };
+  },
+  limitedState,
+);
 
-export async function updateCampusPostAction(
-  _prevState: CampusActionState,
-  formData: FormData
-): Promise<CampusActionState> {
-  await requireSession();
+export const moderateCampusPostAction = withRateLimit(
+  "moderateCampusPostAction",
+  async function moderateCampusPostAction(
+    _prevState: CampusActionState,
+    formData: FormData
+  ): Promise<CampusActionState> {
+    const user = await requireSession();
 
-  const postId = String(formData.get("postId") ?? "");
-  const courseSlug = String(formData.get("courseSlug") ?? "").trim() || null;
-  const body = String(formData.get("body") ?? "").trim();
+    const postId = String(formData.get("postId") ?? "");
+    const courseSlug = String(formData.get("courseSlug") ?? "").trim() || null;
+    const reason = String(formData.get("reason") ?? "").trim();
 
-  if (!postId) return { error: "Falta el mensaje a editar.", success: null };
-  if (!body) return { error: "El mensaje no puede quedar vacío.", success: null };
-  if (body.length > 4000) return { error: "El mensaje es demasiado largo (máximo 4000 caracteres).", success: null };
+    if (!postId) return { error: "Falta el mensaje a borrar.", success: null };
+    // Defensa en profundidad: el guard trigger (0014) exige lo mismo con el mismo mensaje de
+    // fondo ("sin eso no hay forma de discutir una decisión de moderación") — esto solo evita
+    // el viaje de ida y vuelta cuando el motivo quedó vacío.
+    if (!reason) return { error: "Borrar exige un motivo — así se puede discutir la decisión después.", success: null };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("campus_posts").update({ body }).eq("id", postId);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("campus_posts")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id, deleted_reason: reason })
+      .eq("id", postId);
 
-  if (error) {
-    if (error.code === PRIV_DENIED) {
-      return { error: "Solo quien escribió el mensaje puede editarlo.", success: null };
+    if (error) {
+      if (error.code === PRIV_DENIED) {
+        return { error: "No tenés permiso para moderar este hilo.", success: null };
+      }
+      return { error: `No se pudo borrar: ${error.message}`, success: null };
     }
-    if (error.code === CHECK_VIOLATION) {
-      return { error: "Ese mensaje no se puede guardar: revisá que no tenga un link (acá no están permitidos).", success: null };
-    }
-    return { error: `No se pudo editar: ${error.message}`, success: null };
-  }
 
-  revalidatePath(threadPath(courseSlug));
-  return { ...CAMPUS_ACTION_INITIAL_STATE, success: "Editado." };
-}
-
-export async function moderateCampusPostAction(
-  _prevState: CampusActionState,
-  formData: FormData
-): Promise<CampusActionState> {
-  const user = await requireSession();
-
-  const postId = String(formData.get("postId") ?? "");
-  const courseSlug = String(formData.get("courseSlug") ?? "").trim() || null;
-  const reason = String(formData.get("reason") ?? "").trim();
-
-  if (!postId) return { error: "Falta el mensaje a borrar.", success: null };
-  // Defensa en profundidad: el guard trigger (0014) exige lo mismo con el mismo mensaje de
-  // fondo ("sin eso no hay forma de discutir una decisión de moderación") — esto solo evita
-  // el viaje de ida y vuelta cuando el motivo quedó vacío.
-  if (!reason) return { error: "Borrar exige un motivo — así se puede discutir la decisión después.", success: null };
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("campus_posts")
-    .update({ deleted_at: new Date().toISOString(), deleted_by: user.id, deleted_reason: reason })
-    .eq("id", postId);
-
-  if (error) {
-    if (error.code === PRIV_DENIED) {
-      return { error: "No tenés permiso para moderar este hilo.", success: null };
-    }
-    return { error: `No se pudo borrar: ${error.message}`, success: null };
-  }
-
-  revalidatePath(threadPath(courseSlug));
-  return { ...CAMPUS_ACTION_INITIAL_STATE, success: "Mensaje borrado." };
-}
+    revalidatePath(threadPath(courseSlug));
+    return { ...CAMPUS_ACTION_INITIAL_STATE, success: "Mensaje borrado." };
+  },
+  limitedState,
+);

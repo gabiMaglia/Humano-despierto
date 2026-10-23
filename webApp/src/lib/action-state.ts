@@ -3,7 +3,8 @@
  * Components importan el valor inicial. `TeacherActionState` y el de admin tienen la misma forma;
  * unificarlos queda como deuda (no es alcance de T-042).
  */
-export interface ActionState {
+import type { RateLimitFields } from "@/lib/rate-limit/core";
+export interface ActionState extends RateLimitFields {
   error: string | null;
   success: string | null;
 }

@@ -4,10 +4,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const { subject } = vi.hoisted(() => ({ subject: vi.fn() }));
+vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: subject }));
 
 import { reportReviewAction, requestEnrollmentAction, saveReviewAction } from "./actions";
 import { revalidatePath } from "next/cache";
 import { queryChain, argsOf, type ChainCall } from "@/test/query-chain";
+import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
+
+// T-050: cada test arranca con el limitador vacío y una usuaria fija (sin el mock, el sujeto real
+// abriría un cliente de Supabase que estos tests cuentan).
+beforeEach(() => {
+  __resetRateLimiterForTests();
+  subject.mockResolvedValue({ kind: "user", id: "u-1" });
+});
 
 const IDLE = { error: null, success: null };
 
@@ -44,6 +54,44 @@ describe("saveReviewAction", () => {
     expect(result.error).toMatch(/iniciar sesión/);
     expect(result.success).toBeNull();
     expect(from).not.toHaveBeenCalled();
+  });
+
+  function sessionWithInsert(uid: string) {
+    const insert = vi.fn(async () => ({ error: null }));
+    createClient.mockResolvedValue({
+      auth: { getUser: async () => ({ data: { user: { id: uid } } }) },
+      from: () => ({ insert }),
+    });
+    return insert;
+  }
+
+  it("c.1 · la sexta en la ventana devuelve rate_limited con mensaje humano y no escribe", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:05:00Z"), toFake: ["Date"] });
+    const insert = sessionWithInsert("u-1");
+    for (let i = 0; i < 5; i++) {
+      expect((await saveReviewAction("c1", "tarot-iniciatico", IDLE, form({ rating: "5", body: "" }))).error).toBeNull();
+    }
+    const sixth = await saveReviewAction("c1", "tarot-iniciatico", IDLE, form({ rating: "5", body: "" }));
+    expect(sixth).toEqual({
+      error: "Demasiados intentos. Esperá 5 minutos y volvé a probar.",
+      success: null,
+      code: "rate_limited",
+      retryAfter: 300,
+    });
+    expect(insert).toHaveBeenCalledTimes(5);
+    vi.useRealTimers();
+  });
+
+  it("c.2 · dos usuarias con cinco reseñas cada una no se limitan entre sí", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:05:00Z"), toFake: ["Date"] });
+    for (const uid of ["u-a", "u-b"]) {
+      subject.mockResolvedValue({ kind: "user", id: uid });
+      sessionWithInsert(uid);
+      for (let i = 0; i < 5; i++) {
+        expect((await saveReviewAction("c1", "tarot-iniciatico", IDLE, form({ rating: "4", body: "" }))).code).toBeUndefined();
+      }
+    }
+    vi.useRealTimers();
   });
 });
 
