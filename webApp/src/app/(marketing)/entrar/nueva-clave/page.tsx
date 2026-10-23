@@ -20,7 +20,7 @@ export default async function NuevaClavePage() {
   if (!user) redirect(RECOVER_PATH);
 
   return (
-    <AuthShell title="Elegí una clave" accent="nueva" lead="La vas a usar desde tu próximo ingreso.">
+    <AuthShell aside="nuevaClave" title="Elegí una clave" accent="nueva" lead="La vas a usar desde tu próximo ingreso.">
       <NuevaClaveForm />
     </AuthShell>
   );

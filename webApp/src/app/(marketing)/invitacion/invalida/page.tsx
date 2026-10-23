@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ButtonLink } from "@/components/atoms/Button";
 import AuthShell from "@/components/molecules/AuthShell";
 
 export const metadata: Metadata = {
@@ -12,13 +12,14 @@ export const metadata: Metadata = {
 export default function InvitacionInvalidaPage() {
   return (
     <AuthShell
+      aside="invitacion"
       title="Esta invitación"
       accent="no es válida o venció"
       lead="Pedile a quien te invitó que te mande una nueva, o entrá con el mail al que te llegó."
     >
-      <Link href="/entrar" className="btn btn-outline text-[10px]">
+      <ButtonLink href="/entrar" variant="outline">
         Ir a entrar
-      </Link>
+      </ButtonLink>
     </AuthShell>
   );
 }
