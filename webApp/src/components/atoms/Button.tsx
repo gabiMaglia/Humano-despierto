@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
-export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
+/** `outline-light`: contorno blanco, sólo sobre foto u oscuro (hero de la portada). */
+export type ButtonVariant = "primary" | "secondary" | "outline" | "outline-light" | "ghost";
 export type ButtonSize = "md" | "sm";
 
 interface Look {

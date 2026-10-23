@@ -71,7 +71,7 @@ export default function CourseCard({
         </div>
 
         <div className="absolute inset-x-4 bottom-0 flex flex-col rounded-[14px] bg-papel px-5 pb-5 pt-5 shadow-card transition-transform duration-[850ms] ease-circ motion-reduce:transition-none sm:inset-x-6 [@media(hover:hover)]:group-hover:-translate-y-[18px] motion-reduce:[@media(hover:hover)]:group-hover:translate-y-0">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-miel-800">
+          <p className="mb-1 text-sm font-semibold text-miel-800">
             {tag}
             {level && <span className="text-suave"> · {level}</span>}
           </p>
