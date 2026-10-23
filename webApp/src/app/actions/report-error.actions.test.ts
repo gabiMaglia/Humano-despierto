@@ -1,12 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Sin mock del sujeto: lo que se prueba es D-50, que la IP del cupo sale de `clientIpFrom` (vía
-// `currentRateLimitSubject`) y no del header crudo. Sin sesión, `getClaims` no trae `sub`.
-const { headersMock } = vi.hoisted(() => ({ headersMock: vi.fn() }));
+// Sin mock del sujeto: lo que se prueba es D-50, que el cupo sale de `currentRateLimitSubject`
+// (la usuaria si `getClaims` trae `sub`, si no la IP de `clientIpFrom`) y no del header crudo.
+const { headersMock, claims } = vi.hoisted(() => ({ headersMock: vi.fn(), claims: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: () => headersMock() }));
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getClaims: async () => ({ data: null, error: null }) } }),
-}));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getClaims: claims } }) }));
 
 import { reportClientErrorAction } from "./report-error";
 import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
@@ -17,6 +15,7 @@ const reported = () =>
 
 beforeEach(() => {
   __resetRateLimiterForTests();
+  claims.mockReset().mockResolvedValue({ data: null, error: null });
   vi.useFakeTimers({ now: new Date("2026-10-22T12:05:30Z"), toFake: ["Date"] });
   err = vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -26,6 +25,15 @@ afterEach(() => {
 });
 
 describe("reportClientErrorAction con tope (T-050, D-50)", () => {
+  it("con sesión el cupo es de la usuaria: cambiar de IP no lo renueva", async () => {
+    claims.mockResolvedValue({ data: { claims: { sub: "u-1" } }, error: null });
+    for (let i = 0; i < 11; i++) {
+      headersMock.mockResolvedValue(new Headers({ "x-forwarded-for": `10.0.0.${i}` }));
+      await reportClientErrorAction({ digest: String(i), message: "m", path: "/" });
+    }
+    expect(reported()).toHaveLength(10);
+  });
+
   it("11 reportes de la misma IP en un minuto: el 11 se descarta sin log ni error", async () => {
     headersMock.mockResolvedValue(new Headers({ "x-forwarded-for": "9.9.9.9, 1.1.1.1" }));
     for (let i = 0; i < 11; i++) {
