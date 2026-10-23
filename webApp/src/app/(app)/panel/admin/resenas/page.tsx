@@ -73,10 +73,9 @@ export default async function AdminReviewsPage() {
             {recent.map((r) => (
               <li key={r.id} className="tarjeta p-6">
                 {r.hiddenAt && (
-                  <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <StatusChip tone="error">Oculta</StatusChip>
-                    <p className="text-sm text-suave">Motivo: {r.hiddenReason}</p>
-                  </div>
+                  <p className="mb-3 text-sm text-suave">
+                    <StatusChip tone="error">Oculta</StatusChip> · {r.hiddenReason}
+                  </p>
                 )}
                 <ModerationReviewCard review={r} />
                 {r.hiddenAt ? <UnhideReviewButton reviewId={r.id} /> : <HideReviewForm reviewId={r.id} />}

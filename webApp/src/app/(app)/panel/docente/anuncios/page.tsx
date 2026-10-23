@@ -48,6 +48,7 @@ export default async function TeacherAnnouncementsPage({ searchParams }: Props) 
                   }`}
                 >
                   {c.title}
+                  <span className={`ml-2 font-normal ${current ? "text-white" : "text-suave"}`}>/cursos/{c.slug}</span>
                 </Link>
               );
             })}
