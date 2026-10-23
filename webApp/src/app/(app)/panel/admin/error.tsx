@@ -1,5 +1,8 @@
 "use client";
 
+import Button from "@/components/atoms/Button";
+import ErrorMark from "@/components/atoms/ErrorMark";
+
 export default function AdminPanelError({
   error,
   reset,
@@ -9,13 +12,14 @@ export default function AdminPanelError({
 }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-fondo px-6 text-center">
-      <p className="font-display text-lg tracking-wide text-tinta">
-        Algo se torció en el panel de administración
-      </p>
-      <p className="max-w-md font-body text-sm text-suave">{error.message}</p>
-      <button onClick={reset} className="btn btn-outline">
+      <h1 className="flex items-center gap-2 text-xl font-semibold text-bosque">
+        <ErrorMark />
+        Algo falló en el panel de administración
+      </h1>
+      <p className="max-w-md text-suave">{error.message}</p>
+      <Button variant="outline" onClick={reset}>
         Reintentar
-      </button>
+      </Button>
     </div>
   );
 }

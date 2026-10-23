@@ -1,76 +1,45 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState } from "react";
 import { dismissReportAction, hideReviewAction, unhideReviewAction } from "@/app/(app)/panel/admin/actions";
+import Button from "@/components/atoms/Button";
+import { PanelTextarea } from "@/components/panel/PanelField";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { ADMIN_ACTION_INITIAL_STATE } from "@/lib/admin/action-state";
-import ActionFeedback from "@/components/reviews/ActionFeedback";
 
-// La misma reseña puede aparecer en la cola y en recientes: el id del campo sale de useId.
+// La misma reseña puede aparecer en la cola y en recientes: el id del campo sale de useId (en PanelField).
 export function HideReviewForm({ reviewId }: { reviewId: string }) {
-  const [state, formAction, isPending] = useActionState(
-    hideReviewAction.bind(null, reviewId),
-    ADMIN_ACTION_INITIAL_STATE,
-  );
-  const fieldId = useId();
+  const [state, formAction, isPending] = useActionState(hideReviewAction.bind(null, reviewId), ADMIN_ACTION_INITIAL_STATE);
   return (
-    <form action={formAction} className="mt-4">
-      <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
-        Motivo para ocultar
-      </label>
-      <textarea
-        id={fieldId}
-        name="reason"
-        rows={2}
-        maxLength={1000}
-        required
-        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
-      />
-      <ActionFeedback state={state} />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="btn btn-primary mt-3 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+    <form action={formAction} className="mt-4 space-y-3">
+      <PanelTextarea label="Motivo para ocultar" name="reason" rows={2} maxLength={1000} required error={state.error} />
+      <Button type="submit" variant="danger" size="sm" disabled={isPending} aria-busy={isPending}>
         {isPending ? "Ocultando…" : "Ocultar reseña"}
-      </button>
+      </Button>
     </form>
   );
 }
 
 export function DismissReportButton({ reportId }: { reportId: string }) {
-  const [state, formAction, isPending] = useActionState(
-    dismissReportAction.bind(null, reportId),
-    ADMIN_ACTION_INITIAL_STATE,
-  );
+  const [state, formAction, isPending] = useActionState(dismissReportAction.bind(null, reportId), ADMIN_ACTION_INITIAL_STATE);
   return (
-    <form action={formAction} className="mt-3">
-      <ActionFeedback state={state} />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="btn btn-outline disabled:cursor-not-allowed disabled:opacity-60"
-      >
+    <form action={formAction} className="mt-3 space-y-2">
+      <StatusMessage error={state.error} success={state.success} />
+      <Button type="submit" variant="outline" size="sm" disabled={isPending} aria-busy={isPending}>
         {isPending ? "Desestimando…" : "Desestimar reporte"}
-      </button>
+      </Button>
     </form>
   );
 }
 
 export function UnhideReviewButton({ reviewId }: { reviewId: string }) {
-  const [state, formAction, isPending] = useActionState(
-    unhideReviewAction.bind(null, reviewId),
-    ADMIN_ACTION_INITIAL_STATE,
-  );
+  const [state, formAction, isPending] = useActionState(unhideReviewAction.bind(null, reviewId), ADMIN_ACTION_INITIAL_STATE);
   return (
-    <form action={formAction} className="mt-3">
-      <ActionFeedback state={state} />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="btn btn-outline disabled:cursor-not-allowed disabled:opacity-60"
-      >
+    <form action={formAction} className="mt-3 space-y-2">
+      <StatusMessage error={state.error} success={state.success} />
+      <Button type="submit" variant="outline" size="sm" disabled={isPending} aria-busy={isPending}>
         {isPending ? "Mostrando…" : "Volver a mostrar"}
-      </button>
+      </Button>
     </form>
   );
 }
