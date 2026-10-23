@@ -22,7 +22,7 @@ export default async function AdminCoursesPage({
   return (
     <AdminShell active="cursos">
       <section aria-labelledby="cursos-titulo">
-        <h2 id="cursos-titulo" className="mb-5 font-display text-lg tracking-wide text-tinta">
+        <h2 id="cursos-titulo" className="mb-4 text-xl font-semibold text-bosque">
           Cursos
         </h2>
         <AdminPagedList

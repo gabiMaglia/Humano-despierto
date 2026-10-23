@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AdminShell from "@/components/admin/AdminShell";
+import StatusChip from "@/components/panel/StatusChip";
 import WithdrawAnnouncementForm from "@/components/announcements/WithdrawAnnouncementForm";
 import { requireAdmin } from "@/lib/server/admin";
 import { listAnnouncementsForModeration } from "@/lib/server/announcements";
@@ -17,23 +18,25 @@ export default async function AdminAnnouncementsPage() {
   return (
     <AdminShell active="anuncios">
       <section aria-labelledby="anuncios-titulo">
-        <h2 id="anuncios-titulo" className="mb-5 font-display text-lg tracking-wide text-tinta">
+        <h2 id="anuncios-titulo" className="mb-4 text-xl font-semibold text-bosque">
           Anuncios publicados
         </h2>
         {announcements.length === 0 && (
-          <p className="font-body text-sm text-suave">Todavía no hay anuncios publicados.</p>
+          <p className="tarjeta p-5 text-suave">Todavía no hay anuncios publicados.</p>
         )}
         <ul className="space-y-3">
           {announcements.map((a) => (
-            <li key={a.id} className="tarjeta p-4">
-              <p className="font-display text-eyebrow tracking-wide text-suave uppercase">
-                {a.courseTitle} <span className="text-miel-800">·</span>{" "}
-                <time dateTime={a.publishedAt}>{formatCertificateDate(a.publishedAt)}</time>
-              </p>
-              <p className="font-display text-sm tracking-wide text-tinta">{a.title}</p>
-              <p className="mb-2 line-clamp-3 whitespace-pre-line font-body text-xs text-suave">{a.body}</p>
+            <li key={a.id} className="tarjeta p-5">
+              <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <StatusChip tone={a.deletedAt ? "muted" : "ok"}>{a.deletedAt ? "Retirado" : "Publicado"}</StatusChip>
+                <p className="text-sm tabular-nums text-suave">
+                  {a.courseTitle} · <time dateTime={a.publishedAt}>{formatCertificateDate(a.publishedAt)}</time>
+                </p>
+              </div>
+              <p className="font-semibold text-tinta">{a.title}</p>
+              <p className="mb-3 line-clamp-3 whitespace-pre-line text-tinta">{a.body}</p>
               {a.deletedAt ? (
-                <p className="font-body text-xs text-suave">Retirado · motivo: “{a.deletedReason}”</p>
+                <p className="text-sm text-suave">Motivo: “{a.deletedReason}”</p>
               ) : (
                 <WithdrawAnnouncementForm action={moderateAnnouncement} announcementId={a.id} label="Retirar" />
               )}

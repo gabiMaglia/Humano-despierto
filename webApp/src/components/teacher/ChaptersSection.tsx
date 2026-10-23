@@ -6,6 +6,9 @@ import {
   updateChapterAction,
   deleteChapterAction,
 } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import { PanelInput } from "@/components/panel/PanelField";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherLessonChapter } from "@/lib/server/teacher";
 
@@ -15,99 +18,54 @@ function formatClock(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function ChapterRow({
-  courseId,
-  lessonId,
-  chapter,
-}: {
-  courseId: string;
-  lessonId: string;
-  chapter: TeacherLessonChapter;
-}) {
+function ChapterRow({ courseId, lessonId, chapter }: { courseId: string; lessonId: string; chapter: TeacherLessonChapter }) {
   const [editing, setEditing] = useState(false);
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateChapterAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
-  const [deleteState, deleteAction, deletePending] = useActionState(
-    deleteChapterAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
+  const [updateState, updateAction, updatePending] = useActionState(updateChapterAction, TEACHER_ACTION_INITIAL_STATE);
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteChapterAction, TEACHER_ACTION_INITIAL_STATE);
 
   if (editing) {
     return (
       <li>
-        <form action={updateAction} className="flex flex-wrap items-center gap-2">
+        <form action={updateAction} className="flex flex-wrap items-start gap-x-3 gap-y-3 rounded-md border border-linea bg-papel p-3">
           <input type="hidden" name="courseId" value={courseId} />
           <input type="hidden" name="lessonId" value={lessonId} />
           <input type="hidden" name="chapterId" value={chapter.id} />
-          <input
-            name="timestamp"
-            defaultValue={formatClock(chapter.startSeconds)}
-            className="w-20 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
-          />
-          <input
-            name="label"
-            defaultValue={chapter.label}
-            className="min-w-[160px] flex-1 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
-          />
-          <button
-            type="submit"
-            disabled={updatePending}
-            className="btn btn-primary text-[10px] disabled:opacity-60"
-          >
-            Guardar
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="font-body text-xs text-suave hover:text-tinta"
-          >
-            Cancelar
-          </button>
-          {updateState.error && <p className="w-full font-body text-xs text-error">{updateState.error}</p>}
+          <PanelInput className="w-28" label="Minuto" name="timestamp" defaultValue={formatClock(chapter.startSeconds)} invalid={Boolean(updateState.error)} />
+          <PanelInput className="min-w-48 flex-1" label="Etiqueta" name="label" defaultValue={chapter.label} error={updateState.error} />
+          <div className="flex items-center gap-2 sm:mt-[1.625rem]">
+            <Button type="submit" size="sm" disabled={updatePending}>
+              Guardar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
         </form>
       </li>
     );
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-md border border-linea bg-papel px-3 py-2">
-      <span className="font-body text-xs text-miel-800">{formatClock(chapter.startSeconds)}</span>
-      <span className="min-w-0 flex-1 font-body text-sm text-tinta">{chapter.label}</span>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="btn btn-outline px-2 py-1 text-[10px]"
-      >
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-linea bg-papel px-3 py-2">
+      <span className="w-14 flex-none text-sm font-semibold tabular-nums text-miel-800">{formatClock(chapter.startSeconds)}</span>
+      <span className="min-w-0 flex-1 basis-40 text-tinta [overflow-wrap:anywhere]">{chapter.label}</span>
+      <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
         Editar
-      </button>
+      </Button>
       <form action={deleteAction}>
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
         <input type="hidden" name="chapterId" value={chapter.id} />
-        <button
-          type="submit"
-          disabled={deletePending}
-          className="btn btn-outline px-2 py-1 text-[10px] text-error disabled:opacity-40"
-        >
+        <Button type="submit" variant="danger" size="sm" disabled={deletePending}>
           Borrar
-        </button>
+        </Button>
       </form>
-      {deleteState.error && <p className="w-full font-body text-xs text-error">{deleteState.error}</p>}
+      <StatusMessage error={deleteState.error} className="w-full" />
     </li>
   );
 }
 
-export default function ChaptersSection({
-  courseId,
-  lessonId,
-  chapters,
-}: {
-  courseId: string;
-  lessonId: string;
-  chapters: TeacherLessonChapter[];
-}) {
+export default function ChaptersSection({ courseId, lessonId, chapters }: { courseId: string; lessonId: string; chapters: TeacherLessonChapter[] }) {
   const [state, formAction, isPending] = useActionState(createChapterAction, TEACHER_ACTION_INITIAL_STATE);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -116,43 +74,24 @@ export default function ChaptersSection({
   }, [state.success]);
 
   return (
-    <div className="tarjeta space-y-3 p-6">
-      <h3 className="font-display text-sm tracking-wide text-tinta">Capítulos</h3>
-      <ul className="space-y-1.5">
+    <section aria-labelledby="capitulos-titulo" className="tarjeta space-y-4 p-6">
+      <h2 id="capitulos-titulo" className="text-xl font-semibold text-bosque">Capítulos</h2>
+      <ul className="space-y-2">
         {chapters.map((c) => (
           <ChapterRow key={c.id} courseId={courseId} lessonId={lessonId} chapter={c} />
         ))}
-        {chapters.length === 0 && <li className="font-body text-xs text-suave">Sin capítulos todavía.</li>}
+        {chapters.length === 0 && <li className="text-sm text-suave">Sin capítulos todavía.</li>}
       </ul>
 
-      <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-2 pt-1">
+      <form ref={formRef} action={formAction} className="flex flex-wrap items-start gap-x-3 gap-y-3 border-t border-linea pt-4">
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
-        <input
-          name="timestamp"
-          required
-          placeholder="mm:ss"
-          className="w-20 rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
-        />
-        <input
-          name="label"
-          required
-          placeholder="Etiqueta del capítulo"
-          className="min-w-[160px] flex-1 rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
-        />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="btn btn-outline text-[10px] disabled:opacity-60"
-        >
-          {isPending ? "…" : "+ Capítulo"}
-        </button>
+        <PanelInput className="w-28" label="Minuto" name="timestamp" required placeholder="mm:ss" inputMode="numeric" invalid={Boolean(state.error)} />
+        <PanelInput className="min-w-48 flex-1" label="Etiqueta del capítulo" name="label" required error={state.error} />
+        <Button type="submit" variant="outline" disabled={isPending} aria-busy={isPending} className="sm:mt-[1.625rem]">
+          {isPending ? "Agregando…" : "+ Capítulo"}
+        </Button>
       </form>
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-error">
-          {state.error}
-        </p>
-      )}
-    </div>
+    </section>
   );
 }

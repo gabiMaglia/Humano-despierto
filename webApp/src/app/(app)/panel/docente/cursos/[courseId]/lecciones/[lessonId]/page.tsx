@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import SiteHeader from "@/components/layout/SiteHeader";
+import PanelFrame from "@/components/panel/PanelFrame";
+import PanelSection from "@/components/panel/PanelSection";
 import { requireTeacher, getTeacherLessonDetail } from "@/lib/server/teacher";
 import LessonFieldsForm from "@/components/teacher/LessonFieldsForm";
 import VideoAttachForm from "@/components/teacher/VideoAttachForm";
@@ -27,37 +28,25 @@ export default async function TeacherLessonEditorPage({ params }: Props) {
   if (!detail) notFound();
 
   return (
-    <div className="min-h-screen bg-fondo text-tinta">
-      <SiteHeader />
-      <div className="pt-16">
-        <header className="border-b border-linea bg-papel px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">
-            — {detail.courseTitle} —
-          </p>
-          <h1 className="font-display text-display-md text-tinta">{detail.lesson.title}</h1>
-        </header>
+    <PanelFrame
+      title={detail.lesson.title}
+      context={detail.courseTitle}
+      back={{ href: `/panel/docente/cursos/${courseId}`, label: "Volver al curso" }}
+      width="narrow"
+    >
+      <div className="space-y-8">
+        <PublishLessonControl courseId={courseId} lessonId={lessonId} isPublished={detail.lesson.isPublished} />
 
-        <div className="mx-auto max-w-3xl space-y-8 px-6 py-10 md:px-12">
-          <PublishLessonControl
-            courseId={courseId}
-            lessonId={lessonId}
-            isPublished={detail.lesson.isPublished}
-          />
-
+        <PanelSection id="datos-leccion-titulo" title="Datos de la lección">
           <LessonFieldsForm lesson={detail.lesson} />
+        </PanelSection>
 
-          <VideoAttachForm
-            courseId={courseId}
-            lessonId={lessonId}
-            durationSeconds={detail.lesson.durationSeconds}
-            preview={detail.preview}
-          />
+        <VideoAttachForm courseId={courseId} lessonId={lessonId} durationSeconds={detail.lesson.durationSeconds} preview={detail.preview} />
 
-          <ChaptersSection courseId={courseId} lessonId={lessonId} chapters={detail.chapters} />
+        <ChaptersSection courseId={courseId} lessonId={lessonId} chapters={detail.chapters} />
 
-          <ResourcesSection courseId={courseId} lessonId={lessonId} resources={detail.resources} />
-        </div>
+        <ResourcesSection courseId={courseId} lessonId={lessonId} resources={detail.resources} />
       </div>
-    </div>
+    </PanelFrame>
   );
 }

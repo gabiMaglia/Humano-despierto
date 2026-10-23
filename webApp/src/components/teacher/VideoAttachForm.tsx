@@ -2,6 +2,10 @@
 
 import { useActionState, useRef, useEffect } from "react";
 import { attachLessonVideoAction } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import { PanelInput } from "@/components/panel/PanelField";
+import StatusChip from "@/components/panel/StatusChip";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherLessonPreview } from "@/lib/server/teacher";
 
@@ -39,52 +43,39 @@ export default function VideoAttachForm({ courseId, lessonId, durationSeconds, p
   }, [state.success]);
 
   return (
-    <div className="tarjeta space-y-4 p-6">
-      <h3 className="font-display text-sm tracking-wide text-tinta">Video de YouTube</h3>
+    <section aria-labelledby="video-titulo" className="tarjeta space-y-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="video-titulo" className="text-xl font-semibold text-bosque">Video de YouTube</h2>
+        {durationSeconds > 0 ? (
+          <StatusChip tone="ok">
+            Cargado · <span className="tabular-nums">{formatDuration(durationSeconds)}</span>
+          </StatusChip>
+        ) : (
+          <StatusChip tone="error">Sin video</StatusChip>
+        )}
+      </div>
 
-      {durationSeconds > 0 ? (
-        <p className="font-body text-xs text-miel-800">
-          Cargado — duración {formatDuration(durationSeconds)}.
-        </p>
-      ) : (
-        <p className="font-body text-xs text-suave">Todavía no tiene video cargado.</p>
-      )}
-
-      <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-3">
+      <form ref={formRef} action={formAction} className="flex flex-wrap items-start gap-x-4 gap-y-3">
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
-        <div className="min-w-[260px] flex-1">
-          <label className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
-            Link de YouTube (watch, youtu.be o embed)
-          </label>
-          <input
-            name="url"
-            required
-            placeholder="https://www.youtube.com/watch?v=…"
-            className="w-full rounded-md border border-linea bg-papel px-3 py-2.5 font-body text-sm text-tinta outline-none focus:border-linea focus:bg-fondo"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <PanelInput
+          className="min-w-64 flex-1"
+          label="Link de YouTube"
+          hint="Vale el link de watch, youtu.be o embed."
+          name="url"
+          required
+          placeholder="https://www.youtube.com/watch?v=…"
+          error={state.error}
+        />
+        <Button type="submit" disabled={isPending} aria-busy={isPending} className="sm:mt-[1.625rem]">
           {isPending ? "Consultando YouTube…" : durationSeconds > 0 ? "Reemplazar video" : "Cargar video"}
-        </button>
+        </Button>
       </form>
-
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-error">
-          {state.error}
-        </p>
-      )}
-      {state.success && <p className="font-body text-xs text-miel-800">{state.success}</p>}
+      <StatusMessage success={state.success} />
 
       {preview && (
         <div>
-          <p className="mb-2 font-display text-eyebrow tracking-wide text-suave">
-            Vista previa (solo la ves vos, como dueña de la lección)
-          </p>
+          <p className="mb-2 text-sm font-semibold text-tinta">Vista previa (sólo la ves vos, como dueña de la lección)</p>
           <div className="aspect-video w-full overflow-hidden rounded-md border border-linea">
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${preview.videoId}`}
@@ -96,6 +87,6 @@ export default function VideoAttachForm({ courseId, lessonId, durationSeconds, p
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

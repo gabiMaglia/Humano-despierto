@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCourseRoster } from "@/lib/server/teacher-metrics";
-import SiteHeader from "@/components/layout/SiteHeader";
+import { ButtonLink } from "@/components/atoms/Button";
+import PanelFrame from "@/components/panel/PanelFrame";
+import PanelSection from "@/components/panel/PanelSection";
+import StatusChip from "@/components/panel/StatusChip";
+import { COURSE_STATUS, statusOf } from "@/lib/panel/status";
 import { requireTeacher, getTeacherCourseDetail } from "@/lib/server/teacher";
 import CourseForm from "@/components/teacher/CourseForm";
 import ModuleBlock from "@/components/teacher/ModuleBlock";
@@ -31,82 +35,60 @@ export default async function TeacherCourseEditorPage({ params }: Props) {
   // aunque el curso sea borrador, y nunca pasa por service_role (c.6).
   const coverUrl = await signUploadUrl(await createClient(), course.coverPath);
 
+  const lessonCount = course.modules.reduce((n, m) => n + m.lessons.length, 0);
+  const status = statusOf(COURSE_STATUS, course.status);
+
   return (
-    <div className="min-h-screen bg-fondo text-tinta">
-      <SiteHeader />
-      <div className="pt-16">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-linea bg-papel px-6 py-8 md:px-12">
-          <div>
-            <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-suave">
-              — /cursos/{course.slug} —
-            </p>
-            <h1 className="font-display text-display-md text-tinta">{course.title}</h1>
-          </div>
-          <div className="flex flex-col items-end gap-3">
-            <PublishCourseControl courseId={course.id} status={course.status} />
-            <Link
-              href={`/panel/docente/anuncios?curso=${course.id}`}
-              className="font-display text-eyebrow tracking-wide text-bosque hover:text-miel-800 transition-colors"
-            >
-              Anuncios del curso
-            </Link>
-          </div>
-        </header>
+    <PanelFrame
+      title={course.title}
+      context={
+        <>
+          /cursos/{course.slug} <span aria-hidden="true">·</span> <StatusChip tone={status.tone} className="align-middle">{status.label}</StatusChip>
+        </>
+      }
+      back={{ href: "/panel/docente", label: "Tus cursos" }}
+      actions={
+        <>
+          <ButtonLink href={`/panel/docente/anuncios?curso=${course.id}`} variant="ghost">
+            Anuncios del curso
+          </ButtonLink>
+          <PublishCourseControl courseId={course.id} status={course.status} />
+        </>
+      }
+    >
+      <PanelSection id="alumnas-titulo" title="Alumnas">
+        <Link
+          href={`/panel/docente/cursos/${course.id}/alumnas`}
+          className="tarjeta flex flex-wrap items-center gap-x-4 gap-y-2 p-4 tabular-nums transition-colors hover:border-salvia hover:bg-salvia-100"
+        >
+          <span className="text-suave">
+            {roster
+              ? `${roster.summary.active} activa${roster.summary.active === 1 ? "" : "s"} · ${roster.summary.completed} completada${roster.summary.completed === 1 ? "" : "s"}`
+              : "Ver alumnas y avance"}
+          </span>
+          <span className="ml-auto font-semibold text-miel-800">Ver todas →</span>
+        </Link>
+      </PanelSection>
 
-        <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 md:px-12">
-          <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Alumnas</h2>
-            <Link
-              href={`/panel/docente/cursos/${course.id}/alumnas`}
-              className="tarjeta flex flex-wrap items-center gap-4 p-4 transition-colors hover:border-linea"
-            >
-              <span className="font-body text-sm text-suave">
-                {roster
-                  ? `${roster.summary.active} activa${roster.summary.active === 1 ? "" : "s"} · ${roster.summary.completed} completada${roster.summary.completed === 1 ? "" : "s"}`
-                  : "Ver alumnas y avance"}
-              </span>
-              <span className="ml-auto font-display text-eyebrow tracking-wide text-bosque">Ver todas →</span>
-            </Link>
-          </section>
+      <PanelSection id="datos-titulo" title="Datos del curso">
+        <CourseForm course={course} />
+      </PanelSection>
 
-          <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Datos del curso</h2>
-            <CourseForm course={course} />
-          </section>
+      <CoverForm courseId={course.id} coverUrl={coverUrl} courseTitle={course.title} />
 
-          <CoverForm courseId={course.id} coverUrl={coverUrl} courseTitle={course.title} />
-
-          <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-tinta">Módulos y lecciones</h2>
-            <div className="space-y-4">
-              {course.modules.map((mod, i) => (
-                <ModuleBlock
-                  key={mod.id}
-                  courseId={course.id}
-                  module={mod}
-                  isFirst={i === 0}
-                  isLast={i === course.modules.length - 1}
-                />
-              ))}
-              {course.modules.length === 0 && (
-                <p className="tarjeta p-5 font-body text-sm text-suave">
-                  Sin módulos todavía — creá el primero abajo.
-                </p>
-              )}
-              <NewModuleForm courseId={course.id} />
-            </div>
-          </section>
-
-          {/* Al pie y separada de todo lo demás: una accion irreversible no comparte
-              vecindario con las que se usan a diario. */}
-          <DangerZone
-            courseId={course.id}
-            courseTitle={course.title}
-            moduleCount={course.modules.length}
-            lessonCount={course.modules.reduce((n, m) => n + m.lessons.length, 0)}
-          />
+      <PanelSection id="modulos-titulo" title="Módulos y lecciones">
+        <div className="space-y-4">
+          {course.modules.map((mod, i) => (
+            <ModuleBlock key={mod.id} courseId={course.id} module={mod} isFirst={i === 0} isLast={i === course.modules.length - 1} />
+          ))}
+          {course.modules.length === 0 && <p className="tarjeta p-5 text-suave">Sin módulos todavía — creá el primero abajo.</p>}
+          <NewModuleForm courseId={course.id} />
         </div>
-      </div>
-    </div>
+      </PanelSection>
+
+      {/* Al pie y separada de todo lo demás: una accion irreversible no comparte
+          vecindario con las que se usan a diario. */}
+      <DangerZone courseId={course.id} courseTitle={course.title} moduleCount={course.modules.length} lessonCount={lessonCount} />
+    </PanelFrame>
   );
 }

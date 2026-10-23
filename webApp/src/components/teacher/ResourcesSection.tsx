@@ -6,106 +6,70 @@ import {
   updateResourceAction,
   deleteResourceAction,
 } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import { PanelInput, PanelSelect } from "@/components/panel/PanelField";
+import StatusChip from "@/components/panel/StatusChip";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherLessonResource } from "@/lib/server/teacher";
 
 const RESOURCE_TYPES: TeacherLessonResource["type"][] = ["pdf", "audio", "texto", "link"];
 
-function ResourceRow({
-  courseId,
-  lessonId,
-  resource,
-}: {
-  courseId: string;
-  lessonId: string;
-  resource: TeacherLessonResource;
-}) {
+function TypeOptions() {
+  return RESOURCE_TYPES.map((t) => (
+    <option key={t} value={t}>
+      {t}
+    </option>
+  ));
+}
+
+function ResourceRow({ courseId, lessonId, resource }: { courseId: string; lessonId: string; resource: TeacherLessonResource }) {
   const [editing, setEditing] = useState(false);
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateResourceAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
-  const [deleteState, deleteAction, deletePending] = useActionState(
-    deleteResourceAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
+  const [updateState, updateAction, updatePending] = useActionState(updateResourceAction, TEACHER_ACTION_INITIAL_STATE);
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteResourceAction, TEACHER_ACTION_INITIAL_STATE);
 
   if (editing) {
     return (
       <li>
-        <form action={updateAction} className="flex flex-wrap items-center gap-2">
+        <form action={updateAction} className="flex flex-wrap items-start gap-x-3 gap-y-3 rounded-md border border-linea bg-papel p-3">
           <input type="hidden" name="courseId" value={courseId} />
           <input type="hidden" name="lessonId" value={lessonId} />
           <input type="hidden" name="resourceId" value={resource.id} />
-          <select
-            name="type"
-            defaultValue={resource.type}
-            className="rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
-          >
-            {RESOURCE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <input
-            name="name"
-            defaultValue={resource.name}
-            className="min-w-[160px] flex-1 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
-          />
-          <input
-            name="sizeLabel"
-            defaultValue={resource.sizeLabel ?? ""}
-            placeholder="2.4 MB"
-            className="w-24 rounded-md border border-linea bg-papel px-2 py-1.5 font-body text-xs text-tinta outline-none focus:border-linea"
-          />
-          <button
-            type="submit"
-            disabled={updatePending}
-            className="btn btn-primary text-[10px] disabled:opacity-60"
-          >
-            Guardar
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="font-body text-xs text-suave hover:text-tinta"
-          >
-            Cancelar
-          </button>
-          {updateState.error && <p className="w-full font-body text-xs text-error">{updateState.error}</p>}
+          <PanelSelect className="w-28" label="Tipo" name="type" defaultValue={resource.type}>
+            <TypeOptions />
+          </PanelSelect>
+          <PanelInput className="min-w-48 flex-1" label="Nombre" name="name" defaultValue={resource.name} error={updateState.error} />
+          <PanelInput className="w-32" label="Tamaño" name="sizeLabel" defaultValue={resource.sizeLabel ?? ""} placeholder="2.4 MB" />
+          <div className="flex items-center gap-2 sm:mt-[1.625rem]">
+            <Button type="submit" size="sm" disabled={updatePending}>
+              Guardar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
         </form>
       </li>
     );
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-md border border-linea bg-papel px-3 py-2">
-      <span className="rounded-pill border border-linea px-2 py-0.5 font-display text-[10px] tracking-wide text-suave uppercase">
-        {resource.type}
-      </span>
-      <span className="min-w-0 flex-1 font-body text-sm text-tinta">{resource.name}</span>
-      {resource.sizeLabel && <span className="font-body text-xs text-suave">{resource.sizeLabel}</span>}
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="btn btn-outline px-2 py-1 text-[10px]"
-      >
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-linea bg-papel px-3 py-2">
+      <StatusChip tone="muted">{resource.type}</StatusChip>
+      <span className="min-w-0 flex-1 basis-40 text-tinta [overflow-wrap:anywhere]">{resource.name}</span>
+      {resource.sizeLabel && <span className="text-sm tabular-nums text-suave">{resource.sizeLabel}</span>}
+      <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
         Editar
-      </button>
+      </Button>
       <form action={deleteAction}>
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
         <input type="hidden" name="resourceId" value={resource.id} />
-        <button
-          type="submit"
-          disabled={deletePending}
-          className="btn btn-outline px-2 py-1 text-[10px] text-error disabled:opacity-40"
-        >
+        <Button type="submit" variant="danger" size="sm" disabled={deletePending}>
           Borrar
-        </button>
+        </Button>
       </form>
-      {deleteState.error && <p className="w-full font-body text-xs text-error">{deleteState.error}</p>}
+      <StatusMessage error={deleteState.error} className="w-full" />
     </li>
   );
 }
@@ -113,15 +77,7 @@ function ResourceRow({
 // c.5: el alta va SIEMPRE por Server Action con service_role (`lesson_resources` no tiene
 // GRANT INSERT para el cliente, ni para la docente dueña). Esta lista nunca recibe ni
 // muestra `drive_file_id`/`url` — `getTeacherLessonDetail` no los pide (ADR-003 regla A).
-export default function ResourcesSection({
-  courseId,
-  lessonId,
-  resources,
-}: {
-  courseId: string;
-  lessonId: string;
-  resources: TeacherLessonResource[];
-}) {
+export default function ResourcesSection({ courseId, lessonId, resources }: { courseId: string; lessonId: string; resources: TeacherLessonResource[] }) {
   const [state, formAction, isPending] = useActionState(createResourceAction, TEACHER_ACTION_INITIAL_STATE);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -130,59 +86,30 @@ export default function ResourcesSection({
   }, [state.success]);
 
   return (
-    <div className="tarjeta space-y-3 p-6">
-      <h3 className="font-display text-sm tracking-wide text-tinta">Recursos (Drive)</h3>
-      <ul className="space-y-1.5">
+    <section aria-labelledby="recursos-titulo" className="tarjeta space-y-4 p-6">
+      <h2 id="recursos-titulo" className="text-xl font-semibold text-bosque">Recursos (Drive)</h2>
+      <ul className="space-y-2">
         {resources.map((r) => (
           <ResourceRow key={r.id} courseId={courseId} lessonId={lessonId} resource={r} />
         ))}
-        {resources.length === 0 && <li className="font-body text-xs text-suave">Sin recursos todavía.</li>}
+        {resources.length === 0 && <li className="text-sm text-suave">Sin recursos todavía.</li>}
       </ul>
 
-      <form ref={formRef} action={formAction} className="grid gap-2 pt-1 sm:grid-cols-2">
+      <form ref={formRef} action={formAction} className="grid gap-x-4 gap-y-4 border-t border-linea pt-4 sm:grid-cols-2">
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
-        <select
-          name="type"
-          defaultValue="pdf"
-          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
-        >
-          {RESOURCE_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <input
-          name="name"
-          required
-          placeholder="Nombre (ej: Manual de tirada)"
-          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
-        />
-        <input
-          name="link"
-          required
-          placeholder="Link de Drive"
-          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea sm:col-span-2"
-        />
-        <input
-          name="sizeLabel"
-          placeholder="Tamaño (ej: 2.4 MB, opcional)"
-          className="rounded-md border border-linea bg-papel px-2 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
-        />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="btn btn-outline text-[10px] disabled:opacity-60"
-        >
-          {isPending ? "…" : "+ Recurso"}
-        </button>
+        <PanelSelect label="Tipo" name="type" defaultValue="pdf">
+          <TypeOptions />
+        </PanelSelect>
+        <PanelInput label="Nombre" name="name" required placeholder="Manual de tirada" />
+        <PanelInput label="Link de Drive" name="link" required className="sm:col-span-2" error={state.error} />
+        <PanelInput label="Tamaño (opcional)" name="sizeLabel" placeholder="2.4 MB" />
+        <div className="sm:mt-[1.625rem]">
+          <Button type="submit" variant="outline" disabled={isPending} aria-busy={isPending}>
+            {isPending ? "Agregando…" : "+ Recurso"}
+          </Button>
+        </div>
       </form>
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-error">
-          {state.error}
-        </p>
-      )}
-    </div>
+    </section>
   );
 }

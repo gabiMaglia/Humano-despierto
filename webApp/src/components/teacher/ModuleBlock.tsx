@@ -6,6 +6,9 @@ import {
   deleteModuleAction,
   moveModuleAction,
 } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import { PanelInput } from "@/components/panel/PanelField";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherModuleWithLessons } from "@/lib/server/teacher";
 import LessonRow from "@/components/teacher/LessonRow";
@@ -20,125 +23,68 @@ interface Props {
 
 export default function ModuleBlock({ courseId, module: mod, isFirst, isLast }: Props) {
   const [editing, setEditing] = useState(false);
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateModuleAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
+  const [updateState, updateAction, updatePending] = useActionState(updateModuleAction, TEACHER_ACTION_INITIAL_STATE);
   const [moveState, moveAction, movePending] = useActionState(moveModuleAction, TEACHER_ACTION_INITIAL_STATE);
-  const [deleteState, deleteAction, deletePending] = useActionState(
-    deleteModuleAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteModuleAction, TEACHER_ACTION_INITIAL_STATE);
 
   return (
-    <section className="tarjeta p-5">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+    <section aria-label={`Módulo ${mod.title}`} className="tarjeta p-5">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         {editing ? (
-          <form action={updateAction} className="flex-1 space-y-2">
+          <form action={updateAction} className="min-w-0 flex-1 basis-72 space-y-3">
             <input type="hidden" name="courseId" value={courseId} />
             <input type="hidden" name="moduleId" value={mod.id} />
-            <input
-              name="title"
-              defaultValue={mod.title}
-              required
-              className="w-full rounded-md border border-linea bg-papel px-3 py-2 font-display text-sm text-tinta outline-none focus:border-linea"
-            />
-            <input
-              name="description"
-              defaultValue={mod.description ?? ""}
-              placeholder="Descripción (opcional)"
-              className="w-full rounded-md border border-linea bg-papel px-3 py-2 font-body text-xs text-tinta outline-none focus:border-linea"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                disabled={updatePending}
-                className="btn btn-primary text-[10px] disabled:opacity-60"
-              >
+            <PanelInput label="Título del módulo" name="title" defaultValue={mod.title} required />
+            <PanelInput label="Descripción (opcional)" name="description" defaultValue={mod.description ?? ""} />
+            <StatusMessage error={updateState.error} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" size="sm" disabled={updatePending}>
                 Guardar
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="font-body text-xs text-suave hover:text-tinta"
-              >
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
                 Cancelar
-              </button>
-              {updateState.error && <p className="font-body text-xs text-error">{updateState.error}</p>}
+              </Button>
             </div>
           </form>
         ) : (
-          <div className="min-w-0 flex-1">
-            <h3 className="font-display text-base tracking-wide text-tinta">{mod.title}</h3>
-            {mod.description && <p className="font-body text-xs text-suave">{mod.description}</p>}
+          <div className="min-w-0 flex-1 basis-56">
+            <h3 className="text-lg font-semibold text-bosque [overflow-wrap:anywhere]">{mod.title}</h3>
+            {mod.description && <p className="text-sm text-suave">{mod.description}</p>}
           </div>
         )}
 
-        <div className="flex flex-none items-center gap-1.5">
-          <form action={moveAction} className="flex gap-1">
+        <div className="flex flex-none flex-wrap items-center gap-1.5">
+          <form action={moveAction} className="flex gap-1.5">
             <input type="hidden" name="courseId" value={courseId} />
             <input type="hidden" name="moduleId" value={mod.id} />
-            <button
-              type="submit"
-              name="direction"
-              value="up"
-              disabled={isFirst || movePending}
-              className="btn btn-outline px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Subir módulo"
-            >
+            <Button type="submit" variant="outline" size="sm" name="direction" value="up" disabled={isFirst || movePending} className="w-10 !px-0" aria-label="Subir módulo">
               ↑
-            </button>
-            <button
-              type="submit"
-              name="direction"
-              value="down"
-              disabled={isLast || movePending}
-              className="btn btn-outline px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Bajar módulo"
-            >
+            </Button>
+            <Button type="submit" variant="outline" size="sm" name="direction" value="down" disabled={isLast || movePending} className="w-10 !px-0" aria-label="Bajar módulo">
               ↓
-            </button>
+            </Button>
           </form>
           {!editing && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="btn btn-outline px-2 py-1 text-[10px]"
-            >
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
               Editar
-            </button>
+            </Button>
           )}
           <form action={deleteAction}>
             <input type="hidden" name="courseId" value={courseId} />
             <input type="hidden" name="moduleId" value={mod.id} />
-            <button
-              type="submit"
-              disabled={deletePending}
-              className="btn btn-outline px-2 py-1 text-[10px] text-error disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <Button type="submit" variant="danger" size="sm" disabled={deletePending}>
               Borrar módulo
-            </button>
+            </Button>
           </form>
         </div>
       </div>
-      {(deleteState.error || moveState.error) && (
-        <p className="mb-2 font-body text-xs text-error">{deleteState.error || moveState.error}</p>
-      )}
+      <StatusMessage error={deleteState.error || moveState.error} className="mb-3" />
 
-      <ul className="space-y-1.5">
+      <ul className="space-y-2">
         {mod.lessons.map((lesson, i) => (
-          <LessonRow
-            key={lesson.id}
-            courseId={courseId}
-            moduleId={mod.id}
-            lesson={lesson}
-            isFirst={i === 0}
-            isLast={i === mod.lessons.length - 1}
-          />
+          <LessonRow key={lesson.id} courseId={courseId} moduleId={mod.id} lesson={lesson} isFirst={i === 0} isLast={i === mod.lessons.length - 1} />
         ))}
-        {mod.lessons.length === 0 && (
-          <li className="font-body text-xs text-suave">Sin lecciones todavía.</li>
-        )}
+        {mod.lessons.length === 0 && <li className="text-sm text-suave">Sin lecciones todavía.</li>}
       </ul>
 
       <NewLessonForm courseId={courseId} moduleId={mod.id} />
