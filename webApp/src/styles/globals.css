@@ -74,6 +74,12 @@
     outline-offset: 3px;
     border-radius: 6px;
   }
+  /* Sobre bosque (menú móvil, footer) o sobre una foto, miel-800 da 2.61:1 y el foco no se ve
+     (WCAG 1.4.11 pide 3:1). Miel sobre bosque da 5.1:1. */
+  .bg-bosque :focus-visible,
+  .sobre-oscuro :focus-visible {
+    outline-color: var(--miel);
+  }
   ::selection {
     background: var(--miel-100);
     color: var(--bosque);

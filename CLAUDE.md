@@ -230,27 +230,39 @@ visual reference: `design_handoff_humano_humano/reference/brote/b4-brote2.html`.
   (secondary text) · `miel` `#C7922E` (primary button, `bosque` text on it) · `miel-hover` ·
   `miel-800` `#8A6219` (links, accent text) · `miel-100` (tags) · `musgo` `#5E7A66` (**icons and
   illustration only, never text**) · `error` `#A8322A` · `exito` `#2F6B45`. No `cosmos`, `lila`,
-  `ink`, `gold` or `hh-` names anywhere in `webApp/src`. Radii `sm` 8 · `md` 12 · `lg` 18 · `pill`.
-- **Text contrast ≥ 4.5:1.** No light text on light backgrounds, no opacity on text colours.
+  `ink`, `gold` or `hh-` class names in `webApp/src`; the one exception is the mail layout
+  (`src/lib/server/mail/layout.ts`, a `COLORS` object with `bg #0a0418`, `lila`, `gold`), which keeps
+  the Cosmos palette until D-60. Tailwind's default palette (`red-400`…) is not used for text either:
+  errors are `text-error`. Radii `sm` 8 · `md` 12 · `lg` 18 · `pill`.
+- **Text contrast ≥ 4.5:1.** No light text on light backgrounds, no opacity on text colours and no
+  `opacity-*` on a container that holds text (a state such as «Completado» or «Mensaje borrado» is a
+  background plus a label). Only genuinely inactive controls (`disabled:`, locked lessons) and
+  illustration are dimmed. Never `text-suave`/`text-miel-800` on `bg-salvia`, never white on `miel`.
+  The focus ring is `miel-800`; on dark surfaces (`bg-bosque`, `.sobre-oscuro`) it switches to `miel`.
 - **Font: Plus Jakarta Sans only**, via `next/font/google` in `src/app/layout.tsx` (`--font-jakarta`,
   served from our origin, so CSP `font-src 'self'` is enough). `font-display`, `font-body` and
   `font-quote` still exist and all point to it; heading weight comes from the base styles.
-  (OG images still render with the vendored Cinzel in `src/assets/fonts/` until T-061.)
+  (OG images still render with the vendored Cinzel in `src/assets/fonts/` until T-061, D-61.)
 - **Buttons:** `Button` / `ButtonLink` (`src/components/atoms/Button.tsx`), variants `primary` ·
   `secondary` · `outline` · `ghost`, sizes `md` (48px) · `sm` (40px), optional `arrow`. The variant
   CSS lives only in `globals.css` (`.btn-*`); a screen picks a variant, it never styles a button.
-- **Raster is allowed for photography, always through `next/image`**, with a real `alt` and reserved
-  size. The only remote host in `images.remotePatterns` is `images.unsplash.com`, and only the closed,
+- **Raster is allowed for photography, always through `next/image`**, with reserved size. A photo that
+  carries content gets a real `alt`; a decorative one next to text that already names the thing (the
+  photo of a course card, whose title is the link) gets `alt=""`. The only remote host in `images.remotePatterns` is `images.unsplash.com`, and only the closed,
   hand-verified list in `src/content/placeholder-photos.ts` (marked PLACEHOLDER in code; id
-  `1469474968028-56623f02e42e` is forbidden). Exception: signed `uploads` URLs (avatar, course cover)
+  `1469474968028-56623f02e42e` is forbidden). **No stock portraits:** a real guide without a signed
+  avatar shows her initials (`atoms/Monogram`, `Avatar` with `name`), never a stranger's face (PO
+  decision 3; bringing the avatar to `PublicTeacherCard` is D-62). Exception: signed `uploads` URLs (avatar, course cover)
   go through `SignedImage` (`<img>`), because they expire in 1 h and the optimizer would cache them;
   uploads stay jpg/png/webp, never SVG. Illustration is inline SVG (`LeafIllustration`, `Icon`).
 - **No emojis. Unicode glyphs are not part of the language:** where one worked as an icon it is a
-  line SVG from `atoms/Icon.tsx`. Glyphs that are *data* (`profiles.glyph`, `courses.moon_glyph`,
-  the lunar calendar) are still rendered as data.
+  line SVG from `atoms/Icon.tsx` (lesson state, stars, bookmark, votes). Glyphs that are *data*
+  (`profiles.glyph`, `courses.moon_glyph`, the lunar calendar, and the `○`/`✦` defaults that
+  `src/lib/server/campus.ts` fills in) are still rendered as data (D-63).
 - No Starfield, ZodiacWheel, three.js canvas or Roman-numeral watermarks (deleted in T-060; `three`
-  is not a dependency). Motion: `Reveal` only animates what starts below the fold; everything
-  honours `prefers-reduced-motion`.
+  is not a dependency). Motion: `Reveal` only animates what starts below the fold. Under
+  `prefers-reduced-motion` `.btn` and `.reveal` drop their transforms and every hover transform in
+  `src` carries a `motion-reduce:` variant that cancels it.
 - `design_handoff_humano_humano/reference/design-system/` is **historical**. Read the Brote reference
   for spec — do not paste its HTML.
 

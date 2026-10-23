@@ -51,7 +51,7 @@ export default function CourseCard({
               src={coverUrl}
               alt=""
               loading={eager ? "eager" : "lazy"}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             />
           ) : (
             <Image
@@ -60,7 +60,7 @@ export default function CourseCard({
               fill
               loading={eager ? "eager" : "lazy"}
               sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none"
+              className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             />
           )}
           {featured && (
@@ -70,7 +70,7 @@ export default function CourseCard({
           )}
         </div>
 
-        <div className="absolute inset-x-4 bottom-0 flex flex-col rounded-[14px] bg-papel px-5 pb-5 pt-5 shadow-card transition-transform duration-[850ms] ease-circ motion-reduce:transition-none sm:inset-x-6 [@media(hover:hover)]:group-hover:-translate-y-[18px]">
+        <div className="absolute inset-x-4 bottom-0 flex flex-col rounded-[14px] bg-papel px-5 pb-5 pt-5 shadow-card transition-transform duration-[850ms] ease-circ motion-reduce:transition-none sm:inset-x-6 [@media(hover:hover)]:group-hover:-translate-y-[18px] motion-reduce:[@media(hover:hover)]:group-hover:translate-y-0">
           <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-miel-800">
             {tag}
             {level && <span className="text-suave"> · {level}</span>}

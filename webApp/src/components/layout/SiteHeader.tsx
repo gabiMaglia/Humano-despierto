@@ -82,7 +82,7 @@ export default function SiteHeader({ overHero = false }: Props) {
         "fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow,color] duration-400",
         solid
           ? "bg-fondo/95 text-bosque shadow-[0_10px_30px_-18px_rgb(31_46_36/0.35)] backdrop-blur-md"
-          : "bg-transparent text-white",
+          : "sobre-oscuro bg-transparent text-white",
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-6 px-6">

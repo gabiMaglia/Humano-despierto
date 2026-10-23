@@ -63,7 +63,7 @@ export default function LunarCalendar({ days }: { days: LunarDay[] }) {
         {/* Moon phases */}
         <div className="flex flex-wrap justify-around gap-6">
           {days.map((d, i) => (
-            <div key={d.date.toISOString()} className="relative flex flex-col items-center gap-3 text-center cursor-pointer transition-transform hover:-translate-y-1">
+            <div key={d.date.toISOString()} className="relative flex flex-col items-center gap-3 text-center cursor-pointer transition-transform hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
               <Moon phase={d.phase} today={d.today} />
               <span className="font-display text-[11px] tracking-[0.2em] text-tinta">{dateLabel(d, days[i - 1])}</span>
               <span className="font-quote italic text-sm text-suave">{LABELS[i]}</span>

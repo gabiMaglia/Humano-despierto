@@ -130,7 +130,7 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           <div className="grid gap-4 sm:grid-cols-2">
             {M.courses.map((c, i) => (
               <Link key={c.slug} href={`/cursos/${c.slug}`}>
-                <article className="tarjeta p-5 cursor-pointer hover:-translate-y-0.5 transition-transform">
+                <article className="tarjeta p-5 cursor-pointer hover:-translate-y-0.5 transition-transform motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                   <div className="mb-3 flex justify-between items-center">
                     <span className="font-display text-sm tracking-wider text-bosque">{String(i + 1)}</span>
                     {c.moonGlyph && <span className="text-miel-800 text-base">{c.moonGlyph}</span>}

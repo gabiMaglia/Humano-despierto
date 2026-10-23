@@ -7,7 +7,7 @@ export default function GuiaCard({
 }: PublicTeacherCard) {
   return (
     <Link href={`/guias/${slug}`} className="group block">
-      <article className="tarjeta overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card cursor-pointer">
+      <article className="tarjeta overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card motion-reduce:transition-none motion-reduce:hover:translate-y-0 cursor-pointer">
 
         {/* Sin avatar firmado en PublicTeacherCard (D-62): iniciales, nunca un retrato de stock. */}
         <div className="relative h-52">
