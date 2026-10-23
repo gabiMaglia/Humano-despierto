@@ -97,3 +97,20 @@ test("c.7 · avatar firmado en la ficha publica, sin datos privados, y al quitar
     await anon.close();
   }
 });
+
+test("D-83 · un teléfono inválido se marca junto al campo y no se guarda", async ({ page, request }) => {
+  await assertStackUp(request);
+  await login(page, ALUMNA);
+  await page.goto("/panel/perfil", { waitUntil: "networkidle" });
+  const telefono = page.getByLabel("Teléfono");
+  await telefono.fill("abc");
+  await page.getByRole("button", { name: "Guardar perfil" }).click();
+
+  await expect(telefono).toHaveAttribute("aria-invalid", "true");
+  const errorId = await telefono.getAttribute("aria-describedby");
+  expect(errorId).toBeTruthy();
+  await expect(page.locator(`[id="${errorId}"]`)).toContainText("El teléfono lleva números");
+  await expect(telefono).toBeFocused();
+  await expect(page.getByText("Perfil guardado.")).toHaveCount(0);
+  await expect(page.getByLabel("Nombre", { exact: true })).not.toHaveAttribute("aria-invalid", "true");
+});
