@@ -9,7 +9,7 @@ import { AVATAR_ACCEPT, exceedsAvatarLimit } from "@/lib/validation/image";
 
 interface Props {
   avatarUrl: string | null;
-  glyph: string;
+  glyph: string | null;
   fullName: string;
 }
 
@@ -22,7 +22,7 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
   return (
     <section aria-labelledby="avatar-title" className="tarjeta flex flex-col items-center gap-4 p-6">
       <h2 id="avatar-title" className="font-display text-eyebrow tracking-wide text-suave">Imagen</h2>
-      <Avatar size="xl" glyph={glyph} src={avatarUrl} alt={`Imagen de ${fullName}`} />
+      <Avatar size="xl" glyph={glyph} name={fullName} src={avatarUrl} alt={`Imagen de ${fullName}`} />
       <form action={uploadAction} className="flex flex-col items-center gap-3">
         <label htmlFor="avatar" className="font-body text-xs text-suave">
           Elegir imagen (JPG, PNG o WEBP, hasta 2 MB)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Icon from "@/components/atoms/Icon";
 import { saveReviewAction, type ReviewActionState } from "@/app/(marketing)/cursos/[slug]/actions";
 import ActionFeedback from "@/components/reviews/ActionFeedback";
 import { cn } from "@/lib/utils/cn";
@@ -41,11 +42,11 @@ export default function ReviewForm({
             onClick={() => setRating(n)}
             aria-pressed={rating === n}
             className={cn(
-              "font-display text-2xl transition-colors",
-              n <= rating ? "text-miel-800" : "text-suave hover:text-miel-800",
+              "rounded-md p-1 transition-colors",
+              n <= rating ? "text-miel" : "text-suave hover:text-miel-800",
             )}
           >
-            <span aria-hidden="true">{n <= rating ? "★" : "☆"}</span>
+            <Icon name="star" filled={n <= rating} className="h-7 w-7" />
             <span className="sr-only">{n} {n === 1 ? "estrella" : "estrellas"}</span>
           </button>
         ))}

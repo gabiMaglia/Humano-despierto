@@ -1,4 +1,6 @@
 import { cn } from "@/lib/utils/cn";
+import Icon from "@/components/atoms/Icon";
+import { initials } from "@/lib/ui/initials";
 
 type Size = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -11,7 +13,9 @@ const SIZES: Record<Size, string> = {
 };
 
 interface Props {
-  glyph?: string;
+  /** Dato de la persona (`profiles.glyph`); si no tiene, iniciales de `name` o una hoja. */
+  glyph?: string | null;
+  name?: string | null;
   src?: string | null;
   alt?: string;
   size?: Size;
@@ -19,7 +23,8 @@ interface Props {
   className?: string;
 }
 
-export default function Avatar({ glyph, src, alt, size = "md", online, className }: Props) {
+export default function Avatar({ glyph, name, src, alt, size = "md", online, className }: Props) {
+  const fallback = initials(name);
   return (
     <div className={cn("relative flex-none", className)}>
       <div
@@ -33,7 +38,9 @@ export default function Avatar({ glyph, src, alt, size = "md", online, className
           // eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h; el optimizador de next/image la cachearia mas alla de su vida.
           <img src={src} alt={alt ?? ""} className="h-full w-full rounded-full object-cover" />
         ) : (
-          glyph && <span className="font-display text-tinta leading-none">{glyph}</span>
+          <span aria-hidden="true" className="font-display font-semibold leading-none text-bosque">
+            {glyph || fallback || <Icon name="leaf" className="h-1/2 w-1/2 text-musgo" />}
+          </span>
         )}
       </div>
       {online && (

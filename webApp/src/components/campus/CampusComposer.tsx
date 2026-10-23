@@ -25,7 +25,7 @@ export default function CampusComposer({ courseId, courseSlug, authorGlyph, plac
       <input type="hidden" name="courseId" value={courseId ?? ""} />
       <input type="hidden" name="courseSlug" value={courseSlug ?? ""} />
       <div className="flex items-start gap-3">
-        <Avatar glyph={authorGlyph ?? "☽"} size="sm" />
+        <Avatar glyph={authorGlyph} size="sm" />
         <textarea
           name="body"
           required

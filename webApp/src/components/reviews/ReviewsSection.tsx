@@ -1,4 +1,5 @@
 import SectionDivider from "@/components/atoms/SectionDivider";
+import Icon from "@/components/atoms/Icon";
 import Stars from "@/components/reviews/Stars";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import ResponseForm from "@/components/reviews/ResponseForm";
@@ -57,8 +58,8 @@ export default function ReviewsSection({
                 const pct = summary.total > 0 ? (n / summary.total) * 100 : 0;
                 return (
                   <div key={estrella} className="flex items-center gap-3">
-                    <span className="w-12 flex-none font-display text-xs text-suave">
-                      <span aria-hidden="true">★</span> {estrella}
+                    <span className="flex w-12 flex-none items-center gap-1 font-display text-xs text-suave">
+                      <Icon name="star" className="h-3 w-3 text-miel" /> {estrella}
                     </span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-salvia-100">
                       <span className="block h-full bg-miel-100" style={{ width: `${pct}%` }} />

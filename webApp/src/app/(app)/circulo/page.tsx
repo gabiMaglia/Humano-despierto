@@ -13,7 +13,7 @@ export default async function CampusGeneralPage() {
 
   // El layout de `(app)` ya garantiza sesión; si por algo `data` viniera null igual (perfil sin
   // fila, carrera de alta), un hilo vacío en vez de un 500 es la degradación razonable.
-  const thread = data?.thread ?? { courseId: null, slug: null, title: "Plaza mayor", subtitle: "", glyph: "✦" };
+  const thread = data?.thread ?? { courseId: null, slug: null, title: "Plaza mayor", subtitle: "", glyph: "" };
   const posts = data?.posts ?? [];
 
   return (

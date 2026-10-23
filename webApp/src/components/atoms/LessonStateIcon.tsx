@@ -4,7 +4,7 @@ import Icon, { type IconName } from "@/components/atoms/Icon";
 export type LessonState = "done" | "current" | "pending" | "preview" | "locked";
 
 // Una sola tabla para la ficha (CurriculumAccordion) y el player (CurriculumTab): el mismo estado
-// se dibuja igual en los dos lados. Antes eran glifos Unicode repetidos (✓ ▶ ○ ✦ ⌗).
+// se dibuja igual en los dos lados. Antes eran glifos Unicode repetidos.
 const ICON: Record<LessonState, IconName> = {
   done: "check",
   current: "play",

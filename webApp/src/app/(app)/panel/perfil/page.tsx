@@ -29,7 +29,7 @@ export default async function PerfilPage() {
           <p className="mt-2 font-display text-eyebrow tracking-wide text-suave">{ROLE_LABEL[profile.role]}</p>
         </header>
         <main className="mx-auto grid max-w-4xl gap-8 px-6 py-12 md:grid-cols-[auto_1fr] md:px-12">
-          <AvatarForm avatarUrl={profile.avatarUrl} glyph={profile.glyph ?? "☉"} fullName={profile.fullName} />
+          <AvatarForm avatarUrl={profile.avatarUrl} glyph={profile.glyph} fullName={profile.fullName} />
           <ProfileForm
             profile={{ fullName: profile.fullName, bio: profile.bio, phone: profile.phone, birthDate: profile.birthDate }}
             today={new Date().toISOString().slice(0, 10)}

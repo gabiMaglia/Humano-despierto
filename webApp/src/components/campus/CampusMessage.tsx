@@ -62,7 +62,7 @@ export default function CampusMessage({
       // Borrado = fondo y etiqueta, no opacidad (QA T-060 D2: el texto quedaba en 2.4:1).
       <article className="border-b border-linea bg-salvia-100 px-5 py-4">
         <div className="flex items-start gap-3">
-          <Avatar glyph={post.authorGlyph ?? "·"} size="sm" />
+          <Avatar glyph={post.authorGlyph} name={post.authorName} size="sm" />
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
               <span>{post.authorName}</span>
@@ -86,7 +86,7 @@ export default function CampusMessage({
   return (
     <article className="border-b border-linea px-5 py-4">
       <div className="flex items-start gap-3">
-        <Avatar glyph={post.authorGlyph ?? post.authorName[0]} size="sm" />
+        <Avatar glyph={post.authorGlyph} name={post.authorName} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2 font-display text-eyebrow tracking-wide text-suave">
             <span className="text-tinta">{post.authorName}</span>
