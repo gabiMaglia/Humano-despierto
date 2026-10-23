@@ -13,6 +13,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // ADR-015 · fotografia solo por next/image y solo de hosts listados. El Storage propio NO va
+  // aca: sus URLs son firmadas (vencen en 1 h) y salen por SignedImage, sin optimizador.
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com", pathname: "/photo-**" }],
+  },
   experimental: {
     // T-042/T-047 · avatar y portada viajan en el FormData de un Server Action y el tope por
     // defecto es 1 MB. 4 MB cubre los 3 MB de la portada mas el overhead multipart: 3,1 MB tiene

@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { publishAnnouncement } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 
 export default function PublishAnnouncementControl({ courseId, announcementId }: { courseId: string; announcementId: string }) {
@@ -9,25 +11,16 @@ export default function PublishAnnouncementControl({ courseId, announcementId }:
   const hintId = `publicar-${announcementId}-aviso`;
 
   return (
-    <form action={formAction} className="flex flex-col items-start gap-1.5">
+    <form action={formAction} className="flex max-w-sm flex-col items-start gap-2">
       <input type="hidden" name="courseId" value={courseId} />
       <input type="hidden" name="announcementId" value={announcementId} />
-      <button
-        type="submit"
-        disabled={isPending}
-        aria-describedby={hintId}
-        className="btn-ritual btn-ritual-primary rounded-pill disabled:opacity-60"
-      >
-        {isPending ? "…" : "Publicar y enviar por mail"}
-      </button>
-      <p id={hintId} className="font-body text-xs text-ink-faint">
+      <Button type="submit" disabled={isPending} aria-busy={isPending} aria-describedby={hintId}>
+        {isPending ? "Publicando…" : "Publicar y enviar por mail"}
+      </Button>
+      <p id={hintId} className="text-sm text-suave">
         Le llega un mail a cada inscripta activa. Después no se puede editar.
       </p>
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400">
-          {state.error}
-        </p>
-      )}
+      <StatusMessage error={state.error} />
     </form>
   );
 }

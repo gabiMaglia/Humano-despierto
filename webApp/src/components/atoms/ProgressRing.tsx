@@ -12,14 +12,14 @@ export default function ProgressRing({ value, size = 72 }: Props) {
   const supSize = size < 56 ? 7 : 9;
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-label={`${value}%`}>
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={`${value}% completado`}>
       <circle
         cx={half} cy={half} r={r}
-        fill="none" stroke="rgba(196,181,253,0.25)" strokeWidth={2}
+        fill="none" stroke="var(--salvia)" strokeWidth={3}
       />
       <circle
         cx={half} cy={half} r={r}
-        fill="none" stroke="#f5d76e" strokeWidth={2}
+        fill="none" stroke="var(--miel)" strokeWidth={3}
         strokeDasharray={c} strokeDashoffset={offset}
         strokeLinecap="round"
         transform={`rotate(-90 ${half} ${half})`}
@@ -27,8 +27,8 @@ export default function ProgressRing({ value, size = 72 }: Props) {
       <text
         x={half} y={half}
         textAnchor="middle" dominantBaseline="middle"
-        fill="#ede4ff" fontSize={fontSize}
-        fontFamily="Cinzel, serif" letterSpacing="0.5"
+        fill="var(--bosque)" fontSize={fontSize} fontWeight={600}
+        fontFamily="var(--font-jakarta), system-ui, sans-serif"
       >
         {value}
         <tspan fontSize={supSize} dy={-2}>%</tspan>

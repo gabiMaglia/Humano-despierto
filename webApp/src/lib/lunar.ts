@@ -47,3 +47,15 @@ export function lunarDays(from: Date): LunarDay[] {
     return { ...lunarPhase(date), date, today: i === 0 };
   });
 }
+
+const LABEL: Record<LunarPhaseName, [waxing: string, waning: string]> = {
+  new: ["Luna nueva", "Luna nueva"],
+  crescent: ["Creciente", "Menguante"],
+  half: ["Cuarto creciente", "Cuarto menguante"],
+  gibbous: ["Gibosa creciente", "Gibosa menguante"],
+  full: ["Luna llena", "Luna llena"],
+};
+
+export function phaseLabel(phase: LunarPhaseName, waxing: boolean): string {
+  return LABEL[phase][waxing ? 0 : 1];
+}

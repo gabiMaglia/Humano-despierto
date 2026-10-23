@@ -18,14 +18,14 @@ export default function ReportForm({ reviewId, slug }: { reviewId: string; slug:
 
   return (
     <details className="mt-3">
-      <summary className="cursor-pointer font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-ink-soft">
+      <summary className="cursor-pointer font-display text-eyebrow tracking-wide text-suave hover:text-suave">
         Reportar al admin
       </summary>
-      <form action={formAction} className="mt-3 border-l-2 border-lila-300/30 pl-4">
-        <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-faint">
+      <form action={formAction} className="mt-3 border-l-2 border-linea pl-4">
+        <label htmlFor={fieldId} className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
           Motivo del reporte
         </label>
-        <p id={helpId} className="mb-2 font-body text-xs text-ink-faint">
+        <p id={helpId} className="mb-2 font-body text-xs text-suave">
           Lo lee solo el equipo de administración. La reseña sigue visible mientras se revisa.
         </p>
         <textarea
@@ -35,13 +35,13 @@ export default function ReportForm({ reviewId, slug }: { reviewId: string; slug:
           maxLength={1000}
           required
           aria-describedby={helpId}
-          className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/40"
+          className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
         />
         <ActionFeedback state={state} />
         <button
           type="submit"
           disabled={isPending}
-          className="btn-ritual btn-ritual-ghost mt-3 rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-outline mt-3 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Enviando…" : "Enviar reporte"}
         </button>

@@ -42,10 +42,18 @@ describe("buildCsp", () => {
 
   it("Supabase entra por ORIGEN (sin path) en img-src y connect-src; sin env, no entra nada", () => {
     const d = directives(buildCsp({ ...BASE, supabaseUrl: "https://abc.supabase.co/storage/v1/" }).value);
-    expect(d.get("img-src")).toEqual(["'self'", "blob:", "data:", "https://i.ytimg.com", "https://abc.supabase.co"]);
+    expect(d.get("img-src")).toEqual([
+      "'self'", "blob:", "data:", "https://i.ytimg.com", "https://images.unsplash.com", "https://abc.supabase.co",
+    ]);
     expect(d.get("connect-src")).toEqual(["'self'", "https://abc.supabase.co"]);
     const sin = directives(buildCsp({ ...BASE, supabaseUrl: undefined }).value);
     expect(sin.get("connect-src")).toEqual(["'self'"]);
+  });
+
+  it("img-src admite Unsplash (placeholders Brote, ADR-015) y ese host no entra en connect-src", () => {
+    const d = directives(buildCsp({ ...BASE, supabaseUrl: undefined }).value);
+    expect(d.get("img-src")).toContain("https://images.unsplash.com");
+    expect(d.get("connect-src")).not.toContain("https://images.unsplash.com");
   });
 
   it("una SUPABASE_URL que no es http(s) no se cuela como fuente", () => {

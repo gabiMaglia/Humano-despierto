@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Breadcrumb from "@/components/atoms/Breadcrumb";
+import Link from "next/link";
+import Icon from "@/components/atoms/Icon";
 import { SITE_OG_IMAGE } from "@/lib/og/site";
 import { getPostBySlug } from "@/lib/server/diario";
 import { formatCertificateDate } from "@/lib/utils/format";
@@ -44,28 +45,34 @@ export default async function DiarioPostPage({ params }: Props) {
   const paragraphs = post.body.split(/\n{2,}/).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-cosmos-0">
-      <Breadcrumb crumbs={[{ label: "Diario", href: "/diario" }, { label: post.title }]} />
-
-      <header className="border-b border-lila-300/18 px-6 py-16 text-center md:px-12">
-        <h1 className="mx-auto mb-4 max-w-2xl font-display text-display-md text-ink">{post.title}</h1>
-        {post.excerpt && (
-          <p className="mx-auto mb-5 max-w-xl font-quote italic text-lg text-lila-300">{post.excerpt}</p>
-        )}
-        <div className="flex flex-wrap items-center justify-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-          {post.teacherGlyph && <span className="text-lila-300">{post.teacherGlyph}</span>}
-          <span>{post.teacherName}</span>
-          <span className="text-lila-300/40">·</span>
-          <span>{formatCertificateDate(post.publishedAt)}</span>
-        </div>
-      </header>
-
-      <article className="mx-auto max-w-2xl space-y-5 px-6 py-14 md:px-12">
-        {paragraphs.map((para, i) => (
-          <p key={i} className="font-body text-base leading-relaxed text-ink-soft">
-            {para}
+    <div className="min-h-screen bg-fondo">
+      <div className="mx-auto max-w-[760px] px-6 pt-8">
+        <Link href="/diario" className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-miel-800 hover:underline">
+          <Icon name="arrow-left" />
+          Volver al diario
+        </Link>
+      </div>
+      <article className="mx-auto max-w-[760px] px-6 pb-24 pt-6">
+        <header className="border-b border-linea pb-10">
+          <h1 className="text-display-md leading-[1.12] [overflow-wrap:anywhere]">{post.title}</h1>
+          {post.excerpt && <p className="mt-4 text-xl leading-snug text-tinta">{post.excerpt}</p>}
+          <p className="mt-6 text-[15px] text-suave">
+            Escribe{" "}
+            {post.teacherSlug ? (
+              <Link href={`/guias/${post.teacherSlug}`} className="font-semibold text-miel-800 hover:underline">
+                {post.teacherName}
+              </Link>
+            ) : (
+              <b className="font-semibold text-bosque">{post.teacherName}</b>
+            )}{" "}
+            · <time dateTime={post.publishedAt}>{formatCertificateDate(post.publishedAt)}</time>
           </p>
-        ))}
+        </header>
+        <div className="mt-10 space-y-5 text-[18px] leading-[1.8] text-tinta">
+          {paragraphs.map((para, i) => (
+            <p key={i}>{para}</p>
+          ))}
+        </div>
       </article>
     </div>
   );

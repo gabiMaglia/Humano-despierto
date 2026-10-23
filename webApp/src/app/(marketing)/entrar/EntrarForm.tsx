@@ -1,29 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { fullNameSchema } from "@/lib/validation/profile";
 import { AUTH_COPY, authErrorMessage } from "@/lib/auth/messages";
 import { DEFAULT_NEXT, RECOVER_PATH, callbackUrl, needsDocumentNavigation } from "@/lib/auth/paths";
-import AuthBrand from "@/components/molecules/AuthBrand";
 import AuthField from "@/components/molecules/AuthField";
+import AuthFrame from "@/components/molecules/AuthFrame";
+import { AuthHeading } from "@/components/molecules/AuthShell";
+import Button from "@/components/atoms/Button";
+import ErrorMark from "@/components/atoms/ErrorMark";
 import SubmitButton from "@/components/atoms/SubmitButton";
 import { postLoginDestinationAction } from "./actions";
 import GoogleButton from "./GoogleButton";
-import type { SolidType } from "@/components/cosmos/PlatonicSolid";
-
-const PlatonicSolid = dynamic(() => import("@/components/cosmos/PlatonicSolid"), { ssr: false });
-
-const SOLIDS: { type: SolidType; name: string; element: string; tagline: string }[] = [
-  { type: "tetrahedron",  name: "Tetraedro",   element: "Fuego",  tagline: "La chispa que inicia todo camino." },
-  { type: "cube",         name: "Hexaedro",     element: "Tierra", tagline: "La base sobre la que todo se construye." },
-  { type: "octahedron",   name: "Octaedro",     element: "Aire",   tagline: "El movimiento que conecta cielo y tierra." },
-  { type: "dodecahedron", name: "Dodecaedro",   element: "Éter",   tagline: "El quinto elemento. La forma del cosmos." },
-  { type: "icosahedron",  name: "Icosaedro",    element: "Agua",   tagline: "La fluidez que moldea todo lo que toca." },
-];
 
 type Tab = "entrar" | "registro";
 
@@ -35,30 +26,20 @@ interface Props {
 
 export default function EntrarForm({ next, linkError }: Props) {
   const [tab, setTab] = useState<Tab>("entrar");
-  // Fijo en SSR y en el primer render del cliente (hidratan igual); recién
-  // después de montar se sortea. Sortear en el useState inicial rompía la
-  // hidratación (server/client HTML distinto) y React remontaba todo el
-  // árbol del formulario, borrando lo que la persona ya había tecleado.
-  const [solidInfo, setSolidInfo] = useState(SOLIDS[0]);
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(linkError ? AUTH_COPY.linkExpired : null);
+  const [nombreError, setNombreError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   const router = useRouter();
 
-  useEffect(() => {
-    // Un solo set, ligado a mount ([]), no hay cascada: es el patrón
-    // documentado de React para "solo aleatorio en el cliente".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSolidInfo(SOLIDS[Math.floor(Math.random() * SOLIDS.length)]);
-  }, []);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNombreError(null);
     setLoading(true);
 
     const supabase = createClient();
@@ -70,7 +51,7 @@ export default function EntrarForm({ next, linkError }: Props) {
       const nombreOk = fullNameSchema.safeParse(nombre);
       if (!nombreOk.success) {
         setLoading(false);
-        setError(nombreOk.error.issues[0].message);
+        setNombreError(nombreOk.error.issues[0].message);
         return;
       }
     }
@@ -112,77 +93,58 @@ export default function EntrarForm({ next, linkError }: Props) {
     setSent(true);
   }
 
+  const tabClass = (active: boolean) =>
+    `min-h-12 flex-1 rounded-pill px-4 text-sm font-semibold transition-colors ${
+      active ? "bg-bosque text-white" : "text-tinta hover:bg-salvia-100"
+    }`;
+
   return (
-    <div className="flex h-full">
-
-      {/* ── Left — Form ────────────────────────────────────────────────── */}
-      <div className="flex w-full flex-col justify-center bg-cosmos-surface px-8 py-6 md:px-14 lg:max-w-[520px]">
-
-        <AuthBrand />
-
-        {sent ? (
-          <div role="status" className="space-y-4">
-            <h1 className="mb-1.5 font-display text-2xl tracking-wide text-ink">
-              Revisá tu <em className="font-quote italic text-lila-300 normal-case">mail</em>
-            </h1>
-            <p className="font-body text-sm text-ink-faint">{AUTH_COPY.checkEmail}</p>
-            <button
-              type="button"
-              onClick={() => {
-                setSent(false);
-                setTab("entrar");
-              }}
-              className="text-lila-300 transition-colors hover:text-gold-400 font-body text-xs"
-            >
-              Volver a entrar
-            </button>
-          </div>
-        ) : (
-          <>
-          {/* Tab toggle */}
-          <div className="mb-5 flex rounded-pill border border-lila-300/20 bg-cosmos-0/40 p-1">
+    <AuthFrame aside="entrar">
+      {sent ? (
+        <div role="status" className="space-y-5">
+          <h1 className="text-3xl font-bold tracking-tight text-bosque">
+            Revisá tu <span className="text-miel-800">mail</span>
+          </h1>
+          <p className="text-base text-tinta">{AUTH_COPY.checkEmail}</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSent(false);
+              setTab("entrar");
+            }}
+          >
+            Volver a entrar
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-6 flex rounded-pill border border-suave bg-papel p-1">
             {(["entrar", "registro"] as Tab[]).map((t) => (
               <button
                 key={t}
+                type="button"
+                aria-pressed={tab === t}
                 onClick={() => setTab(t)}
-                className={`flex-1 rounded-pill py-2 font-display text-eyebrow tracking-cosmic transition-colors ${
-                  tab === t ? "bg-lila-300/15 text-ink" : "text-ink-faint hover:text-ink-soft"
-                }`}
+                className={tabClass(tab === t)}
               >
                 {t === "entrar" ? "Entrar" : "Crear cuenta"}
               </button>
             ))}
           </div>
 
-          {/* Heading */}
-          <div className="mb-5">
-            <h1 className="mb-1.5 font-display text-2xl tracking-wide text-ink">
-              {tab === "entrar" ? (
-                <>Bienvenida <em className="font-quote italic text-lila-300 normal-case">de nuevo</em></>
-              ) : (
-                <>Empezá tu <em className="font-quote italic text-lila-300 normal-case">camino</em></>
-              )}
-            </h1>
-            <p className="font-body text-sm text-ink-faint">
-              {tab === "entrar"
-                ? "Ingresá con tu cuenta para continuar."
-                : "Creá tu cuenta y accedé al círculo."}
-            </p>
-          </div>
+          <AuthHeading
+            title={tab === "entrar" ? "Bienvenida" : "Empezá tu"}
+            accent={tab === "entrar" ? "de nuevo" : "camino"}
+            lead={tab === "entrar" ? "Ingresá con tu cuenta para continuar." : "Creá tu cuenta y accedé al círculo."}
+          />
 
-          {/* Form */}
           {/* `method="post"` no lo usa nadie mientras haya JS: `handleSubmit` hace preventDefault
-              y el login va por Supabase. Está por lo que pasa si el JS NO carga — un chunk que
-              falla, una extensión, una red que corta. En ese caso el navegador hace el envío
-              nativo, que por defecto es GET, y un GET pone los campos en la URL: historial,
-              logs del servidor y cabecera Referer.
-              Hoy no se filtra nada porque los inputs son controlados y no tienen `name`, así que
-              no se serializa ninguno — lo verifiqué con el JS deshabilitado y la URL queda en
-              `/entrar?` vacía. Pero eso es un accidente afortunado, no una defensa: alcanza con
-              que alguien agregue `name="password"` para autocompletado y la contraseña empieza a
-              viajar en la query. Con POST, ese día el peor caso es un 405, no una credencial en
-              el historial del navegador. */}
-          <form onSubmit={handleSubmit} method="post" className="space-y-4">
+              y el login va por Supabase. Está por lo que pasa si el JS NO carga: el envío nativo
+              por defecto es GET, y un GET pone los campos en la URL (historial, logs, Referer).
+              Hoy no se filtra nada porque los inputs son controlados y no tienen `name`, pero eso
+              es un accidente: si alguien agrega `name="password"` la clave viajaría en la query.
+              Con POST el peor caso es un 405. */}
+          <form onSubmit={handleSubmit} method="post" className="space-y-5">
             {tab === "registro" && (
               <AuthField
                 id="entrar-nombre"
@@ -192,6 +154,7 @@ export default function EntrarForm({ next, linkError }: Props) {
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Tu nombre"
+                error={nombreError}
               />
             )}
 
@@ -217,7 +180,7 @@ export default function EntrarForm({ next, linkError }: Props) {
                 tab === "entrar" && (
                   <Link
                     href={RECOVER_PATH}
-                    className="font-display text-eyebrow tracking-cosmic text-ink-faint transition-colors hover:text-lila-300"
+                    className="inline-flex min-h-8 items-center text-sm font-semibold text-miel-800 underline-offset-4 hover:underline"
                   >
                     ¿Olvidaste la clave?
                   </Link>
@@ -226,7 +189,8 @@ export default function EntrarForm({ next, linkError }: Props) {
             />
 
             {error && (
-              <p role="alert" className="font-body text-xs text-red-400">
+              <p role="alert" className="flex items-start gap-2 text-sm font-medium text-error">
+                <ErrorMark />
                 {error}
               </p>
             )}
@@ -234,70 +198,33 @@ export default function EntrarForm({ next, linkError }: Props) {
             <SubmitButton loading={loading} label={tab === "entrar" ? "Ingresar" : "Crear cuenta"} />
           </form>
 
-          {/* Divider */}
-          <div className="my-4 flex items-center gap-4">
-            <div className="h-px flex-1 bg-lila-300/18" />
-            <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">o continuá con</span>
-            <div className="h-px flex-1 bg-lila-300/18" />
+          <div className="my-6 flex items-center gap-4">
+            <div className="h-px flex-1 bg-salvia" />
+            <span className="text-sm text-suave">o continuá con</span>
+            <div className="h-px flex-1 bg-salvia" />
           </div>
 
           <GoogleButton next={next} disabled={loading} onError={setError} />
 
-          {/* Footer note */}
-          <p className="mt-5 text-center font-body text-xs text-ink-faint">
+          <p className="mt-6 text-center text-sm text-tinta">
             {tab === "entrar" ? (
-              <>¿No tenés cuenta?{" "}
-                <button onClick={() => setTab("registro")} className="text-lila-300 hover:text-gold-400 transition-colors">
+              <>
+                ¿No tenés cuenta?{" "}
+                <Button variant="ghost" size="sm" onClick={() => setTab("registro")} className="text-miel-800">
                   Registrate
-                </button>
+                </Button>
               </>
             ) : (
-              <>¿Ya tenés cuenta?{" "}
-                <button onClick={() => setTab("entrar")} className="text-lila-300 hover:text-gold-400 transition-colors">
+              <>
+                ¿Ya tenés cuenta?{" "}
+                <Button variant="ghost" size="sm" onClick={() => setTab("entrar")} className="text-miel-800">
                   Ingresá
-                </button>
+                </Button>
               </>
             )}
           </p>
-          </>
-        )}
-      </div>
-
-      {/* ── Right — Platonic solid ──────────────────────────────────────── */}
-      <div
-        className="relative hidden flex-1 flex-col items-center justify-center overflow-hidden lg:flex"
-        style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(196,181,253,0.08) 0%, transparent 65%), #0a0418" }}
-      >
-        {/* Glow behind the solid */}
-        <div
-          className="pointer-events-none absolute inset-[20%] rounded-full blur-[80px]"
-          style={{ background: "radial-gradient(ellipse, rgba(196,181,253,0.18) 0%, transparent 70%)" }}
-        />
-
-        {/* Three.js canvas — fills the panel */}
-        <div className="absolute inset-0">
-          <PlatonicSolid solid={solidInfo.type} />
-        </div>
-
-        {/* Floating sigils */}
-        {[
-          { icon: "✦", cls: "top-12 left-[14%] text-gold-400 text-xs opacity-50" },
-          { icon: "☉", cls: "top-[28%] right-[10%] text-lila-300 text-sm opacity-35" },
-          { icon: "◐", cls: "bottom-[28%] left-[8%]  text-lila-300 text-xs opacity-35" },
-          { icon: "✧", cls: "bottom-12 right-[16%] text-gold-400 text-[10px] opacity-45" },
-        ].map(({ icon, cls }) => (
-          <span key={icon} className={`pointer-events-none absolute font-display ${cls}`}>{icon}</span>
-        ))}
-
-        {/* Label — changes with each random solid */}
-        <div className="absolute bottom-10 left-0 right-0 text-center">
-          <p className="mb-1 font-display text-eyebrow tracking-cosmic text-ink-faint">
-            {solidInfo.name} · {solidInfo.element}
-          </p>
-          <p className="font-quote italic text-sm text-ink-faint/60">{solidInfo.tagline}</p>
-        </div>
-      </div>
-
-    </div>
+        </>
+      )}
+    </AuthFrame>
   );
 }

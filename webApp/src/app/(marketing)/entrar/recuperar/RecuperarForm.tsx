@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import AuthField from "@/components/molecules/AuthField";
+import { ButtonLink } from "@/components/atoms/Button";
 import SubmitButton from "@/components/atoms/SubmitButton";
 import { requestPasswordResetAction } from "./actions";
 import { RESET_REQUEST_INITIAL_STATE } from "@/lib/auth/action-state";
@@ -14,19 +14,19 @@ export default function RecuperarForm() {
     // `role="status"` solo en el párrafo: c.5 compara su texto entre dos mails y no tiene que
     // arrastrar el del link.
     return (
-      <div className="space-y-4">
-        <p role="status" className="font-body text-sm text-ink-soft">
+      <div className="space-y-5">
+        <p role="status" className="text-base text-tinta">
           {state.message}
         </p>
-        <Link href="/entrar" className="font-body text-xs text-lila-300 transition-colors hover:text-gold-400">
+        <ButtonLink href="/entrar" variant="outline">
           Volver a entrar
-        </Link>
+        </ButtonLink>
       </div>
     );
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <AuthField
         id="recuperar-email"
         label="Email"
@@ -35,12 +35,8 @@ export default function RecuperarForm() {
         autoComplete="email"
         required
         placeholder="tu@email.com"
+        error={state.status === "invalid" ? state.message : null}
       />
-      {state.status === "invalid" && (
-        <p role="alert" className="font-body text-xs text-red-400">
-          {state.message}
-        </p>
-      )}
       <SubmitButton loading={isPending} label="Enviar enlace" />
     </form>
   );

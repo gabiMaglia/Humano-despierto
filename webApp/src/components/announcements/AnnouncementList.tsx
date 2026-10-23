@@ -9,24 +9,24 @@ export default function AnnouncementList({ items, showCourse = false }: { items:
     <ul className="space-y-4">
       {items.map((a) => (
         <li key={a.id}>
-          <article aria-labelledby={`anuncio-${a.id}`} className="cosmos-card p-5">
-            <p className="mb-1 font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">
+          <article aria-labelledby={`anuncio-${a.id}`} className="tarjeta p-5">
+            <p className="mb-1 font-display text-eyebrow tracking-wide text-suave uppercase">
               <time dateTime={a.publishedAt}>{formatCertificateDate(a.publishedAt)}</time>
               {showCourse && a.course && (
                 <>
-                  <span className="text-lila-300/30"> · </span>
-                  <Link href={`/cursos/${a.course.slug}`} className="text-gold-400 hover:text-lila-300 transition-colors">
+                  <span className="text-miel-800"> · </span>
+                  <Link href={`/cursos/${a.course.slug}`} className="text-miel-800 hover:text-miel-800 transition-colors">
                     {a.course.title}
                   </Link>
                 </>
               )}
             </p>
-            <h3 id={`anuncio-${a.id}`} className="mb-2 font-display text-base tracking-wide text-ink">
+            <h3 id={`anuncio-${a.id}`} className="mb-2 font-display text-base tracking-wide text-tinta">
               {a.title}
             </h3>
             <div className="space-y-3">
               {a.body.split(/\n{2,}/).filter(Boolean).map((par, i) => (
-                <p key={i} className="whitespace-pre-line font-body text-sm text-ink-soft leading-relaxed">
+                <p key={i} className="whitespace-pre-line font-body text-sm text-suave leading-relaxed">
                   {par}
                 </p>
               ))}

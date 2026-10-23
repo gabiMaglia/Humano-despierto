@@ -31,7 +31,8 @@ async function subir(page: Page, file: { name: string; mimeType: string; buffer:
   await page.getByRole("button", { name: "Subir portada" }).click();
 }
 
-const cardImg = (page: Page) => page.locator(`a[href="/cursos/${SLUG}"] img`);
+// T-060 · sin portada la tarjeta muestra una foto de muestra (ADR-015): la portada es la img FIRMADA.
+const cardImg = (page: Page) => page.locator(`a[href="/cursos/${SLUG}"] img[src*="/storage/v1/object/sign/uploads/covers/"]`);
 
 test("c.1 + c.3 · la docente sube, la ve en catalogo y ficha, la reemplaza y la quita", async ({ page, browser, request }) => {
   await assertStackUp(request);

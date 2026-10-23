@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import Icon from "@/components/atoms/Icon";
 import { moderateQuestion, resolveQuestion, voteQuestion } from "@/app/leccion/[id]/actions";
 import type { QaQuestionView } from "@/lib/lesson-qa/types";
 import AnswerComposer from "./AnswerComposer";
 import AnswerItem from "./AnswerItem";
 import ModerateForm from "./ModerateForm";
+import FormStatus from "@/components/molecules/FormStatus";
 import QaTextButton from "./QaTextButton";
 import { useQaMutation } from "./useQaMutation";
 
@@ -22,7 +24,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
   const titleId = `qa-q-${q.id}`;
 
   return (
-    <article aria-labelledby={titleId} className="rounded-ritual border border-lila-300/18 p-3">
+    <article aria-labelledby={titleId} className="rounded-md border border-linea p-4">
       <div className="flex items-start gap-3">
         <QaTextButton
           variant={q.hasVoted ? "active" : "default"}
@@ -31,19 +33,25 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
           disabled={!canAsk || q.isDeleted || pending}
           onClick={() => run(() => voteQuestion(lessonId, q.id, !q.hasVoted))}
         >
-          {q.hasVoted ? "✦" : "✧"} {q.votes}
+          <Icon name="arrow-up" className="h-3.5 w-3.5" />
+          <span className="tabular-nums">{q.votes}</span>
         </QaTextButton>
         <div className="min-w-0 flex-1">
-          <h3 id={titleId} className="font-display text-sm tracking-wide text-ink">
+          <h3 id={titleId} className="text-base">
             {q.title}
           </h3>
-          <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">
+          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-suave">
             {q.author.name}
-            {q.isResolved && <span className="text-gold-400"> · ✓ Resuelta</span>}
+            {q.isResolved && (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-salvia-100 px-2 py-0.5 text-xs font-semibold text-exito">
+                <Icon name="check" className="h-3 w-3" />
+                Resuelta
+              </span>
+            )}
           </p>
-          <p className="mt-2 whitespace-pre-line font-body text-xs leading-relaxed text-ink-soft">{q.body}</p>
+          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tinta">{q.body}</p>
           {q.isDeleted && (
-            <p className="mt-1 font-body text-xs italic text-ink-faint">
+            <p className="mt-2 rounded-sm bg-salvia-100 px-2 py-1 text-sm text-tinta">
               Borrada por {q.deletedByName ?? "moderación"}: {q.deletedReason}
             </p>
           )}
@@ -51,7 +59,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
       </div>
 
       {!q.isDeleted && (q.canResolve || canModerate) && (
-        <div className="mt-2 flex flex-wrap items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-1">
           {q.canResolve && (
             <QaTextButton disabled={pending} onClick={() => run(() => resolveQuestion(lessonId, q.id, !q.isResolved))}>
               {q.isResolved ? "Reabrir" : "Marcar resuelta"}
@@ -62,7 +70,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
       )}
 
       {q.answers.length > 0 && (
-        <ol aria-label="Respuestas" className="mt-3 space-y-3">
+        <ol aria-label="Respuestas" className="mt-4 space-y-3">
           {q.answers.map((a) => (
             <AnswerItem key={a.id} lessonId={lessonId} answer={a} canModerate={canModerate} />
           ))}
@@ -71,11 +79,7 @@ export default function QuestionCard({ lessonId, question: q, canAsk, canModerat
 
       {canAsk && !q.isDeleted && <AnswerComposer lessonId={lessonId} questionId={q.id} />}
 
-      {error && (
-        <p role="alert" className="mt-2 font-body text-xs text-red-400">
-          {error}
-        </p>
-      )}
+      <FormStatus state={{ error, success: null }} className="mt-2" />
     </article>
   );
 }

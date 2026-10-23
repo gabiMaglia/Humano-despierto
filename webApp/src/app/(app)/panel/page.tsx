@@ -1,5 +1,7 @@
-import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import { ButtonLink } from "@/components/atoms/Button";
+import LeafIllustration from "@/components/atoms/LeafIllustration";
+import AppPageHeader from "@/components/layout/AppPageHeader";
+import SiteHeader from "@/components/layout/SiteHeader";
 import ProgressRing from "@/components/atoms/ProgressRing";
 import LearningCourseRow from "@/components/molecules/LearningCourseRow";
 import LearningTabsNav from "@/components/molecules/LearningTabsNav";
@@ -10,6 +12,7 @@ import { getCurrentUser } from "@/lib/server/auth";
 import { getStudentDashboard } from "@/lib/server/enrollment";
 import StudentRequests from "@/components/molecules/StudentRequests";
 import { ensureCertificate } from "@/lib/server/certificates";
+import { courseFullTitle } from "@/lib/ui/course-title";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import AnnouncementList from "@/components/announcements/AnnouncementList";
 import { getRecentAnnouncementsForStudent } from "@/lib/server/announcements";
@@ -40,21 +43,20 @@ export default async function DashboardPage({
 
   if (courses.length === 0 && saved.length === 0 && requests.length === 0) {
     return (
-      <div className="min-h-screen bg-cosmos-0 text-ink">
-        <Nav />
-        <div className="flex flex-col items-center justify-center gap-5 px-6 py-32 text-center">
-          <span className="text-4xl text-lila-300">✦</span>
-          <p className="font-display text-eyebrow tracking-[0.25em] text-ink-faint">— El umbral de tu camino —</p>
-          <h1 className="max-w-md font-display text-display-md text-ink">
-            Todavía no empezaste ningún <em className="font-quote italic text-lila-300">recorrido</em>
-          </h1>
-          <p className="max-w-md font-body text-sm text-ink-soft">
-            Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
-          </p>
-          <Link href="/cursos" className="btn-ritual btn-ritual-primary rounded-pill mt-2">
-            Explorar el catálogo ↦
-          </Link>
-        </div>
+      <div className="min-h-screen bg-fondo text-tinta">
+        <SiteHeader />
+        <AppPageHeader eyebrow="Mi aprendizaje" title="Todavía no empezaste ningún recorrido" />
+        <main className="mx-auto max-w-[1200px] px-6 py-12">
+          <div className="tarjeta relative overflow-hidden p-8 md:p-12">
+            <LeafIllustration className="absolute -bottom-8 -right-6 w-[140px] opacity-40" />
+            <p className="relative max-w-[46ch] text-base text-tinta">
+              Cuando te inscribas en un curso, vas a ver acá tu progreso y podés continuar donde quedaste.
+            </p>
+            <ButtonLink href="/cursos" arrow className="relative mt-6">
+              Explorar el catálogo
+            </ButtonLink>
+          </div>
+        </main>
       </div>
     );
   }
@@ -79,79 +81,71 @@ export default async function DashboardPage({
   const news = await getRecentAnnouncementsForStudent(courses.map((c) => c.courseId));
 
   return (
-    <div className="min-h-screen mt-[-5] bg-cosmos-0 text-ink">
-      <Nav />
-      <div className="pt-16">
+    <div className="min-h-screen bg-fondo text-tinta">
+      <SiteHeader />
+      <AppPageHeader eyebrow="Mi aprendizaje" title={`Bienvenida de vuelta, ${user?.fullName ?? "alumna"}`}>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href="/panel/notas" variant="outline" size="sm">
+            Mis notas
+          </ButtonLink>
+          <ButtonLink href="/cursos" variant="ghost" size="sm" arrow>
+            Ver todos los cursos
+          </ButtonLink>
+        </div>
+      </AppPageHeader>
 
-        {/* Welcome header */}
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Mi aprendizaje —</p>
-          <h1 className="font-display text-display-md text-ink">
-            Bienvenida de vuelta, <em className="font-quote italic text-lila-300">{user?.fullName ?? "alumna"}</em>
-          </h1>
-          {user?.glyph && (
-            <div className="mt-2 flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-soft">
-              <span>{user.glyph}</span>
-            </div>
-          )}
-        </header>
-
-        {/* Continue watching strip */}
+      <main className="mx-auto max-w-[1200px] space-y-14 px-6 py-12">
         {continuing && (
-          <div className="border-b border-lila-300/18 bg-lila-300/[0.04] px-6 py-5 md:px-12 flex flex-wrap items-center gap-6">
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">Continuar donde quedaste</p>
-              <h3 className="font-display text-lg tracking-wide text-ink">{continuing.title}</h3>
-              <p className="font-display text-eyebrow tracking-cosmic text-lila-300">{continuing.discipline}</p>
+          <section aria-labelledby="continuar" className="rounded-lg bg-papel p-6 shadow-card md:p-8">
+            <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <div className="min-w-0">
+                <p className="eyebrow mb-2">Continuar donde quedaste</p>
+                <h2 id="continuar" className="text-2xl md:text-3xl">
+                  {courseFullTitle(continuing.title, continuing.titleEm)}
+                </h2>
+                <p className="mt-2 text-sm text-suave">
+                  {continuing.discipline}
+                  {continuing.lastSeenAt && <> · Vista por última vez {formatRelativeTime(continuing.lastSeenAt)}</>}
+                </p>
+              </div>
+              {/* En el celular el anillo y el botón comparten fila; desde md cada uno es una columna. */}
+              <div className="flex items-center gap-5 md:contents">
+                <ProgressRing value={continuing.progressPercent} size={88} />
+                {continuing.continueLessonId ? (
+                  <ButtonLink href={`/leccion/${continuing.continueLessonId}`} arrow className="flex-1 md:flex-none">
+                    Continuar
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href={`/cursos/${continuing.slug}`} variant="outline" className="flex-1 md:flex-none">
+                    Ver curso
+                  </ButtonLink>
+                )}
+              </div>
             </div>
-            <div className="flex-none">
-              <ProgressRing value={continuing.progressPercent} />
-            </div>
-            <div className="flex flex-col items-start gap-2">
-              {continuing.continueLessonId ? (
-                <Link href={`/leccion/${continuing.continueLessonId}`} className="btn-ritual btn-ritual-primary rounded-pill">
-                  Continuar ↦
-                </Link>
-              ) : (
-                <Link href={`/cursos/${continuing.slug}`} className="btn-ritual btn-ritual-primary rounded-pill">
-                  Ver curso ↦
-                </Link>
-              )}
-              {continuing.lastSeenAt && (
-                <span className="font-quote italic text-sm text-ink-soft">
-                  Vista por última vez <em className="text-lila-300">{formatRelativeTime(continuing.lastSeenAt)}</em>
-                </span>
-              )}
-            </div>
-          </div>
+          </section>
         )}
 
         {/* Novedades (T-031): arriba de las pestañas, sin anuncios no se dibuja. */}
         {news.length > 0 && (
-          <section aria-label="Novedades de tus cursos" className="mx-auto max-w-4xl px-6 pt-10 md:px-12">
-            <h2 className="mb-5 font-display text-lg tracking-wide text-ink">Novedades de tus cursos</h2>
+          <section aria-label="Novedades de tus cursos">
+            <h2 className="mb-5 text-2xl">Novedades de tus cursos</h2>
             <AnnouncementList items={news} showCourse />
           </section>
         )}
 
-        <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="font-display text-lg tracking-wide text-ink">Tu camino</h2>
-            <div className="flex items-center gap-5">
-              <Link href="/panel/notas" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Mis notas</Link>
-              <Link href="/cursos" className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors">Ver todos</Link>
-            </div>
-          </div>
+        <section aria-labelledby="tu-camino">
+          <h2 id="tu-camino" className="mb-5 text-2xl">
+            Tu camino
+          </h2>
 
           <LearningTabsNav current={tab} counts={tabs.counts} />
 
           {tabs.counts[tab] === 0 ? (
-            <div className="cosmos-card flex flex-col items-center gap-4 px-6 py-14 text-center">
-              <span className="font-display text-2xl text-lila-300">✧</span>
-              <p className="font-body text-sm text-ink-soft">{EMPTY_TAB[tab]}</p>
-              <Link href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
-                Explorar el catálogo ↦
-              </Link>
+            <div className="tarjeta flex flex-col items-start gap-4 p-8">
+              <p className="text-base text-tinta">{EMPTY_TAB[tab]}</p>
+              <ButtonLink href="/cursos" variant="outline" size="sm">
+                Explorar el catálogo
+              </ButtonLink>
             </div>
           ) : tab === "guardados" ? (
             <ul className="space-y-3">
@@ -163,13 +157,13 @@ export default async function DashboardPage({
             <StudentRequests requests={requests} />
           ) : (
             <div className="space-y-4">
-              {visibleCourses.map((c, i) => (
-                <LearningCourseRow key={c.courseId} course={c} index={i} certificateCode={certificateByCourse.get(c.courseId)} />
+              {visibleCourses.map((c) => (
+                <LearningCourseRow key={c.courseId} course={c} certificateCode={certificateByCourse.get(c.courseId)} />
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

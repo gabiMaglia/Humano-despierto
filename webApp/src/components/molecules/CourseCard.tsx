@@ -1,149 +1,92 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
-import Avatar from "@/components/atoms/Avatar";
 import SignedImage from "@/components/atoms/SignedImage";
-import Stars from "@/components/reviews/Stars";
-import { formatRating } from "@/lib/reviews/rating";
+import Rating from "@/components/atoms/Rating";
 import WishlistButton from "@/components/course/WishlistButton";
+import { placeholderForDiscipline, unsplashUrl } from "@/content/placeholder-photos";
 
 export interface CourseCardData {
-  num: string;
+  /** Disciplina: elige la foto de muestra cuando el curso no tiene portada. */
   tag: string;
   title: string;
   titleEm?: string;
-  desc: string;
+  /** Hoy no se dibuja (B4 no lo muestra en la tarjeta); queda para la ficha y el buscador. */
+  desc?: string;
   teacher: string;
   price: string;
-  weeks?: string;
   level?: string;
-  moon?: string;
   featured?: boolean;
   slug: string;
-  /** Promedio 1..5 y total de reseñas visibles; sin ellos la tarjeta no dibuja señal alguna. */
+  /** Promedio 1..5 y total de reseñas visibles; sin ellos, «Curso nuevo» (R-01). */
   rating?: number;
   reviewCount?: number;
-  /** URL firmada de la portada (T-047); sin ella, el degradado de siempre. */
+  /** URL firmada de la portada (T-047); sin ella, una foto de muestra de su disciplina. */
   coverUrl?: string;
 }
 
 interface Props extends CourseCardData {
   className?: string;
+  /** La primera fila de una grilla está sobre el pliegue: su foto no espera al lazy. */
+  eager?: boolean;
   /** T-033 · sin esto la card no dibuja botón (landing). `loginHref` solo sin sesión. */
   wishlist?: { courseId: string; saved: boolean; loginHref: string | null };
 }
 
+/** Imagen 4:3 y tarjeta blanca superpuesta (B4). La tarjeta entera es el link al detalle: es el
+ *  camino de navegación principal del producto. El botón de guardar es HERMANO del link (un
+ *  <button> dentro de un <a> es HTML inválido). */
 export default function CourseCard({
-  num, tag, title, titleEm, desc, teacher, price,
-  weeks, level, moon, featured, slug, rating, reviewCount, coverUrl, className, wishlist,
+  tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl,
+  className, wishlist, eager,
 }: Props) {
-  const ratingText = rating !== undefined && reviewCount ? formatRating(rating, reviewCount) : null;
+  const placeholder = placeholderForDiscipline(tag);
   return (
-    // El <article> entero es un link al detalle. La card tenia `cursor-pointer` desde la
-    // maqueta pero nunca tuvo `Link`: la unica forma de llegar a un curso era tipear la
-    // URL. Es el camino de navegacion principal del producto y estuvo roto todo el
-    // tiempo, tapado por un cursor que prometia que se podia hacer click.
-    //
-    // Altura fija y estructura de alto determinado: el tag, el titulo, la descripcion
-    // y el pie ocupan siempre lo mismo, sin importar cuanto texto traiga cada curso.
-    // Antes cada card medía distinto segun el largo de la descripcion y la grilla
-    // quedaba despareja.
-    //
-    // T-033 · el botón de guardar es HERMANO del link, no hijo: un <button> dentro de un <a> es
-    // HTML inválido. El elevado al hover vive en el contenedor para que se muevan juntos.
-    <div className={cn("group relative h-full transition-transform duration-300 hover:-translate-y-1", className)}>
-    <Link
-      href={`/cursos/${slug}`}
-      className={cn(
-        "cosmos-card relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow duration-300 group-hover:shadow-lila-glow",
-        featured && "border-lila-300/40 bg-cosmos-elev"
-      )}
-    >
-      {/* Image placeholder */}
-      <div className="relative shrink-0 overflow-hidden bg-linear-to-br from-lila-700 to-cosmos-2 aspect-[4/3]">
-        {coverUrl ? (
-          // alt vacio: la card ya nombra el curso en su h3; leerlo dos veces es ruido.
-          <SignedImage src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(circle at 30% 40%, rgba(245,215,110,0.3), transparent 50%), radial-gradient(circle at 70% 60%, rgba(236,72,153,0.25), transparent 50%)",
-            }}
-          />
-        )}
-        {/* Moon phase badge */}
-        {moon && (
-          <span className="absolute top-3 left-3 font-display text-base text-gold-400">
-            {moon}
-          </span>
-        )}
-        {/* Featured flag */}
-        {featured && (
-          <span className="absolute top-3 right-14 font-display text-eyebrow tracking-cosmic text-gold-400 bg-cosmos-0/70 px-2 py-0.5 rounded-pill">
-            ✦ destacado
-          </span>
-        )}
-        <span className="absolute bottom-[-10px] right-3 select-none font-display text-[80px] font-bold leading-none text-white/[0.08]">
-          {num}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-1 flex-col p-5 md:p-6">
-        <div className="mb-3 flex h-[1lh] items-center justify-between overflow-hidden font-display text-eyebrow uppercase tracking-[0.2em]">
-          <span className="truncate text-gold-400">✦ {tag}</span>
-          <div className="flex shrink-0 items-center gap-1.5 text-ink-faint">
-            {level && <span>{level}</span>}
-            {level && weeks && <span>·</span>}
-            {weeks && <span>☾ {weeks}</span>}
-          </div>
-        </div>
-
-        {/* Dos líneas fijas: un título corto y uno largo ocupan lo mismo, así la
-            descripción y el pie no se desplazan de una card a otra. */}
-        <h3 className="mb-2.5 line-clamp-2 h-[2lh] font-display text-xl leading-snug tracking-wide text-ink">
-          {title}
-          {titleEm && (
-            <>
-              {" "}
-              <em className="font-quote italic text-lila-300">{titleEm}</em>
-            </>
+    <div className={cn("group relative h-full", className)}>
+      <Link href={`/cursos/${slug}`} className="relative flex h-full flex-col pb-[88px]">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-salvia">
+          {coverUrl ? (
+            // alt vacío: el h3 ya nombra el curso; leerlo dos veces es ruido.
+            <SignedImage
+              src={coverUrl}
+              alt=""
+              loading={eager ? "eager" : "lazy"}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
+          ) : (
+            <Image
+              src={unsplashUrl(placeholder.id)}
+              alt=""
+              fill
+              loading={eager ? "eager" : "lazy"}
+              sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
+              className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
           )}
-        </h3>
-
-        {/* Alto fijo de 3 líneas. Si la descripción es más larga, se scrollea acá
-            dentro en vez de estirar la card. */}
-        <p className="mb-4 h-[3lh] overflow-y-auto pr-1 font-body text-sm leading-relaxed text-ink-soft [scrollbar-color:var(--color-lila-300)_transparent] [scrollbar-width:thin]">
-          {desc}
-        </p>
-
-        {/* Alto fijo aunque no haya reseñas: el hueco no dibuja nada y la grilla no se desempareja. */}
-        <div className="mb-3 flex h-5 items-center gap-2">
-          {ratingText && rating !== undefined && (
-            <>
-              <Stars value={rating} />
-              <span className="font-display text-eyebrow tracking-wide text-ink-faint">{ratingText}</span>
-            </>
+          {featured && (
+            <span className="absolute left-3 top-3 rounded-pill bg-miel-100 px-3 py-1 text-xs font-semibold text-miel-800">
+              Destacado
+            </span>
           )}
         </div>
 
-        {/* mt-auto: el pie queda pegado abajo aunque el resto no llene el alto. */}
-        <div className="mt-auto flex items-center justify-between border-t border-lila-300/18 pt-3.5">
-          <div className="flex items-center gap-2.5">
-            <Avatar size="sm" />
-            <span className="font-body text-xs text-ink-soft">{teacher}</span>
+        <div className="absolute inset-x-4 bottom-0 flex flex-col rounded-[14px] bg-papel px-5 pb-5 pt-5 shadow-card transition-transform duration-[850ms] ease-circ motion-reduce:transition-none sm:inset-x-6 [@media(hover:hover)]:group-hover:-translate-y-[18px] motion-reduce:[@media(hover:hover)]:group-hover:translate-y-0">
+          <p className="mb-1 text-sm font-semibold text-miel-800">
+            {tag}
+            {level && <span className="text-suave"> · {level}</span>}
+          </p>
+          <h3 className="mb-1.5 line-clamp-2 text-xl leading-snug">
+            {title}
+            {titleEm && <> {titleEm}</>}
+          </h3>
+          <p className="text-sm leading-normal text-suave">Con {teacher}</p>
+          <Rating average={rating} count={reviewCount} className="mt-1.5" />
+          <div className="mt-3.5 flex items-center justify-end border-t border-linea pt-3.5 text-sm">
+            <b className="font-semibold text-bosque">{price}</b>
           </div>
-          <span className="font-display text-sm tracking-wide text-gold-400">{price}</span>
         </div>
-      </div>
-    </Link>
-    {wishlist && (
-      <WishlistButton
-        {...wishlist}
-        className="absolute right-3 top-3 z-10"
-      />
-    )}
+      </Link>
+      {wishlist && <WishlistButton {...wishlist} className="absolute right-3 top-3 z-10" />}
     </div>
   );
 }

@@ -9,14 +9,14 @@ interface Props {
 
 export default function SideCard({ title, badge, children, className }: Props) {
   return (
-    <section className={cn("cosmos-card p-5", className)}>
+    <section className={cn("tarjeta p-5", className)}>
       {(title || badge) && (
         <div className="mb-4 flex items-center justify-between">
           {title && (
-            <h3 className="font-display text-sm tracking-wide text-ink">{title}</h3>
+            <h3 className="font-display text-sm tracking-wide text-tinta">{title}</h3>
           )}
           {badge && (
-            <span className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">
+            <span className="font-display text-eyebrow tracking-wide text-suave uppercase">
               {badge}
             </span>
           )}

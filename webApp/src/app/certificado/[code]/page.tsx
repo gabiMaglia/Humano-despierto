@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getPublicCertificate } from "@/lib/server/certificates";
 import { formatCertificateDate } from "@/lib/utils/format";
 import PrintButton from "@/components/certificate/PrintButton";
+import BrandMark from "@/components/atoms/BrandMark";
+import LeafIllustration from "@/components/atoms/LeafIllustration";
 
 interface PageProps {
   params: Promise<{ code: string }>;
@@ -29,73 +31,42 @@ export default async function CertificadoPage({ params }: PageProps) {
   if (!certificate) notFound();
 
   return (
-    <div className="min-h-screen bg-cosmos-0 px-6 py-16 text-ink print:min-h-0 print:bg-white print:px-0 print:py-0">
-      {/* Criterio 5: que se vea bien impresa. Apaisado — un certificado se lee ancho, no alto — */}
-      {/* y sin la barra lateral de fecha/hora que Chrome agrega por defecto en la impresión. */}
+    <div className="min-h-screen bg-fondo px-6 py-10 text-tinta print:min-h-0 print:bg-white print:p-0">
+      {/* Criterio 5: que se vea bien impresa. Apaisado, sin la barra de fecha que Chrome agrega. */}
       <style>{`
         @media print {
           @page { size: landscape; margin: 14mm; }
         }
       `}</style>
 
-      <PrintButton />
+      <div className="mx-auto mb-8 flex max-w-3xl items-center justify-between gap-4 text-bosque print:hidden">
+        <BrandMark className="text-base" />
+        <PrintButton />
+      </div>
 
-      <main className="relative mx-auto max-w-2xl overflow-hidden rounded-scroll border border-lila-300/25 bg-cosmos-surface px-8 py-14 shadow-cosmos-card print:max-w-none print:rounded-none print:border-2 print:border-[#c9a44c] print:bg-white print:px-16 print:py-14 print:shadow-none">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 flex select-none items-center justify-center font-display text-[220px] leading-none text-lila-300/[0.05] print:text-[#c9a44c]/10"
-        >
-          ✦
-        </span>
+      <main className="relative mx-auto max-w-3xl overflow-hidden rounded-lg border-[1.5px] border-salvia bg-papel px-6 py-14 shadow-card sm:px-12 print:max-w-none print:rounded-none print:border-2 print:shadow-none">
+        <LeafIllustration className="absolute -bottom-8 -right-6 w-[160px] opacity-30" />
+        <div className="relative flex flex-col items-center gap-5 text-center">
+          <p className="text-sm font-semibold text-miel-800">Humano Despierto · Certificado de finalización</p>
 
-        <div className="relative flex flex-col items-center gap-7 text-center">
-          <p className="font-display text-eyebrow uppercase tracking-[0.3em] text-gold-400 print:text-[#8a6520]">
-            ☉ Humano Despierto ☽
+          <p className="mt-4 text-suave">Se certifica que</p>
+          <h1 className="text-[clamp(32px,5vw,52px)] leading-[1.1] [overflow-wrap:anywhere]">{certificate.studentName}</h1>
+          <p className="text-suave">recorrió completo el curso</p>
+          <h2 className="max-w-[24ch] text-2xl leading-snug [overflow-wrap:anywhere] md:text-3xl">{certificate.courseTitle}</h2>
+
+          <p className="text-[15px] text-tinta">
+            con la guía <b className="font-semibold text-bosque">{certificate.teacherName}</b>, terminado el{" "}
+            {formatCertificateDate(certificate.completedAt)}.
           </p>
 
-          <div className="flex items-center gap-3 text-lila-300 print:text-[#5b2a86]">
-            <span aria-hidden>✧</span>
-            <p className="font-display text-eyebrow uppercase tracking-[0.25em]">
-              Certificado de finalización
-            </p>
-            <span aria-hidden>✧</span>
-          </div>
-
-          <p className="font-quote text-lg italic text-ink-soft print:text-[#5a4570]">
-            Se certifica que
+          {/* S-01 (PO): el certificado acredita el recorrido, no una evaluación. Se dice sin letra chica. */}
+          <p className="mt-4 max-w-[46ch] rounded-md bg-salvia-100 px-5 py-4 text-[15px] leading-normal text-bosque">
+            Este certificado acredita que se recorrió el curso completo. No es una evaluación ni un título oficial.
           </p>
 
-          <h1 className="font-quote text-4xl italic text-ink print:text-[#1f1430] md:text-5xl">
-            {certificate.studentName}
-          </h1>
-
-          <p className="max-w-md font-body text-sm text-ink-soft print:text-[#5a4570]">
-            completó el recorrido completo del curso
-          </p>
-
-          <h2 className="font-display text-2xl tracking-wide text-gold-400 print:text-[#8a6520]">
-            {certificate.courseTitle}
-          </h2>
-
-          <p className="max-w-md font-body text-xs text-ink-soft print:text-[#5a4570]">
-            Este certificado acredita el recorrido completo del curso, no una evaluación.
-          </p>
-
-          <div className="flex flex-col items-center gap-1 font-body text-sm text-ink-soft print:text-[#5a4570]">
-            <p>
-              Guiado por{" "}
-              <span className="font-quote text-base text-ink print:text-[#1f1430]">
-                {certificate.teacherName}
-              </span>
-            </p>
-            <p>{formatCertificateDate(certificate.completedAt)}</p>
-          </div>
-
-          <div className="mt-3 h-px w-24 bg-lila-300/30 print:bg-[#c9a44c]" />
-
-          <p className="max-w-sm font-body text-xs text-ink-faint print:text-[#9888a8]">
-            Verificable abriendo esta misma dirección · código{" "}
-            <span className="font-mono">{code}</span>
+          <p className="mt-4 max-w-md text-sm text-suave">
+            Se verifica abriendo esta misma dirección. Código{" "}
+            <span className="font-mono [overflow-wrap:anywhere]">{code}</span>
           </p>
         </div>
       </main>

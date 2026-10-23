@@ -16,6 +16,9 @@ export interface CspInput {
 const YOUTUBE = "https://www.youtube.com";
 // Vista previa de VideoAttachForm (nota QA T-027); el player usa el host de arriba.
 const YOUTUBE_NOCOOKIE = "https://www.youtube-nocookie.com";
+// Placeholders de fotografia (ADR-015). next/image los sirve desde /_next/image, pero un
+// `unoptimized` o un fallo del optimizador cae al host original.
+const UNSPLASH = "https://images.unsplash.com";
 const NONCE_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
 function httpOrigin(raw: string | undefined): string | null {
@@ -44,7 +47,7 @@ export function buildCsp(input: CspInput): { name: CspHeaderName; value: string 
     ["script-src", "'self'", `'nonce-${input.nonce}'`, "'strict-dynamic'", YOUTUBE, ...(input.isDev ? ["'unsafe-eval'"] : [])],
     // Deliberado: hay style={{}} inline en landing y player, y un nonce aca anularia 'unsafe-inline'.
     ["style-src", "'self'", "'unsafe-inline'"],
-    ["img-src", "'self'", "blob:", "data:", "https://i.ytimg.com", ...extra],
+    ["img-src", "'self'", "blob:", "data:", "https://i.ytimg.com", UNSPLASH, ...extra],
     ["font-src", "'self'"],
     ["connect-src", "'self'", ...extra],
     ["frame-src", YOUTUBE, YOUTUBE_NOCOOKIE],

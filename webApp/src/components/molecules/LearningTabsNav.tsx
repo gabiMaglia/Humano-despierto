@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { LearningTab } from "@/lib/learning/tabs";
+import { cn } from "@/lib/utils/cn";
 
 const LABELS: { tab: LearningTab; label: string }[] = [
   { tab: "en-curso", label: "En curso" },
@@ -17,21 +18,31 @@ export default function LearningTabsNav({
   counts: Record<LearningTab, number>;
 }) {
   return (
-    <nav aria-label="Mi aprendizaje" className="mb-6 flex flex-wrap items-center gap-2">
-      {LABELS.map(({ tab, label }) => (
-        <Link
-          key={tab}
-          href={tab === "en-curso" ? "/panel" : `/panel?tab=${tab}`}
-          aria-current={current === tab ? "page" : undefined}
-          className={`rounded-pill border px-3 py-1 font-display text-eyebrow ${
-            current === tab
-              ? "border-lila-300/60 bg-lila-300/20 text-lila-300"
-              : "border-lila-300/20 text-ink-faint hover:text-ink-soft"
-          }`}
-        >
-          {label} <span className="text-ink-faint">{counts[tab]}</span>
-        </Link>
-      ))}
+    <nav aria-label="Mi aprendizaje" className="mb-6 flex flex-wrap gap-2">
+      {LABELS.map(({ tab, label }) => {
+        const active = current === tab;
+        return (
+          <Link
+            key={tab}
+            href={tab === "en-curso" ? "/panel" : `/panel?tab=${tab}`}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "inline-flex min-h-10 items-center gap-2 rounded-pill border-[1.5px] px-4 text-sm font-semibold transition-colors",
+              active ? "border-bosque bg-bosque text-white" : "border-salvia bg-papel text-bosque hover:bg-salvia-100",
+            )}
+          >
+            {label}
+            <span
+              className={cn(
+                "rounded-pill px-2 text-xs tabular-nums",
+                active ? "bg-white/15 text-white" : "bg-salvia-100 text-bosque",
+              )}
+            >
+              {counts[tab]}
+            </span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

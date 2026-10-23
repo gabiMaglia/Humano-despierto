@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Button from "@/components/atoms/Button";
+import { PanelInput } from "@/components/panel/PanelField";
 import type { AnnouncementFormState } from "@/lib/announcements/types";
 
 interface Props {
@@ -20,46 +22,25 @@ export default function WithdrawAnnouncementForm({ action, announcementId, cours
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-red-400 transition-colors"
-      >
+      <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
         {label}
-      </button>
+      </Button>
     );
   }
 
   return (
-    <form action={formAction} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+    <form action={formAction} className="mt-3 flex w-full flex-col gap-3 sm:flex-row sm:items-start">
       <input type="hidden" name="announcementId" value={announcementId} />
       {courseId && <input type="hidden" name="courseId" value={courseId} />}
-      <label className="flex-1">
-        <span className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-faint">Motivo</span>
-        <input
-          type="text"
-          name="reason"
-          required
-          maxLength={500}
-          autoComplete="off"
-          className="w-full rounded-ritual border border-lila-300/25 bg-cosmos-0 px-3 py-2 font-body text-sm text-ink outline-none transition-colors focus:border-red-400/60"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-ritual border border-red-400/50 px-4 py-2 font-display text-eyebrow tracking-cosmic text-red-400 transition-colors hover:enabled:bg-red-400/10 disabled:opacity-40"
-      >
-        {isPending ? "Retirando…" : "Retirar"}
-      </button>
-      <button type="button" onClick={() => setOpen(false)} className="font-display text-eyebrow tracking-cosmic text-ink-faint">
-        Cancelar
-      </button>
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400 sm:basis-full">
-          {state.error}
-        </p>
-      )}
+      <PanelInput className="flex-1" label="Motivo" type="text" name="reason" required maxLength={500} autoComplete="off" error={state.error} />
+      <div className="flex items-center gap-2 sm:mt-[1.625rem]">
+        <Button type="submit" variant="danger" disabled={isPending} aria-busy={isPending}>
+          {isPending ? "Retirando…" : "Retirar"}
+        </Button>
+        <Button variant="ghost" onClick={() => setOpen(false)}>
+          Cancelar
+        </Button>
+      </div>
     </form>
   );
 }

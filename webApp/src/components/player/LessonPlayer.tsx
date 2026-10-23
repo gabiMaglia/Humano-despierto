@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import Icon from "@/components/atoms/Icon";
+import { buttonClass } from "@/components/atoms/Button";
 import { formatDurationSeconds } from "@/lib/utils/format";
-import { toRoman } from "@/lib/utils/roman";
 import { readRate, writeRate } from "@/lib/player/prefs";
 import { anonymousClosingHref } from "@/lib/player/navigation";
 import { useYouTubePlayer } from "@/components/player/useYouTubePlayer";
@@ -122,160 +123,171 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
     : [...availableRates, playbackRate].sort((a, b) => a - b);
 
   return (
-    <div className="flex flex-col min-h-screen bg-cosmos-0 text-ink">
+    <div className="flex min-h-screen flex-col bg-fondo text-tinta">
       {/* Top bar */}
-      <header className="flex items-center justify-between gap-4 border-b border-lila-300/18 bg-cosmos-surface px-5 py-3">
+      <header className="flex min-h-16 items-center justify-between gap-4 border-b border-linea bg-papel px-4 md:px-6">
         <a
           href={`/cursos/${data.courseSlug}`}
-          className="font-display text-eyebrow tracking-cosmic text-ink-soft hover:text-lila-300 transition-colors whitespace-nowrap"
+          className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-md text-sm font-semibold text-bosque hover:text-miel-800 transition-colors"
         >
-          ← {data.courseTitle}
+          <Icon name="arrow-left" />
+          <span className="truncate">{data.courseTitle}</span>
         </a>
-        <div className="hidden sm:flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-          <span>Módulo {toRoman(data.modulePosition)}</span>
-          <span className="text-lila-300/30">·</span>
-          <span className="text-lila-300">Lección {data.lessonPosition}</span>
-          {completed && (
-            <>
-              <span className="text-lila-300/30">·</span>
-              <span className="text-gold-400">✓ Completada</span>
-            </>
-          )}
-        </div>
+        {completed && (
+          <span className="inline-flex flex-none items-center gap-1.5 rounded-pill bg-salvia-100 px-3 py-1 text-xs font-semibold text-exito">
+            <Icon name="check" className="h-3.5 w-3.5" />
+            Completada
+          </span>
+        )}
       </header>
 
-      <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* MAIN */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-auto">
-          {/* Video stage — embed real de la IFrame Player API (T-006 c.1) */}
-          <div className="relative aspect-video max-h-[55vh] bg-cosmos-1 overflow-hidden">
-            <div id={containerId} className="absolute inset-0 h-full w-full" />
-            {!ready && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
-                  Cargando video…
-                </span>
-              </div>
-            )}
-            {ended && (
-              <EndCard
-                next={next}
-                closingHref={closing}
-                countdown={countdown}
-                onCancel={() => setCountdown(null)}
-                onGo={goTo}
-              />
-            )}
-          </div>
-
-          <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-4">
-            <h1 className="font-display text-xl tracking-wide text-ink mb-1">{data.title}</h1>
-            {data.description && (
-              <p className="font-body text-sm text-ink-soft leading-relaxed">{data.description}</p>
-            )}
-          </div>
-
-          {/* Controls */}
-          <div className="border-b border-lila-300/18 bg-cosmos-surface px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="font-display text-sm text-ink whitespace-nowrap">
-              {formatClock(currentTime)} <span className="text-ink-faint">/ {formatClock(effectiveDuration)}</span>
-            </span>
-            {/* Scrubber */}
-            <div className="relative flex-1 min-w-24 h-1.5 rounded-full bg-lila-300/18">
-              <div
-                className="absolute left-0 top-0 h-full rounded-full bg-gold-400"
-                style={{ width: `${progressFraction * 100}%` }}
-              />
-              <div
-                className="absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-gold-400 border-2 border-cosmos-0"
-                style={{ left: `${progressFraction * 100}%` }}
-              />
-              {/* Chapter marks */}
-              {effectiveDuration > 0 &&
-                sortedChapters.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => seekTo(c.startSeconds)}
-                    className="absolute top-1/2 -translate-y-1/2 h-2 w-0.5 bg-lila-300/40 hover:bg-gold-400"
-                    style={{ left: `${(c.startSeconds / effectiveDuration) * 100}%` }}
-                    title={c.label}
-                  />
-                ))}
+        <main className="flex min-w-0 flex-1 flex-col">
+          {/* Marco bosque: concentra la mirada en el video. Encima, sólo texto blanco/salvia-100 y foco miel. */}
+          <section aria-label="Video de la lección" className="bg-bosque px-0 pb-0 pt-0 md:px-6 md:pt-6">
+            {/* 16:9 con tope de 70vh: un `max-h` sobre `aspect-video` deformaba el cuadro. */}
+            <div className="relative mx-auto aspect-video w-full max-w-[calc(70vh*16/9)] overflow-hidden md:rounded-md">
+              <div id={containerId} className="absolute inset-0 h-full w-full" />
+              {!ready && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-semibold text-salvia-100">Cargando video…</span>
+                </div>
+              )}
+              {ended && (
+                <EndCard
+                  next={next}
+                  closingHref={closing}
+                  countdown={countdown}
+                  onCancel={() => setCountdown(null)}
+                  onGo={goTo}
+                />
+              )}
             </div>
-            {/* Se muestra la velocidad REAL (onPlaybackRateChange), no la pedida. */}
-            <select
-              aria-label="Velocidad de reproducción"
-              value={playbackRate}
-              onChange={(e) => {
-                const rate = Number(e.target.value);
-                setPlaybackRate(rate);
-                writeRate(rate);
-              }}
-              className="bg-cosmos-surface border border-lila-300/20 rounded px-1 py-0.5 font-display text-eyebrow tracking-cosmic text-ink-faint"
-            >
-              {rates.map((r) => (
-                <option key={r} value={r}>
-                  {r}×
-                </option>
-              ))}
-            </select>
-            {nextHref && (
-              <label className="flex items-center gap-1.5 font-display text-eyebrow tracking-cosmic text-ink-faint">
-                <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
-                Autoplay
-              </label>
-            )}
-            {nextHref && (
-              <a
-                href={nextHref}
-                onClick={(e) => {
-                  e.preventDefault();
-                  void goTo(nextHref);
+
+            {/* Controls */}
+            <div className="mx-auto flex w-full max-w-[calc(70vh*16/9)] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 text-white md:px-0 md:py-4">
+              <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-white">
+                {formatClock(currentTime)} <span className="font-medium text-salvia-100">/ {formatClock(effectiveDuration)}</span>
+              </span>
+              {/* Scrubber */}
+              <div className="relative h-1.5 min-w-24 flex-1 rounded-pill bg-bosque-700">
+                <div
+                  className="absolute left-0 top-0 h-full rounded-pill bg-miel"
+                  style={{ width: `${progressFraction * 100}%` }}
+                />
+                <div
+                  className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bosque bg-miel"
+                  style={{ left: `${progressFraction * 100}%` }}
+                />
+                {/* Chapter marks */}
+                {effectiveDuration > 0 &&
+                  sortedChapters.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => seekTo(c.startSeconds)}
+                      className="absolute top-1/2 h-3 w-1 -translate-y-1/2 rounded-pill bg-salvia hover:bg-miel"
+                      style={{ left: `${(c.startSeconds / effectiveDuration) * 100}%` }}
+                      title={c.label}
+                      aria-label={`Ir al capítulo ${c.label}`}
+                    />
+                  ))}
+              </div>
+              {/* Se muestra la velocidad REAL (onPlaybackRateChange), no la pedida. */}
+              <select
+                aria-label="Velocidad de reproducción"
+                value={playbackRate}
+                onChange={(e) => {
+                  const rate = Number(e.target.value);
+                  setPlaybackRate(rate);
+                  writeRate(rate);
                 }}
-                className="font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors whitespace-nowrap"
+                className="min-h-10 rounded-md border border-salvia bg-bosque-700 px-2 text-sm font-semibold tabular-nums text-white"
               >
-                Siguiente lección →
-              </a>
+                {rates.map((r) => (
+                  <option key={r} value={r} className="bg-papel text-tinta">
+                    {r}×
+                  </option>
+                ))}
+              </select>
+              {nextHref && (
+                <label className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-white">
+                  <input
+                    type="checkbox"
+                    checked={autoplay}
+                    onChange={(e) => setAutoplay(e.target.checked)}
+                    className="h-5 w-5 accent-miel"
+                  />
+                  Autoplay
+                </label>
+              )}
+              {nextHref && (
+                <a
+                  href={nextHref}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void goTo(nextHref);
+                  }}
+                  className={buttonClass({ size: "sm" })}
+                >
+                  Siguiente lección
+                  <Icon name="arrow-right" className="btn-arrow" />
+                </a>
+              )}
+            </div>
+          </section>
+
+          <div className="border-b border-linea bg-papel px-5 py-6 md:px-8">
+            <p className="eyebrow mb-2">
+              Módulo {String(data.modulePosition)} · Lección {data.lessonPosition}
+            </p>
+            <h1 className="text-2xl md:text-3xl">{data.title}</h1>
+            {data.description && (
+              <p className="mt-3 max-w-[70ch] text-base leading-relaxed text-suave">{data.description}</p>
             )}
           </div>
 
           {/* Chapters */}
-          <div className="p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-sm tracking-wide text-ink">Capítulos</h3>
-              <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">
-                {sortedChapters.length} {sortedChapters.length === 1 ? "SECCIÓN" : "SECCIONES"}
-              </span>
+          <section aria-labelledby="capitulos" className="px-5 py-6 md:px-8">
+            <div className="mb-4 flex items-baseline justify-between gap-4">
+              <h2 id="capitulos" className="text-lg">
+                Capítulos
+              </h2>
+              {sortedChapters.length > 0 && (
+                <span className="text-sm text-suave">
+                  {sortedChapters.length} {sortedChapters.length === 1 ? "sección" : "secciones"}
+                </span>
+              )}
             </div>
-            <div className="space-y-1">
+            <ul className="space-y-1">
               {sortedChapters.map((c) => {
                 const active = c.id === activeChapterId;
                 return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => seekTo(c.startSeconds)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-ritual px-3 py-2 text-left transition-colors",
-                      active ? "bg-lila-300/10 border border-lila-300/20" : "hover:bg-cosmos-surface"
-                    )}
-                  >
-                    <span className="font-display text-eyebrow tracking-cosmic text-ink-faint w-10 flex-none">
-                      {formatDurationSeconds(c.startSeconds)}
-                    </span>
-                    <span className={cn("font-body text-sm flex-1", active ? "text-lila-300" : "text-ink-soft")}>
-                      {c.label}
-                    </span>
-                    <span className={cn("font-display text-xs", active ? "text-gold-400" : "text-ink-faint")}>▸</span>
-                  </button>
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => seekTo(c.startSeconds)}
+                      aria-current={active ? "true" : undefined}
+                      className={cn(
+                        "flex min-h-11 w-full items-center gap-4 rounded-md px-3 py-2 text-left transition-colors",
+                        active ? "bg-salvia-100" : "hover:bg-salvia-100"
+                      )}
+                    >
+                      <span className="w-12 flex-none text-sm font-semibold tabular-nums text-miel-800">
+                        {formatDurationSeconds(c.startSeconds)}
+                      </span>
+                      <span className={cn("flex-1 text-base", active ? "font-semibold text-bosque" : "text-tinta")}>
+                        {c.label}
+                      </span>
+                      {active && <Icon name="play" className="h-3.5 w-3.5 text-bosque" />}
+                    </button>
+                  </li>
                 );
               })}
-              {sortedChapters.length === 0 && (
-                <p className="font-body text-xs italic text-ink-faint">Esta lección no tiene capítulos.</p>
-              )}
-            </div>
-          </div>
+            </ul>
+            {sortedChapters.length === 0 && <p className="text-sm text-suave">Esta lección no tiene capítulos.</p>}
+          </section>
         </main>
 
         <PlayerTabs

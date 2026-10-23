@@ -55,21 +55,26 @@ describe("OG sin red (D4: next/og no sale a Google Fonts en un request)", () => 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("todo lo que ogSafeText deja pasar lo cubre Cinzel: ningun caracter permitido dispara fetch", async () => {
+  it("la OG usa la familia de la marca (ADR-015): Plus Jakarta Sans, 400 y 700, y nada de Cinzel", async () => {
+    const fonts = await loadOgFonts();
+    expect(fonts.map((f) => `${f.name}:${f.weight}`)).toEqual(["Plus Jakarta Sans:400", "Plus Jakarta Sans:700"]);
+  });
+
+  it("todo lo que ogSafeText deja pasar lo cubre Plus Jakarta Sans: ningun caracter permitido dispara fetch", async () => {
     const fetchSpy = noNetwork();
     let all = "";
     for (let c = 0x20; c <= 0xff; c++) all += String.fromCharCode(c);
     const safe = ogSafeText(all, 1000);
     expect(safe.length).toBeGreaterThan(150);
     const Texto = () =>
-      createElement("div", { style: { display: "flex", flexWrap: "wrap", fontFamily: "Cinzel", fontSize: 20 } }, safe);
+      createElement("div", { style: { display: "flex", flexWrap: "wrap", fontFamily: "Plus Jakarta Sans", fontSize: 20 } }, safe);
     await render(Texto, {});
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("control: un glifo como TEXTO si dispara fetch (el test ve la red)", async () => {
     const fetchSpy = noNetwork();
-    const Glifo = () => createElement("div", { style: { display: "flex", fontFamily: "Cinzel" } }, "✦");
+    const Glifo = () => createElement("div", { style: { display: "flex", fontFamily: "Plus Jakarta Sans" } }, "✦");
     await render(Glifo, {}).catch(() => undefined);
     expect(fetchSpy).toHaveBeenCalled();
   });

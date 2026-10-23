@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Nav from "@/components/layout/Nav";
+import PanelFrame from "@/components/panel/PanelFrame";
+import PanelSection from "@/components/panel/PanelSection";
+import { PanelRow, RowMain } from "@/components/panel/PanelRow";
 import { requireTeacher } from "@/lib/server/teacher";
 import { getCourseRoster } from "@/lib/server/teacher-metrics";
 import { formatCertificateDate } from "@/lib/utils/format";
@@ -18,9 +20,9 @@ interface Props {
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="cosmos-card p-4">
-      <p className="font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">{label}</p>
-      <div className="mt-1 font-body text-ink">{children}</div>
+    <div className="tarjeta p-4 tabular-nums">
+      <p className="text-sm font-semibold text-suave">{label}</p>
+      <div className="mt-1 text-lg font-semibold text-bosque">{children}</div>
     </div>
   );
 }
@@ -36,83 +38,68 @@ export default async function CourseRosterPage({ params }: Props) {
   const rating = formatRating(summary.ratingAverage, summary.ratingTotal);
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
-      <Nav />
-      <div className="pt-16">
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <Link
-            href={`/panel/docente/cursos/${courseId}`}
-            className="mb-2 inline-block font-display text-eyebrow tracking-[0.25em] text-ink-faint hover:text-lila-300"
-          >
-            ← {roster.courseTitle}
-          </Link>
-          <h1 className="font-display text-display-md text-ink">
-            <em className="font-quote italic text-lila-300">Alumnas</em> del curso
-          </h1>
-        </header>
+    <PanelFrame
+      title="Alumnas del curso"
+      back={{ href: `/panel/docente/cursos/${courseId}`, label: roster.courseTitle }}
+    >
+      <section aria-label="Resumen" className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <Stat label="Activas">{summary.active}</Stat>
+        <Stat label="Completadas">{summary.completed}</Stat>
+        <Stat label="Solicitudes">
+          {summary.requested > 0
+            ? `${summary.requested} pendiente${summary.requested === 1 ? "" : "s"}`
+            : "Ninguna pendiente"}
+          {summary.rejected > 0 && (
+            <span className="block text-sm font-normal text-suave">
+              {summary.rejected} no aprobada{summary.rejected === 1 ? "" : "s"}
+            </span>
+          )}
+        </Stat>
+        <Stat label="Reseñas">{rating ?? "Sin reseñas"}</Stat>
+        <Stat label="Preguntas">
+          {summary.openQuestions > 0 ? `${summary.openQuestions} sin responder` : "Ninguna sin responder"}
+        </Stat>
+      </section>
 
-        <div className="mx-auto max-w-4xl space-y-8 px-6 py-10 md:px-12">
-          <section aria-label="Resumen" className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Stat label="Activas">{summary.active}</Stat>
-            <Stat label="Completadas">{summary.completed}</Stat>
-            <Stat label="Solicitudes">
-              {summary.requested > 0
-                ? `${summary.requested} pendiente${summary.requested === 1 ? "" : "s"}`
-                : "Ninguna pendiente"}
-              {summary.rejected > 0 && (
-                <span className="block text-xs text-ink-faint">
-                  {summary.rejected} no aprobada{summary.rejected === 1 ? "" : "s"}
-                </span>
-              )}
-            </Stat>
-            <Stat label="Reseñas">{rating ?? "Sin reseñas"}</Stat>
-            <Stat label="Preguntas">
-              {summary.openQuestions > 0 ? `${summary.openQuestions} sin responder` : "Ninguna sin responder"}
-            </Stat>
-          </section>
-
-          <section>
-            <h2 className="mb-4 font-display text-lg tracking-wide text-ink">Inscriptas</h2>
-            {rows.length === 0 ? (
-              <p className="cosmos-card p-6 font-body text-sm text-ink-faint">
-                Todavía no hay alumnas inscriptas en este curso. Cuando se apruebe la primera
-                solicitud, la vas a ver acá con su avance.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {rows.map((r) => (
-                  <li key={r.userId} className="cosmos-card flex flex-wrap items-center gap-4 p-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-display text-sm tracking-wide text-ink">{r.name}</p>
-                      <p className="font-body text-xs text-ink-faint">
-                        Inscripta el {formatCertificateDate(r.enrolledAt)}
-                      </p>
-                    </div>
-                    <p className="font-body text-sm text-ink-soft">
-                      {r.progressPercent} % · {r.completedLessons} de {r.totalLessons}
-                    </p>
-                    {r.certificateCode ? (
-                      <Link href={`/certificado/${r.certificateCode}`} className="font-body text-sm text-lila-300 hover:underline">
-                        Certificado
-                      </Link>
-                    ) : (
-                      <span className="font-body text-sm text-ink-faint">Sin certificado</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <p className="font-body text-xs text-ink-faint">
-            Tus datos básicos (nombre, bio, foto) se editan en{" "}
-            <Link href="/panel/perfil" className="text-lila-300 hover:underline">
-              tu perfil
-            </Link>
-            .
+      <PanelSection id="inscriptas-titulo" title="Inscriptas">
+        {rows.length === 0 ? (
+          <p className="tarjeta p-6 text-suave">
+            Todavía no hay alumnas inscriptas en este curso. Cuando se apruebe la primera
+            solicitud, la vas a ver acá con su avance.
           </p>
-        </div>
-      </div>
-    </div>
+        ) : (
+          <ul className="space-y-2">
+            {rows.map((r) => (
+              <PanelRow key={r.userId}>
+                <RowMain title={r.name} meta={`Inscripta el ${formatCertificateDate(r.enrolledAt)}`} />
+                <div className="w-44 flex-none">
+                  <p className="text-sm font-semibold text-tinta">
+                    {r.progressPercent} % <span className="font-normal text-suave">· {r.completedLessons} de {r.totalLessons}</span>
+                  </p>
+                  <div aria-hidden="true" className="mt-1 h-1.5 overflow-hidden rounded-pill bg-salvia-100">
+                    <div className="h-full rounded-pill bg-bosque" style={{ width: `${Math.min(100, Math.max(0, r.progressPercent))}%` }} />
+                  </div>
+                </div>
+                {r.certificateCode ? (
+                  <Link href={`/certificado/${r.certificateCode}`} className="inline-flex min-h-10 items-center font-semibold text-miel-800 hover:underline">
+                    Certificado
+                  </Link>
+                ) : (
+                  <span className="text-suave">Sin certificado</span>
+                )}
+              </PanelRow>
+            ))}
+          </ul>
+        )}
+      </PanelSection>
+
+      <p className="text-sm text-suave">
+        Tus datos básicos (nombre, bio, foto) se editan en{" "}
+        <Link href="/panel/perfil" className="font-semibold text-miel-800 hover:underline">
+          tu perfil
+        </Link>
+        .
+      </p>
+    </PanelFrame>
   );
 }

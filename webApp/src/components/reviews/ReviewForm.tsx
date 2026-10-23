@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Icon from "@/components/atoms/Icon";
 import { saveReviewAction, type ReviewActionState } from "@/app/(marketing)/cursos/[slug]/actions";
 import ActionFeedback from "@/components/reviews/ActionFeedback";
 import { cn } from "@/lib/utils/cn";
@@ -27,8 +28,8 @@ export default function ReviewForm({
   );
 
   return (
-    <form action={formAction} className="rounded-ritual border border-lila-300/18 bg-cosmos-surface p-6">
-      <p className="mb-4 font-display text-eyebrow tracking-cosmic text-ink-faint">
+    <form action={formAction} className="rounded-md border border-linea bg-papel p-6">
+      <p className="mb-4 font-display text-eyebrow tracking-wide text-suave">
         {own ? "— Editá tu testimonio —" : "— Dejá tu testimonio —"}
       </p>
 
@@ -41,17 +42,17 @@ export default function ReviewForm({
             onClick={() => setRating(n)}
             aria-pressed={rating === n}
             className={cn(
-              "font-display text-2xl transition-colors",
-              n <= rating ? "text-gold-400" : "text-ink-faint hover:text-gold-400/60",
+              "rounded-md p-1 transition-colors",
+              n <= rating ? "text-miel" : "text-suave hover:text-miel-800",
             )}
           >
-            <span aria-hidden="true">{n <= rating ? "★" : "☆"}</span>
+            <Icon name="star" filled={n <= rating} className="h-7 w-7" />
             <span className="sr-only">{n} {n === 1 ? "estrella" : "estrellas"}</span>
           </button>
         ))}
       </div>
 
-      <label htmlFor="review-body" className="mb-1.5 block font-display text-eyebrow tracking-cosmic text-ink-faint">
+      <label htmlFor="review-body" className="mb-1.5 block font-display text-eyebrow tracking-wide text-suave">
         Tu experiencia (opcional)
       </label>
       <textarea
@@ -59,7 +60,7 @@ export default function ReviewForm({
         name="body"
         rows={4}
         defaultValue={own?.body ?? ""}
-        className="w-full rounded-ritual border border-lila-300/20 bg-cosmos-0 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/40"
+        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
       />
 
       <ActionFeedback state={state} />
@@ -67,7 +68,7 @@ export default function ReviewForm({
       <button
         type="submit"
         disabled={isPending || rating === 0}
-        className="btn-ritual btn-ritual-primary mt-4 rounded-ritual disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-primary mt-4 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Guardando…" : own ? "Guardar cambios" : "Publicar testimonio"}
       </button>

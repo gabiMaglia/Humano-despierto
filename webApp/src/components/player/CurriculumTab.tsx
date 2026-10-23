@@ -1,15 +1,7 @@
 import { cn } from "@/lib/utils/cn";
+import LessonStateIcon from "@/components/atoms/LessonStateIcon";
 import { formatDurationSeconds } from "@/lib/utils/format";
-import { toRoman } from "@/lib/utils/roman";
 import type { PlayerLessonState, PlayerModule } from "@/lib/server/lesson-player";
-
-const STATE_ICON: Record<PlayerLessonState, string> = {
-  done: "✓",
-  current: "▶",
-  pending: "○",
-  preview: "✦",
-  locked: "⌗",
-};
 
 const STATE_LABEL: Record<PlayerLessonState, string> = {
   done: "Completada",
@@ -17,14 +9,6 @@ const STATE_LABEL: Record<PlayerLessonState, string> = {
   pending: "Pendiente",
   preview: "Vista previa",
   locked: "Bloqueada",
-};
-
-const STATE_ICON_CLASS: Record<PlayerLessonState, string> = {
-  done: "text-lila-300",
-  current: "text-gold-400",
-  pending: "text-ink-faint",
-  preview: "text-gold-400",
-  locked: "text-ink-faint",
 };
 
 interface Props {
@@ -35,72 +19,61 @@ interface Props {
 
 export default function CurriculumTab({ modules, currentCompleted }: Props) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {modules.map((m) => {
         const done = m.lessons.filter(
           (l) => l.state === "done" || (l.state === "current" && currentCompleted)
         ).length;
         return (
-          <div
-            key={m.position}
-            className={cn(
-              "rounded-ritual border p-3",
-              m.lessons.some((l) => l.state === "current")
-                ? "border-lila-300/40 bg-lila-300/[0.05]"
-                : "border-lila-300/18"
-            )}
-          >
-            <div className="flex items-center gap-2.5 mb-1">
-              <span className="font-display text-sm text-lila-300 w-5">{toRoman(m.position)}</span>
-              <span className="flex-1 font-display text-[11px] tracking-wide text-ink">{m.title}</span>
+          <section key={m.position} aria-label={`Módulo ${m.position}: ${m.title}`} className="overflow-hidden rounded-md border border-linea">
+            <div className="flex items-start gap-3 bg-fondo px-4 py-3">
+              <span className="w-5 flex-none pt-0.5 text-sm font-bold tabular-nums text-bosque">{String(m.position)}</span>
+              <span className="flex-1 text-sm font-semibold leading-snug text-bosque">{m.title}</span>
               <span
-                className="font-display text-eyebrow tracking-cosmic text-ink-faint"
+                className="flex-none text-xs font-semibold tabular-nums text-suave"
                 aria-label={`${done} de ${m.lessons.length} completadas`}
               >
                 {done}/{m.lessons.length}
               </span>
             </div>
             {m.lessons.length > 0 && (
-              <div className="ml-7 mt-2 space-y-1">
+              <ul className="divide-y divide-linea border-t border-linea">
                 {m.lessons.map((l) => {
                   const shown: PlayerLessonState = l.state === "current" && currentCompleted ? "done" : l.state;
                   return (
-                    <a
-                      key={l.id}
-                      href={l.state === "locked" ? undefined : `/leccion/${l.id}`}
-                      aria-disabled={l.state === "locked"}
-                      aria-current={l.state === "current" ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-2 py-1.5 rounded px-2",
-                        l.state === "current" && "bg-gold-400/10 border border-gold-400/20",
-                        l.state === "locked" && "pointer-events-none opacity-60"
-                      )}
-                    >
-                      <span
-                        role="img"
-                        aria-label={STATE_LABEL[shown]}
-                        className={cn("font-display text-[9px]", STATE_ICON_CLASS[shown])}
-                      >
-                        {STATE_ICON[shown]}
-                      </span>
-                      <span className="font-display text-[9px] text-ink-faint w-4">{l.position}</span>
-                      <span
+                    <li key={l.id}>
+                      <a
+                        href={l.state === "locked" ? undefined : `/leccion/${l.id}`}
+                        aria-disabled={l.state === "locked"}
+                        aria-current={l.state === "current" ? "page" : undefined}
                         className={cn(
-                          "flex-1 font-body text-[11px] truncate",
-                          l.state === "current" ? "text-gold-400" : "text-ink-soft"
+                          "flex min-h-11 items-center gap-3 px-4 py-2 transition-colors",
+                          l.state === "current" ? "bg-miel-100" : "hover:bg-salvia-100",
+                          // Inactiva: atenuada a propósito (WCAG 1.4.3 exime los controles inactivos).
+                          l.state === "locked" && "pointer-events-none opacity-60"
                         )}
                       >
-                        {l.title}
-                      </span>
-                      <span className="font-display text-[9px] text-ink-faint">
-                        {formatDurationSeconds(l.durationSeconds)}
-                      </span>
-                    </a>
+                        <span role="img" aria-label={STATE_LABEL[shown]} className="inline-flex">
+                          <LessonStateIcon state={shown} />
+                        </span>
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 text-sm leading-snug",
+                            l.state === "current" ? "font-semibold text-bosque" : "text-tinta"
+                          )}
+                        >
+                          {l.position}. {l.title}
+                        </span>
+                        <span className="flex-none text-xs tabular-nums text-suave">
+                          {formatDurationSeconds(l.durationSeconds)}
+                        </span>
+                      </a>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
-          </div>
+          </section>
         );
       })}
     </div>

@@ -2,6 +2,8 @@
 
 import { useActionState, useRef, useEffect } from "react";
 import { createLessonAction } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import { PanelInput } from "@/components/panel/PanelField";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 
 export default function NewLessonForm({ courseId, moduleId }: { courseId: string; moduleId: string }) {
@@ -13,31 +15,17 @@ export default function NewLessonForm({ courseId, moduleId }: { courseId: string
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-2 pt-1">
+    <form ref={formRef} action={formAction} className="mt-4 flex flex-wrap items-start gap-x-4 gap-y-3 border-t border-linea pt-4">
       <input type="hidden" name="courseId" value={courseId} />
       <input type="hidden" name="moduleId" value={moduleId} />
-      <input
-        name="title"
-        required
-        placeholder="Título de la lección"
-        className="min-w-[180px] flex-1 rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-3 py-2 font-body text-xs text-ink outline-none focus:border-lila-300/50 focus:bg-cosmos-0"
-      />
-      <label className="flex items-center gap-1.5 font-body text-xs text-ink-faint">
-        <input type="checkbox" name="isPreview" className="accent-lila-300" />
+      <PanelInput className="min-w-56 flex-1" label="Nueva lección" name="title" required placeholder="Título de la lección" error={state.error} />
+      <label className="flex min-h-12 items-center gap-2 self-start text-sm text-tinta sm:mt-[1.625rem]">
+        <input type="checkbox" name="isPreview" className="h-5 w-5 accent-bosque" />
         Vista previa
       </label>
-      <button
-        type="submit"
-        disabled={isPending}
-        className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPending ? "…" : "+ Lección"}
-      </button>
-      {state.error && (
-        <p role="alert" className="w-full font-body text-xs text-red-400">
-          {state.error}
-        </p>
-      )}
+      <Button type="submit" variant="outline" disabled={isPending} aria-busy={isPending} className="sm:mt-[1.625rem]">
+        {isPending ? "Agregando…" : "+ Lección"}
+      </Button>
     </form>
   );
 }

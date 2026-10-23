@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import { QA_ACTION_INITIAL_STATE, type QaActionState } from "@/lib/lesson-qa/action-state";
+import FormField from "@/components/molecules/FormField";
 import QaTextButton from "./QaTextButton";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 export default function ModerateForm({ action }: Props) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(action, QA_ACTION_INITIAL_STATE);
+  const id = useId();
 
   if (!open) {
     return (
@@ -22,24 +24,16 @@ export default function ModerateForm({ action }: Props) {
   }
 
   return (
-    <form action={formAction} className="mt-2 flex w-full items-center gap-2">
-      <input
-        name="reason"
-        aria-label="Motivo del borrado"
-        required
-        maxLength={500}
-        placeholder="Motivo"
-        className="min-w-0 flex-1 rounded-ritual border border-lila-300/20 bg-transparent px-2 py-1 font-body text-xs text-ink placeholder:text-ink-faint outline-none"
-      />
-      <QaTextButton type="submit" variant="danger" disabled={pending}>
-        Confirmar borrado
-      </QaTextButton>
-      <QaTextButton onClick={() => setOpen(false)}>Cancelar</QaTextButton>
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400">
-          {state.error}
-        </p>
-      )}
+    <form action={formAction} className="mt-2 w-full space-y-2">
+      <FormField id={`${id}-motivo`} label="Motivo del borrado" hideLabel error={state.error}>
+        {(c) => <input {...c} name="reason" required maxLength={500} placeholder="Motivo" className={`${c.className} text-sm`} />}
+      </FormField>
+      <div className="flex flex-wrap gap-1">
+        <QaTextButton type="submit" variant="danger" disabled={pending}>
+          Confirmar borrado
+        </QaTextButton>
+        <QaTextButton onClick={() => setOpen(false)}>Cancelar</QaTextButton>
+      </div>
     </form>
   );
 }
