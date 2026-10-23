@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/server/auth";
 import { getStudentDashboard } from "@/lib/server/enrollment";
 import StudentRequests from "@/components/molecules/StudentRequests";
 import { ensureCertificate } from "@/lib/server/certificates";
+import { courseFullTitle } from "@/lib/ui/course-title";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import AnnouncementList from "@/components/announcements/AnnouncementList";
 import { getRecentAnnouncementsForStudent } from "@/lib/server/announcements";
@@ -100,23 +101,26 @@ export default async function DashboardPage({
               <div className="min-w-0">
                 <p className="eyebrow mb-2">Continuar donde quedaste</p>
                 <h2 id="continuar" className="text-2xl md:text-3xl">
-                  {continuing.title}
+                  {courseFullTitle(continuing.title, continuing.titleEm)}
                 </h2>
                 <p className="mt-2 text-sm text-suave">
                   {continuing.discipline}
                   {continuing.lastSeenAt && <> · Vista por última vez {formatRelativeTime(continuing.lastSeenAt)}</>}
                 </p>
               </div>
-              <ProgressRing value={continuing.progressPercent} size={88} />
-              {continuing.continueLessonId ? (
-                <ButtonLink href={`/leccion/${continuing.continueLessonId}`} arrow>
-                  Continuar
-                </ButtonLink>
-              ) : (
-                <ButtonLink href={`/cursos/${continuing.slug}`} variant="outline">
-                  Ver curso
-                </ButtonLink>
-              )}
+              {/* En el celular el anillo y el botón comparten fila; desde md cada uno es una columna. */}
+              <div className="flex items-center gap-5 md:contents">
+                <ProgressRing value={continuing.progressPercent} size={88} />
+                {continuing.continueLessonId ? (
+                  <ButtonLink href={`/leccion/${continuing.continueLessonId}`} arrow className="flex-1 md:flex-none">
+                    Continuar
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href={`/cursos/${continuing.slug}`} variant="outline" className="flex-1 md:flex-none">
+                    Ver curso
+                  </ButtonLink>
+                )}
+              </div>
             </div>
           </section>
         )}

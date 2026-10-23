@@ -254,9 +254,11 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
               <h2 id="capitulos" className="text-lg">
                 Capítulos
               </h2>
-              <span className="text-sm text-suave">
-                {sortedChapters.length} {sortedChapters.length === 1 ? "sección" : "secciones"}
-              </span>
+              {sortedChapters.length > 0 && (
+                <span className="text-sm text-suave">
+                  {sortedChapters.length} {sortedChapters.length === 1 ? "sección" : "secciones"}
+                </span>
+              )}
             </div>
             <ul className="space-y-1">
               {sortedChapters.map((c) => {

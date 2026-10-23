@@ -1,6 +1,7 @@
 import { ButtonLink, buttonClass } from "@/components/atoms/Button";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import Icon from "@/components/atoms/Icon";
+import { courseFullTitle } from "@/lib/ui/course-title";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type { DashboardCourse } from "@/lib/server/enrollment";
 
@@ -13,6 +14,7 @@ interface Props {
 /** Una fila de "Mi aprendizaje": curso inscripto con su progreso. */
 export default function LearningCourseRow({ course: c, certificateCode }: Props) {
   const done = c.progressPercent === 100;
+  const title = courseFullTitle(c.title, c.titleEm);
   return (
     // Completado se dice con fondo y etiqueta, no con opacidad (QA T-060 D2).
     <article
@@ -24,7 +26,7 @@ export default function LearningCourseRow({ course: c, certificateCode }: Props)
           {c.discipline} · {c.teacherName}
         </p>
         <h3 id={`curso-${c.courseId}`} className="text-lg">
-          {c.title}
+          {title}
         </h3>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-suave">
           {done && (
@@ -39,7 +41,7 @@ export default function LearningCourseRow({ course: c, certificateCode }: Props)
           {c.lastSeenAt && <span>· {formatRelativeTime(c.lastSeenAt)}</span>}
         </p>
       </div>
-      <ProgressBar value={c.progressPercent} label={`Avance en ${c.title}`} />
+      <ProgressBar value={c.progressPercent} label={`Avance en ${title}`} />
       <div className="flex flex-wrap gap-2 md:justify-end">
         {!done && c.continueLessonId && (
           <ButtonLink href={`/leccion/${c.continueLessonId}`} size="sm" variant="outline" arrow>

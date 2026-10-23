@@ -26,7 +26,7 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
   const a11y = fieldA11y("avatar", tooBig ? TOO_BIG : null, "avatar-hint");
 
   return (
-    <section aria-labelledby="avatar-title" className="tarjeta flex flex-col items-center gap-5 p-6 text-center md:w-72">
+    <section aria-labelledby="avatar-title" className="tarjeta flex flex-col items-center gap-5 p-6 text-center">
       <h2 id="avatar-title" className="text-xl">Imagen</h2>
       <Avatar size="xl" glyph={glyph} name={fullName} src={avatarUrl} alt={`Imagen de ${fullName}`} />
       <form action={uploadAction} className="flex w-full flex-col items-stretch gap-3 text-left">

@@ -60,13 +60,14 @@ export default function PlayerTabs({ tabs, initialTabId, label }: Props) {
       </div>
 
       {/* Un solo panel: sólo se renderiza la pestaña activa, así que el id y el
-          aria-labelledby siguen a la activa en vez de haber un contenedor por pestaña. */}
+          aria-labelledby siguen a la activa en vez de haber un contenedor por pestaña.
+          `relative`: sin él, los `.sr-only` (absolute) de adentro escapan del scroll y estiran la página. */}
       <div
         id={`panel-${active.id}`}
         role="tabpanel"
         aria-labelledby={`tab-${active.id}`}
         tabIndex={0}
-        className="max-h-[70vh] flex-1 overflow-auto p-5 lg:max-h-none"
+        className="relative max-h-[70vh] min-h-0 flex-1 overflow-auto p-5 lg:max-h-none"
       >
         {active.panel}
       </div>
