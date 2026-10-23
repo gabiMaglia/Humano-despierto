@@ -2,29 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import Icon from "@/components/atoms/Icon";
 import LessonStateIcon from "@/components/atoms/LessonStateIcon";
-import { formatDurationSeconds } from "@/lib/utils/format";
+import { formatDurationSeconds, formatTotalDuration } from "@/lib/utils/format";
 import type { CourseDetailModule } from "@/lib/server/courses";
 
 type LessonState = "done" | "current" | "pending" | "preview" | "locked";
 
-// X-01 · §4 transmite el estado de la leccion CON el glifo, asi que el glifo carga informacion
-// y no puede quedar mudo: un lector de pantalla no dice nada util frente a "⌗". El glifo va
-// aria-hidden y al lado viaja este texto, visualmente oculto.
+// X-01 · el ícono va aria-hidden; el estado viaja en este texto, visualmente oculto.
 const STATE_LABEL: Record<LessonState, string> = {
   done: "Completada",
   current: "En curso",
   pending: "Pendiente",
   preview: "Vista previa gratuita",
   locked: "Requiere inscripción",
-};
-
-const STATE_TITLE_CLASS: Record<LessonState, string> = {
-  done: "text-suave",
-  current: "text-miel-800",
-  pending: "text-suave",
-  preview: "text-tinta",
-  locked: "text-suave",
 };
 
 interface Props {
@@ -59,6 +50,13 @@ function useLessonStates(modules: CourseDetailModule[], hasAccess: boolean, comp
   }, [modules, hasAccess, completedLessonIds]);
 }
 
+function moduleMeta(m: CourseDetailModule): string {
+  const seconds = m.lessons.reduce((s, l) => s + l.durationSeconds, 0);
+  const clases = `${m.lessonCount} ${m.lessonCount === 1 ? "clase" : "clases"}`;
+  return seconds > 0 ? `${clases}, ${formatTotalDuration(seconds)}` : clases;
+}
+
+/** Programa del curso (B1 «Así es un curso por dentro»): un módulo abierto a la vez. */
 export default function CurriculumAccordion({ modules, hasAccess, completedLessonIds }: Props) {
   const lessonStates = useLessonStates(modules, hasAccess, completedLessonIds);
 
@@ -72,100 +70,90 @@ export default function CurriculumAccordion({ modules, hasAccess, completedLesso
   const [openPosition, setOpenPosition] = useState<number | null>(defaultOpen);
 
   return (
-    <div className="relative">
-      <div className="absolute left-[19px] top-0 bottom-0 w-px bg-salvia" />
-      <div className="space-y-0">
-        {modules.map((m) => {
-          const isOpen = openPosition === m.position;
-          return (
-            <article key={m.position} className="flex gap-6 pb-8">
-              <div className="relative z-10 flex flex-col items-center gap-1.5 flex-none">
-                <span className="h-10 w-10 rounded-full border border-linea bg-papel flex items-center justify-center font-display text-sm text-bosque">
-                  {String(m.position)}
+    <div className="space-y-3">
+      {modules.map((m) => {
+        const isOpen = openPosition === m.position;
+        return (
+          <article key={m.position} className="overflow-hidden rounded-md border-[1.5px] border-linea bg-papel">
+            <h3 className="text-[17px]">
+              <button
+                type="button"
+                onClick={() => setOpenPosition(isOpen ? null : m.position)}
+                aria-expanded={isOpen}
+                aria-controls={`modulo-panel-${m.position}`}
+                id={`modulo-trigger-${m.position}`}
+                className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span className="min-w-0">
+                  <span className="block">{m.title}</span>
+                  <span className="mt-0.5 block text-sm font-normal tracking-normal text-suave">{moduleMeta(m)}</span>
                 </span>
-              </div>
-              <div className="flex-1 min-w-0 pt-2 pb-4">
-                <button
-                  type="button"
-                  onClick={() => setOpenPosition(isOpen ? null : m.position)}
-                  aria-expanded={isOpen}
-                  aria-controls={`modulo-panel-${m.position}`}
-                  id={`modulo-trigger-${m.position}`}
-                  className="flex w-full items-start justify-between gap-3 text-left"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h4 className="mb-1.5 font-display text-lg tracking-wide text-tinta">{m.title}</h4>
-                    {m.description && (
-                      <p className="mb-2 font-body text-sm text-suave leading-relaxed">{m.description}</p>
-                    )}
-                    <span className="font-display text-eyebrow tracking-wide text-miel-800">
-                      
-                      {m.lessonCount} {m.lessonCount === 1 ? "lección" : "lecciones"}
-                    </span>
-                  </div>
-                  <span aria-hidden="true" className="mt-1 flex-none font-display text-sm text-suave">
-                    {isOpen ? "▾" : "▸"}
-                  </span>
-                </button>
+                <Icon
+                  name="chevron-down"
+                  className={cn(
+                    "h-[18px] w-[18px] text-bosque transition-transform duration-300 ease-brote motion-reduce:transition-none",
+                    isOpen && "rotate-180",
+                  )}
+                />
+              </button>
+            </h3>
 
-                {isOpen && m.lessons.length > 0 && (
-                  <div
-                    id={`modulo-panel-${m.position}`}
-                    role="region"
-                    aria-labelledby={`modulo-trigger-${m.position}`}
-                    className="mt-3 space-y-1"
-                  >
+            {isOpen && (
+              <div
+                id={`modulo-panel-${m.position}`}
+                role="region"
+                aria-labelledby={`modulo-trigger-${m.position}`}
+                className="border-t border-linea"
+              >
+                {m.description && <p className="px-5 pt-4 text-[15px] leading-relaxed text-suave">{m.description}</p>}
+                {m.lessons.length === 0 ? (
+                  <p className="px-5 py-4 text-sm text-suave">Las clases de este módulo están en preparación.</p>
+                ) : (
+                  <ol>
                     {m.lessons.map((lesson) => {
                       const state = lessonStates.get(lesson.id) ?? "locked";
                       const clickable = state !== "locked";
                       const rowClass = cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 transition-colors min-w-0",
-                        state === "current" && "bg-miel-100 border border-miel",
-                        state === "preview" && "border border-miel",
-                        clickable && "hover:bg-papel cursor-pointer",
-                        !clickable && "opacity-60"
+                        "grid min-h-12 grid-cols-[20px_1fr_auto] items-center gap-3 px-5 py-3 text-[15px] leading-snug",
+                        clickable ? "text-tinta transition-colors hover:bg-salvia-100" : "text-suave",
+                        state === "current" && "bg-miel-100",
                       );
                       const content = (
                         <>
-                          <LessonStateIcon state={state} />
-                          <span className="sr-only">{STATE_LABEL[state]}</span>
-                          <span className={cn("flex-1 min-w-0 truncate font-body text-sm", STATE_TITLE_CLASS[state])}>
+                          <LessonStateIcon state={state} className="h-4 w-4" />
+                          <span className="min-w-0">
+                            <span className="sr-only">{STATE_LABEL[state]}: </span>
                             {lesson.title}
+                            {state === "preview" && (
+                              <span className="ml-2 whitespace-nowrap rounded-pill bg-miel-100 px-2 py-0.5 text-xs font-semibold text-miel-800">
+                                Gratis
+                              </span>
+                            )}
                           </span>
-                          {state === "preview" && (
-                            <span className="flex-none font-display text-[9px] tracking-wide uppercase text-miel-800 border border-miel rounded px-1.5 py-0.5">
-                              Vista previa
-                            </span>
-                          )}
-                          <span className="flex-none font-display text-xs text-suave">
-                            {formatDurationSeconds(lesson.durationSeconds)}
-                          </span>
+                          <time className="text-sm tabular-nums text-suave">{formatDurationSeconds(lesson.durationSeconds)}</time>
                         </>
                       );
-
-                      return clickable ? (
-                        <a key={lesson.id} href={`/leccion/${lesson.id}`} className={rowClass}>
-                          {content}
-                        </a>
-                      ) : (
-                        <div key={lesson.id} className={rowClass} aria-disabled="true">
-                          {content}
-                        </div>
+                      return (
+                        <li key={lesson.id} className="border-t border-linea first:border-t-0">
+                          {clickable ? (
+                            <a href={`/leccion/${lesson.id}`} className={rowClass}>
+                              {content}
+                            </a>
+                          ) : (
+                            <div className={rowClass} aria-disabled="true">
+                              {content}
+                            </div>
+                          )}
+                        </li>
                       );
                     })}
-                  </div>
-                )}
-
-                {isOpen && m.lessons.length === 0 && (
-                  <p className="mt-2 font-body text-xs italic text-suave">
-                    Currículum en preparación para este módulo.
-                  </p>
+                  </ol>
                 )}
               </div>
-            </article>
-          );
-        })}
-      </div>
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 }

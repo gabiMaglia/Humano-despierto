@@ -32,4 +32,10 @@ describe("ogSafeText", () => {
   it("vacio queda vacio (el llamador elige el texto de respaldo)", () => {
     expect(ogSafeText("✦✦✦", 50)).toBe("");
   });
+
+  // Plus Jakarta Sans no trae el guion blando (U+00AD) y satori saldría a buscarlo: es invisible,
+  // así que se quita sin dejar un espacio en medio de la palabra.
+  it("quita el guion blando sin partir la palabra", () => {
+    expect(ogSafeText("cons\u00ADtelación", 50)).toBe("constelación");
+  });
 });

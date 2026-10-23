@@ -1,13 +1,13 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/atoms/Button";
 import RequestEnrollmentButton from "@/components/course/RequestEnrollmentButton";
 import type { StudentEnrollmentState } from "@/lib/server/enrollment";
 import { formatCertificateDate } from "@/lib/utils/format";
 
 function Estado({ title, detail }: { title: string; detail?: string | null }) {
   return (
-    <div className="text-center">
-      <p className="font-display text-eyebrow tracking-wide text-bosque">{title}</p>
-      {detail && <p className="mt-2 font-quote italic text-sm text-suave">{detail}</p>}
+    <div role="status" className="rounded-md bg-salvia-100 px-4 py-3.5">
+      <p className="font-semibold text-bosque">{title}</p>
+      {detail && <p className="mt-1 text-sm leading-normal text-suave">{detail}</p>}
     </div>
   );
 }
@@ -18,12 +18,9 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
   switch (state.status) {
     case "anonymous":
       return (
-        <Link
-          href={`/entrar?next=${encodeURIComponent(`/cursos/${slug}`)}`}
-          className="btn btn-primary w-full justify-center"
-        >
+        <ButtonLink href={`/entrar?next=${encodeURIComponent(`/cursos/${slug}`)}`} full>
           Solicitar inscripción
-        </Link>
+        </ButtonLink>
       );
     case "none":
       return <RequestEnrollmentButton slug={slug} />;
@@ -36,11 +33,11 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
       );
     case "active":
       return (
-        <div className="space-y-3 text-center">
+        <div className="space-y-3">
           <Estado title="Ya estás inscripta" />
-          <Link href="/panel" className="btn btn-primary w-full justify-center">
+          <ButtonLink href="/panel" full arrow>
             Ir a mi panel
-          </Link>
+          </ButtonLink>
         </div>
       );
     case "revoked":

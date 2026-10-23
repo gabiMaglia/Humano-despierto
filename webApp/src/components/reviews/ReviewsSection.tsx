@@ -1,4 +1,4 @@
-import SectionDivider from "@/components/atoms/SectionDivider";
+import SectionHeading from "@/components/atoms/SectionHeading";
 import Icon from "@/components/atoms/Icon";
 import Stars from "@/components/reviews/Stars";
 import ReviewForm from "@/components/reviews/ReviewForm";
@@ -13,7 +13,7 @@ import type { CourseReview, CourseReviewsData } from "@/lib/server/reviews";
  *  vacío dice lo que pasa en vez de mostrar "0.0 ★", que se lee como una calificación pésima. */
 function SinResenas({ puedeResenar }: { puedeResenar: boolean }) {
   return (
-    <p className="text-center font-quote italic text-base text-suave">
+    <p className="text-suave">
       {puedeResenar
         ? "Todavía nadie dejó su testimonio. Podés ser la primera."
         : "Este curso todavía no recibió testimonios."}
@@ -36,17 +36,17 @@ export default function ReviewsSection({
 
   return (
     // El id es el ancla del mail de curso completado (c.7): `scroll-mt` deja aire bajo el header.
-    <section id={REVIEWS_ANCHOR} className="scroll-mt-24 border-t border-linea px-6 py-16 md:px-12">
-      <div className="mx-auto max-w-3xl">
-        <SectionDivider label="Lo que dicen quienes lo hicieron" className="mb-10" />
+    <section id={REVIEWS_ANCHOR} aria-labelledby="resenas-titulo" className="scroll-mt-24">
+      <div>
+        <SectionHeading id="resenas-titulo" size="md" title="Lo que dicen quienes lo hicieron" className="mb-8" />
 
         {summary.total === 0 ? (
           <SinResenas puedeResenar={canReview} />
         ) : (
-          <div className="mb-12 flex flex-col items-center gap-6 md:flex-row md:items-start md:gap-12">
-            <div className="flex-none text-center">
+          <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-12">
+            <div className="flex-none">
               <Stars value={summary.average} size="lg" showValue />
-              <p className="mt-2 font-display text-eyebrow tracking-wide text-suave">
+              <p className="mt-2 text-sm text-suave">
                 {summary.total} {summary.total === 1 ? "testimonio" : "testimonios"}
               </p>
             </div>
@@ -58,13 +58,13 @@ export default function ReviewsSection({
                 const pct = summary.total > 0 ? (n / summary.total) * 100 : 0;
                 return (
                   <div key={estrella} className="flex items-center gap-3">
-                    <span className="flex w-12 flex-none items-center gap-1 font-display text-xs text-suave">
+                    <span className="flex w-12 flex-none items-center gap-1 text-sm text-suave">
                       <Icon name="star" className="h-3 w-3 text-miel" /> {estrella}
                     </span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-salvia-100">
-                      <span className="block h-full bg-miel-100" style={{ width: `${pct}%` }} />
+                      <span className="block h-full bg-miel" style={{ width: `${pct}%` }} />
                     </span>
-                    <span className="w-8 flex-none text-right font-display text-xs text-suave">{n}</span>
+                    <span className="w-8 flex-none text-right text-sm text-suave">{n}</span>
                   </div>
                 );
               })}
@@ -77,11 +77,9 @@ export default function ReviewsSection({
         {featured && (
           <article
             aria-label="Testimonio destacado"
-            className="mt-12 rounded-md border border-miel bg-papel p-6"
+            className="mt-10 rounded-lg border-[1.5px] border-miel bg-papel p-6"
           >
-            <p className="mb-3 font-display text-eyebrow tracking-wide text-miel-800">
-              Destacado
-            </p>
+            <p className="mb-3 text-sm font-semibold text-miel-800">Destacado</p>
             <ReviewItem
               review={featured}
               slug={slug}
@@ -93,7 +91,7 @@ export default function ReviewsSection({
         )}
 
         {resto.length > 0 && (
-          <ul className="mt-12 space-y-8">
+          <ul className="mt-10 space-y-8">
             {resto.map((r) => (
               <li key={r.id} className="border-t border-linea pt-6 first:border-0 first:pt-0">
                 <ReviewItem
@@ -129,24 +127,24 @@ function ReviewItem({
     <>
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <Stars value={r.rating} />
-        <span className="font-display text-sm tracking-wide text-bosque">{r.authorName}</span>
-        <span className="font-display text-eyebrow tracking-wide text-suave">
+        <span className="text-[15px] font-semibold text-bosque">{r.authorName}</span>
+        <span className="text-sm text-suave">
           {formatCertificateDate(r.updatedAt)}
         </span>
       </div>
-      {r.body && <p className="font-body text-sm text-suave leading-relaxed">{r.body}</p>}
+      {r.body && <p className="text-[15px] leading-relaxed text-tinta">{r.body}</p>}
       {r.response ? (
         <div className="mt-4 border-l-2 border-linea pl-4">
-          <p className="mb-1 font-display text-eyebrow tracking-wide text-bosque">
+          <p className="mb-1 text-sm font-semibold text-bosque">
             Respuesta de la guía
           </p>
-          <p className="font-body text-sm text-suave leading-relaxed">{r.response}</p>
+          <p className="text-[15px] leading-relaxed text-suave">{r.response}</p>
         </div>
       ) : (
         viewerIsOwner && <ResponseForm reviewId={r.id} slug={slug} />
       )}
       {reportStatus ? (
-        <p className="mt-3 font-display text-eyebrow tracking-wide text-suave">
+        <p className="mt-3 text-sm text-suave">
           {REPORT_STATUS_LABEL[reportStatus]}
         </p>
       ) : (

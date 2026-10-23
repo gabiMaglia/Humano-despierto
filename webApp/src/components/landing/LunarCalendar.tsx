@@ -1,75 +1,55 @@
-import type { LunarDay, LunarPhaseName as Phase } from "@/lib/lunar";
+import Reveal from "@/components/layout/Reveal";
+import { phaseLabel, type LunarDay, type LunarPhaseName } from "@/lib/lunar";
 
-const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
-const LABELS = ["sembrar", "iniciar", "crecer", "culminar", "liberar", "integrar", "soltar", "descansar"];
+const LIT: Record<LunarPhaseName, number> = { new: 0, crescent: 0.25, half: 0.5, gibbous: 0.75, full: 1 };
 
-// Etiqueta de la fecha: el primer dia y los cambios de mes llevan mes, el resto solo numero.
-function dateLabel(d: LunarDay, prev: LunarDay | undefined) {
-  const day = d.date.getUTCDate();
-  const month = MESES[d.date.getUTCMonth()];
-  return !prev || prev.date.getUTCMonth() !== d.date.getUTCMonth() ? `${day} ${month}` : String(day);
-}
+const fecha = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", timeZone: "UTC" });
 
-function Moon({ phase, today }: { phase: Phase; today?: boolean }) {
-  const base: React.CSSProperties = {
-    width: 48, height: 48, borderRadius: "50%",
-    position: "relative", overflow: "hidden",
-  };
-
-  if (phase === "new") return (
-    <div style={{ ...base, background: "var(--papel)", border: "1px dashed var(--musgo)" }} />
-  );
-  if (phase === "full") return (
-    <div style={{
-      ...base,
-      background: "var(--miel)",
-      border: "1px solid var(--miel-800)",
-      boxShadow: today ? "0 0 0 4px var(--miel-100)" : undefined,
-    }} />
-  );
-  if (phase === "half") return (
-    <div style={{ ...base, background: "linear-gradient(90deg, var(--papel) 50%, var(--musgo) 50%)", border: "1px solid var(--musgo)" }} />
-  );
-
-  const shift = phase === "crescent" ? "-30%" : "-70%";
+/** Fase en línea (ADR-015: SVG, no glifos). La parte iluminada es un semicírculo más el arco del
+ *  terminador, una elipse de ancho |1 - 2k| con k = fracción iluminada. */
+function Moon({ phase, waxing }: { phase: LunarPhaseName; waxing: boolean }) {
+  const k = LIT[phase];
+  const rx = Math.abs(1 - 2 * k) * 20;
+  // Creciente: iluminado a la derecha; menguante, a la izquierda. El terminador se curva hacia el
+  // lado iluminado mientras k < 1/2 y hacia el oscuro después.
+  const outer = waxing ? 1 : 0;
+  const inner = (k < 0.5) === waxing ? 0 : 1;
   return (
-    <div style={{ ...base, background: "var(--musgo)", border: "1px solid var(--musgo)" }}>
-      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "var(--papel)", transform: `translateX(${shift})` }} />
-    </div>
+    <svg viewBox="0 0 48 48" className="h-12 w-12" aria-hidden="true" focusable="false">
+      {k === 1 ? (
+        <circle cx={24} cy={24} r={20} className="fill-miel" />
+      ) : k > 0 ? (
+        <path d={`M24 4A20 20 0 0 ${outer} 24 44A${rx} 20 0 0 ${inner} 24 4Z`} className="fill-miel" />
+      ) : null}
+      <circle cx={24} cy={24} r={20} fill="none" strokeWidth={1.5} className="stroke-musgo" />
+    </svg>
   );
 }
 
+/** Calendario lunar de la portada (T-053), en lenguaje Brote. Es un mapa del cielo para la práctica,
+ *  no un calendario de clases: los cursos no tienen fechas (ADR-004). */
 export default function LunarCalendar({ days }: { days: LunarDay[] }) {
   return (
-    <section
-      className="border-b border-t border-linea bg-salvia-100 px-6 py-24 md:px-12"
-    >
-      <div className="mx-auto max-w-7xl">
-
-        {/* Eyebrow */}
-        <div className="mb-3.5 flex items-center gap-3.5">
-          <div className="h-px flex-1 bg-salvia" />
-          <span className="font-display text-eyebrow tracking-[0.25em] text-bosque">Calendario lunar</span>
-          <div className="h-px flex-1 bg-salvia" />
-        </div>
-
-        <h2 className="mb-4 text-center font-display text-4xl tracking-wider text-tinta">
-          El cielo <em className="font-quote italic text-miel-800">marca el ritmo</em>
-        </h2>
-        <p className="mx-auto mb-14 max-w-[560px] text-center font-quote italic text-xl leading-relaxed text-suave">
-          Un mapa del cielo para acompañar la práctica, no un calendario de clases.
-        </p>
-
-        {/* Moon phases */}
-        <div className="flex flex-wrap justify-around gap-6">
-          {days.map((d, i) => (
-            <div key={d.date.toISOString()} className="relative flex flex-col items-center gap-3 text-center cursor-pointer transition-transform hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-              <Moon phase={d.phase} today={d.today} />
-              <span className="font-display text-[11px] tracking-[0.2em] text-tinta">{dateLabel(d, days[i - 1])}</span>
-              <span className="font-quote italic text-sm text-suave">{LABELS[i]}</span>
-            </div>
-          ))}
-        </div>
+    <section aria-labelledby="luna-titulo" className="pb-[100px] md:pb-[120px]">
+      <div className="mx-auto max-w-[1200px] px-6">
+        <Reveal className="rounded-[24px] border border-linea bg-papel px-6 py-12 md:px-12">
+          <h2 id="luna-titulo" className="mb-3 text-[clamp(26px,3vw,36px)]">Calendario lunar</h2>
+          <p className="mb-10 max-w-[52ch] text-suave">
+            Las próximas fases de la luna, para acompañar la práctica. No son fechas de clase: cada curso se ve
+            cuando quieras.
+          </p>
+          <ol className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-8">
+            {days.map((d) => (
+              <li key={d.date.toISOString()} className="flex flex-col items-center gap-2 text-center">
+                <Moon phase={d.phase} waxing={d.waxing} />
+                <span className="text-sm font-semibold text-bosque">
+                  {d.today ? "Hoy" : fecha.format(d.date).replace(".", "")}
+                </span>
+                <span className="text-[13px] leading-tight text-suave">{phaseLabel(d.phase, d.waxing)}</span>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
       </div>
     </section>
   );
