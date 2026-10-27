@@ -7,6 +7,9 @@ const DE_LA_ALUMNA = `user_id = '${ALUMNA_ID}' and course_id = (select id from p
 
 function borrarSolicitud(): void {
   psql(`delete from public.enrollments where ${DE_LA_ALUMNA};`);
+  // requestEnrollmentAction topa en 5 por hora y por usuaria: dos corridas seguidas la agotan y la
+  // ficha muestra "Demasiados intentos" en vez de "Solicitud enviada". Se resetea el bucket de la alumna.
+  psql(`delete from public.rate_limit_buckets where key = 'requestEnrollmentAction:u:${ALUMNA_ID}';`);
 }
 
 function leccionNoPreview(): string {
