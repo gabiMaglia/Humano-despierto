@@ -17,7 +17,7 @@
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { bootDatabase, asUser, attempt } from '../harness/db.mjs';
+import { bootDatabase, asUser, asService, attempt } from '../harness/db.mjs';
 import { seed, ID } from './seed.mjs';
 
 // Triggers que NO pueden bloquear nada y por eso no necesitan caso. Se enumeran a mano para que
@@ -58,6 +58,9 @@ const CASOS = {
   courses_guard: 'service_role publica y despublica un curso',
   courses_guard_insert: 'la docente crea un curso, que nace en draft',
   lessons_guard: 'service_role carga video_id + duration_seconds y publica (T-005 c.4b)',
+  // T-080 · D-12: el barrido al escribir el localizador. El caso legitimo es el alta normal.
+  lessons_locator_not_public: 'service_role asigna un video_id que no esta en ningun texto publico',
+  lesson_resources_locator_not_public: 'service_role carga drive_file_id y url de un recurso nuevo',
   diario_posts_guard: 'service_role publica un post del diario',
   enrollments_guard: 'service_role aprueba, rechaza con motivo, reconsidera y revoca',
   enrollments_guard_insert: 'la alumna pide un curso publicado y la fila nace requested',
@@ -149,21 +152,23 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
   });
   // ---------------------------------------------------------------- estado de servidor
   describe('estado de servidor · service_role sigue pudiendo lo suyo', () => {
+    // D-13 (T-080): los casos "de servidor" corren como service_role REAL (`asService`), no como
+    // el owner `postgres` de `reset role`, que es superusuario y pasa grants que service_role
+    // podria no tener. Un caso que da verde como superusuario no prueba el Server Action.
     test(`courses_guard · ${CASOS.courses_guard}`, async () => {
-      await db.exec(`reset role;`);
-      const publicar = await attempt(
+      const publicar = await asService(db, () => attempt(
         db,
         `update public.courses set status = 'published', published_at = now() where id = $1 returning id`,
         [ID.courseDraft],
-      );
+      ));
       assert.equal(publicar.ok, true, `service_role no pudo publicar: ${publicar.message}`);
       assert.equal(publicar.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
 
-      const despublicar = await attempt(
+      const despublicar = await asService(db, () => attempt(
         db,
         `update public.courses set status = 'draft', published_at = null where id = $1 returning id`,
         [ID.courseDraft],
-      );
+      ));
       assert.equal(despublicar.ok, true, `service_role no pudo despublicar: ${despublicar.message}`);
     });
 
@@ -181,25 +186,45 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
     });
 
     test(`lessons_guard · ${CASOS.lessons_guard}`, async () => {
-      await db.exec(`reset role;`);
-      const r = await attempt(
+      const r = await asService(db, () => attempt(
         db,
         `update public.lessons set video_id = 'aBcD1234_-x', duration_seconds = 600, is_published = true
           where id = $1 returning is_published`,
         [ID.lessonA],
-      );
+      ));
       assert.equal(r.ok, true, `service_role no pudo cargar video y publicar: ${r.message}`);
       assert.equal(r.rows[0].is_published, true);
     });
 
+    test(`lessons_locator_not_public · ${CASOS.lessons_locator_not_public}`, async () => {
+      const r = await asService(db, () => attempt(
+        db,
+        `update public.lessons set video_id = 'nUevO98765z' where id = $1 returning id`,
+        [ID.lessonPreviewB],
+      ));
+      assert.equal(r.ok, true, `el barrido bloqueo un video_id limpio: ${r.message}`);
+      assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
+    });
+
+    test(`lesson_resources_locator_not_public · ${CASOS.lesson_resources_locator_not_public}`, async () => {
+      const r = await asService(db, () => attempt(
+        db,
+        `insert into public.lesson_resources (course_id, lesson_id, position, type, name, drive_file_id, url)
+         values ($1, $2, 9, 'pdf', 'Anexo', 'NUEVODRIVEID77', 'https://drive.google.com/file/d/NUEVODRIVEID77/view')
+         returning id`,
+        [ID.courseA, ID.lessonPreviewB],
+      ));
+      assert.equal(r.ok, true, `el barrido bloqueo un recurso limpio: ${r.message}`);
+      assert.equal(r.rows.length, 1);
+    });
+
     test(`diario_posts_guard · ${CASOS.diario_posts_guard}`, async () => {
-      await db.exec(`reset role;`);
-      const r = await attempt(
+      const r = await asService(db, () => attempt(
         db,
         `update public.diario_posts set status = 'published', published_at = now()
           where id = $1 returning status`,
         [ID.postDraftB],
-      );
+      ));
       assert.equal(r.ok, true, `service_role no pudo publicar un post: ${r.message}`);
       assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
     });
@@ -220,12 +245,11 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
     });
 
     test(`enrollments_guard · ${CASOS.enrollments_guard}`, async () => {
-      await db.exec(`reset role;`);
-      const alta = await attempt(
+      const alta = await asService(db, () => attempt(
         db,
         `insert into public.enrollments (user_id, course_id, status) values ($1, $2, 'requested') returning id`,
         [ID.otro, ID.courseB],
-      );
+      ));
       assert.equal(alta.ok, true, `service_role no pudo registrar una solicitud: ${alta.message}`);
 
       const pasos = [
@@ -234,11 +258,11 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
         [`status = 'revoked', decided_at = now()`, 'revoked'],
       ];
       for (const [set, esperado] of pasos) {
-        const r = await attempt(
+        const r = await asService(db, () => attempt(
           db,
           `update public.enrollments set ${set} where user_id = $1 and course_id = $2 returning status`,
           [ID.otro, ID.courseB],
-        );
+        ));
         assert.equal(r.ok, true, `service_role no pudo pasar a ${esperado}: ${r.message}`);
         assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila');
         assert.equal(r.rows[0].status, esperado);
@@ -395,14 +419,13 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
     });
 
     test(`course_reviews_guard · ${CASOS.course_reviews_guard}`, async () => {
-      await db.exec(`reset role;`);
-      const r = await attempt(
+      const r = await asService(db, () => attempt(
         db,
         `update public.course_reviews
             set hidden_at = now(), hidden_by = $1, hidden_reason = 'spam'
           where course_id = $2 returning id`,
         [ID.admin, ID.courseA],
-      );
+      ));
       assert.equal(r.ok, true, `la moderacion legitima quedo bloqueada (bug de 0024): ${r.message}`);
       assert.equal(r.rows.length, 1, 'el UPDATE no alcanzo ninguna fila — el caso no probo nada');
       await db.query(
@@ -769,28 +792,30 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
           ('${INVITADA_T049}', 'invitada-t049@humano.test', now());
         update public.profiles set role = 'admin' where id = '${ADMIN_T049}';`);
 
-      const crear = (email, hash) =>
+      const crear = (email, hash) => asService(db, () =>
         attempt(db, `insert into public.teacher_invitations (email, token_hash, invited_by) values ($1, $2, $3) returning id`, [
           email,
           hash,
           ADMIN_T049,
-        ]);
+        ]));
       const a = await crear('invitada-t049@humano.test', 'a'.repeat(64));
       assert.equal(a.ok, true, `service_role no pudo invitar: ${a.message}`);
       const b = await crear('otra-t049@humano.test', 'b'.repeat(64));
       assert.equal(b.ok, true, b.message);
 
-      const revocar = await attempt(db, `update public.teacher_invitations set revoked_at = now(), revoked_by = $1 where id = $2`, [
+      const revocar = await asService(db, () => attempt(db, `update public.teacher_invitations set revoked_at = now(), revoked_by = $1 where id = $2`, [
         ADMIN_T049,
         b.rows[0].id,
-      ]);
+      ]));
       assert.equal(revocar.ok, true, `service_role no pudo revocar: ${revocar.message}`);
 
-      const aceptar = await attempt(db, `select public.accept_teacher_invitation($1, $2) as ok`, ['a'.repeat(64), INVITADA_T049]);
+      const aceptar = await asService(db, () => attempt(db, `select public.accept_teacher_invitation($1, $2) as ok`, ['a'.repeat(64), INVITADA_T049]));
       assert.equal(aceptar.ok, true, `la aceptacion no corrio: ${aceptar.message}`);
       assert.equal(aceptar.rows[0].ok, true, 'la aceptacion legitima devolvio false');
 
-      // El bug de 0017 en esta tabla: on delete set null contra un CHECK simetrico.
+      // El bug de 0017 en esta tabla: on delete set null contra un CHECK simetrico. La baja de una
+      // cuenta la hace GoTrue (supabase_auth_admin) sobre auth.users, no service_role por
+      // PostgREST: este paso queda como owner a proposito.
       const borrar = await attempt(db, `delete from auth.users where id in ($1, $2)`, [ADMIN_T049, INVITADA_T049]);
       assert.equal(borrar.ok, true, `borrar las cuentas quedo bloqueado: ${borrar.message}`);
       const [fila] = (
@@ -839,11 +864,11 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
         await db.exec(`set session_replication_role = origin;`);
       }
 
-      const r = await attempt(
+      const r = await asService(db, () => attempt(
         db,
         `insert into public.certificates (user_id, course_id, code) values ($1, $2, $3) returning id`,
         [ID.student, ID.courseA, 't036-codigo-de-prueba'],
-      );
+      ));
       assert.equal(r.ok, true, `service_role no pudo emitir un certificado legitimo: ${r.message}`);
     });
 
