@@ -19,9 +19,6 @@ export default function CourseForm({ course }: Props) {
   return (
     <form action={formAction} className="tarjeta grid gap-5 p-6 md:grid-cols-2">
       {course && <input type="hidden" name="courseId" value={course.id} />}
-      {/* D-65: el numeral romano ya no se pide (la acción no lo exige), pero `update` lo reescribe
-          con lo que llegue: el valor que un curso ya tiene viaja oculto para no borrarlo. */}
-      <input type="hidden" name="romanNum" value={course?.romanNum ?? ""} />
 
       <PanelInput label="Slug (URL)" name="slug" defaultValue={course?.slug} placeholder="tarot-iniciatico" required />
       <PanelInput label="Título" name="title" defaultValue={course?.title} required />

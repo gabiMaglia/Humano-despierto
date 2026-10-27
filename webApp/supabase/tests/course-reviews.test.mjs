@@ -433,7 +433,15 @@ describe('T-028 · resenas y rating', () => {
     const token = 'ZZtoken9876';
     const [antes] = await owner(db, `select body from public.course_reviews where user_id = $1 and course_id = $2`, [ID.student, ID.courseA]);
     await owner(db, `update public.course_reviews set body = $1 where user_id = $2 and course_id = $3`, [`Clave ${token}`, ID.student, ID.courseA]);
-    await owner(db, `update public.lessons set video_id = $1 where id = $2`, [token, ID.lessonPreviewB]);
+    // T-080 · desde 0038 (D-12) este orden ya no se puede producir: asignar el video_id se rechaza
+    // porque el texto ya lo contiene. El estado sigue pudiendo existir en datos previos a 0038,
+    // y la moderacion tiene que alcanzarlo: se monta con los triggers apagados (como seed.sql).
+    await db.exec('reset role; set session_replication_role = replica;');
+    try {
+      await db.query(`update public.lessons set video_id = $1 where id = $2`, [token, ID.lessonPreviewB]);
+    } finally {
+      await db.exec('set session_replication_role = origin;');
+    }
     try {
       await db.exec('set role service_role;');
       const r = await attempt(

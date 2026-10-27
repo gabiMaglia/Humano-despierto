@@ -75,7 +75,6 @@ export interface TeacherCourseFields {
   level: string;
   priceCents: number;
   currency: string;
-  romanNum: string | null;
   moonGlyph: string | null;
   includes: string[];
   learningObjectives: string[];
@@ -121,7 +120,6 @@ interface CourseFieldsRow {
   level: string;
   price_cents: number;
   currency: string;
-  roman_num: string | null;
   moon_glyph: string | null;
   includes: string[] | null;
   learning_objectives: string[] | null;
@@ -146,7 +144,6 @@ function mapCourseFields(row: CourseFieldsRow): TeacherCourseFields {
     level: row.level,
     priceCents: row.price_cents,
     currency: row.currency,
-    romanNum: row.roman_num,
     moonGlyph: row.moon_glyph,
     learningObjectives: row.learning_objectives ?? [],
     prerequisites: row.prerequisites ?? [],
@@ -174,7 +171,7 @@ export async function getTeacherCourseDetail(
     .from("courses")
     .select(
       `id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency,
-       roman_num, moon_glyph, includes, status, teacher_id, cover_path,
+       moon_glyph, includes, status, teacher_id, cover_path,
        learning_objectives, prerequisites, description, language, promo_video_id,
        course_modules(id, position, title, description,
          lessons(id, position, title, is_preview, is_published, duration_seconds))`

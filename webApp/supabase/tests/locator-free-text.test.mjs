@@ -87,7 +87,6 @@ const COLUMNAS = [
   ['courses.intro',                (v) => [`update public.courses set intro = $1 where id = $2`, [v, ID.courseA]]],
   ['courses.discipline',           (v) => [`update public.courses set discipline = $1 where id = $2`, [v, ID.courseA]]],
   ['courses.level',                (v) => [`update public.courses set level = $1 where id = $2`, [v, ID.courseA]]],
-  ['courses.roman_num',            (v) => [`update public.courses set roman_num = $1 where id = $2`, [v, ID.courseA]]],
   // Encontrada por el caso 5 de este mismo archivo, no por la lectura del esquema: la primera
   // version del barrido a mano se la habia salteado. Es exactamente el olvido que el invariante existe para atrapar.
   ['courses.moon_glyph',           (v) => [`update public.courses set moon_glyph = $1 where id = $2`, [v, ID.courseA]]],

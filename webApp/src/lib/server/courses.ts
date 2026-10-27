@@ -15,7 +15,6 @@ export interface PublishedCourseSummary {
   level: string;
   priceCents: number;
   currency: string;
-  romanNum: string | null;
   moonGlyph: string | null;
   featured: boolean;
   teacherName: string;
@@ -105,7 +104,6 @@ interface PublishedCourseRow {
   level: string;
   price_cents: number;
   currency: string;
-  roman_num: string | null;
   moon_glyph: string | null;
   featured: boolean;
   cover_path: string | null;
@@ -163,7 +161,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
     .from("courses")
     .select(
       `id, published_at, slug, title, title_em, subtitle, intro, discipline, level, price_cents,
-       currency, roman_num, moon_glyph, featured, cover_path,
+       currency, moon_glyph, featured, cover_path,
        teacher:profiles!courses_teacher_id_fkey(full_name, bio),
        course_modules(lessons(duration_seconds, is_published))`
     )
@@ -209,7 +207,6 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       level: row.level,
       priceCents: row.price_cents,
       currency: row.currency,
-      romanNum: row.roman_num,
       moonGlyph: row.moon_glyph,
       featured: row.featured,
       teacherName: teacher?.full_name ?? "—",
