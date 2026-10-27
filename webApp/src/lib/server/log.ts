@@ -6,10 +6,24 @@ type Level = "info" | "warn" | "error";
 // Claves cuyo valor jamas debe llegar a un log, sea cual sea el nivel de anidado.
 const SENSITIVE = /(api_?key|token|secret|password|passwd|authorization|cookie|^code$|^jwt$|service_role)/i;
 
+// D-48 · Redaccion por VALOR, no solo por clave: un JWT o el mail de la alumna llegan adentro de
+// `err.message`/`stack` (SMTP y Resend repiten el destinatario), bajo claves inocentes.
+const JWT = /\beyJ[A-Za-z0-9_-]{5,}(?:\.[A-Za-z0-9_-]*){0,2}/g;
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
+
+function redactValue(s: string): string {
+  return s.replace(JWT, "[redacted-jwt]").replace(EMAIL, "[redacted-email]");
+}
+
 function serialize(value: unknown, seen: WeakSet<object>): unknown {
   if (value instanceof Error) {
-    return { name: value.name, message: value.message, stack: value.stack };
+    return {
+      name: value.name,
+      message: redactValue(value.message),
+      stack: value.stack === undefined ? undefined : redactValue(value.stack),
+    };
   }
+  if (typeof value === "string") return redactValue(value);
   if (typeof value === "bigint") return value.toString();
   if (typeof value !== "object" || value === null) return value;
   if (seen.has(value)) return "[circular]";

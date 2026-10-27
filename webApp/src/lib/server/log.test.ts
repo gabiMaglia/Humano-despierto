@@ -67,6 +67,35 @@ describe("log", () => {
     expect(l.nested.ok).toBe("visible");
   });
 
+  it("D-48: redacta por valor JWT y mails, tambien dentro de err.message y stack", async () => {
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJh";
+    const smtp = new Error(`550 5.1.1 <alumna.perez+t@gmail.com>: Recipient address rejected (${jwt})`);
+    await log.error("mail_send_failed", {
+      err: smtp,
+      detail: `Bearer ${jwt}`,
+      nested: { to: ["Sol <sol@humano.com.ar>"], ok: "visible sin arroba" },
+      partial: "eyJhbGciOiJIUzI1NiJ9",
+    });
+    const raw = err.mock.calls[0][0] as string;
+    for (const s of ["alumna.perez+t@gmail.com", "sol@humano.com.ar", "eyJhbGci", "eyJzdWIi"]) expect(raw).not.toContain(s);
+    const l = JSON.parse(raw);
+    expect(l.err.message).toContain("[redacted-email]");
+    expect(l.err.message).toContain("[redacted-jwt]");
+    expect(l.err.message).toContain("Recipient address rejected");
+    expect(l.err.stack).not.toContain("gmail.com");
+    expect(l.detail).toBe("Bearer [redacted-jwt]");
+    expect(l.nested.to[0]).toBe("Sol <[redacted-email]>");
+    expect(l.nested.ok).toBe("visible sin arroba");
+  });
+
+  it("D-48: no redacta lo que solo se parece (ids, paths, prosa)", async () => {
+    await log.info("x", { path: "covers/123/a.webp", id: "40000000-0000-4000-8000-00000000000a", msg: "eyeJ no es jwt; a@b no es mail" });
+    const l = lineOf(out);
+    expect(l.path).toBe("covers/123/a.webp");
+    expect(l.id).toBe("40000000-0000-4000-8000-00000000000a");
+    expect(l.msg).toBe("eyeJ no es jwt; a@b no es mail");
+  });
+
   it("los campos no pisan ts, level, event ni request_id", async () => {
     await log.info("real", { level: "fake", event: "fake", request_id: "fake", ts: "fake" });
     expect(lineOf(out)).toMatchObject({ level: "info", event: "real", request_id: null });
