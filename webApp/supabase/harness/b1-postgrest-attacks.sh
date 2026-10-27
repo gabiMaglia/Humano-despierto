@@ -24,6 +24,15 @@ tok() {
     -H "Content-Type: application/json" -d "{\"email\":\"$1\",\"password\":\"$PASS\"}" |
     python3 -c "import sys,json;print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null
 }
+# D-30 (T-080) · TODO actor tiene que autenticar. Antes solo se miraba el JWT de la alumna: si
+# fallaba el de otro, quedaba un bearer vacio, PostgREST lo trataba como anon y los ataques
+# "rechazados" eran falsos OK. Un verificador que no pudo armar sus actores NO corrio: sale 2.
+exigir_jwt() {
+  [ -n "$2" ] && return 0
+  echo "no pude autenticar a $1; ¿está levantado el stack? (B-1 NO corrió)"
+  exit 2
+}
+
 # Usuarios PROPIOS de este script, con prefijo b1-. Nacieron de que el stack local
 # es compartido (D-07) y los fixtures de todos rompieron esta suite tres veces: un
 # ticket le cambió la contraseña al usuario que usaba, otro le sembró una inscripción,
@@ -85,7 +94,7 @@ echo "── preparando actores y contenido"
 alta "b1-alumna@test.local" '{"role":"admin"}' student   # manda role=admin en el signup a propósito
 alta "b1-docente@test.local" '' teacher
 ALUMNA_JWT=$(tok "b1-alumna@test.local"); DOCENTE_JWT=$(tok "b1-docente@test.local")
-[ -z "$ALUMNA_JWT" ] && { echo "no pude autenticar; ¿está levantado el stack?"; exit 2; }
+exigir_jwt alumna "$ALUMNA_JWT"; exigir_jwt docente "$DOCENTE_JWT"
 ALUMNA=$(q "select id from auth.users where email='b1-alumna@test.local';")
 DOCENTE=$(q "select id from auth.users where email='b1-docente@test.local';")
 x "insert into public.courses (slug,title,discipline,level,price_cents,teacher_id,status)
@@ -163,6 +172,7 @@ echo "── T-028 · resenas: escribir exige inscripcion activa, y la guia resp
 # Actora PROPIA e inscripta: b1-alumna tiene que seguir SIN inscripcion para los ataques de arriba.
 alta "b1-resenadora@test.local" '' student
 RESENADORA_JWT=$(tok "b1-resenadora@test.local")
+exigir_jwt b1-resenadora@test.local "$RESENADORA_JWT"
 RESENADORA=$(q "select id from auth.users where email='b1-resenadora@test.local';")
 x "insert into public.enrollments (user_id,course_id,status)
    select '$RESENADORA','$CURSO','active'
@@ -204,6 +214,7 @@ echo "── T-037 · reportes y moderacion (ADR-012 c.8) y D-20"
 alta "b1-admin@test.local" '' admin
 alta "b1-docente-b@test.local" '' teacher
 ADMIN_JWT=$(tok "b1-admin@test.local"); DOCENTE_B_JWT=$(tok "b1-docente-b@test.local")
+exigir_jwt b1-admin@test.local "$ADMIN_JWT"; exigir_jwt b1-docente-b@test.local "$DOCENTE_B_JWT"
 ADMIN=$(q "select id from auth.users where email='b1-admin@test.local';")
 DOCENTE_B=$(q "select id from auth.users where email='b1-docente-b@test.local';")
 RESENA=$(q "select id from public.course_reviews where user_id='$RESENADORA' and course_id='$CURSO';")
@@ -320,6 +331,7 @@ echo ""
 echo "── T-047 · portada de curso (y cierre de D-34 en covers/)"
 alta "b1-docente2@test.local" '' teacher
 DOCENTE2_JWT=$(tok "b1-docente2@test.local")
+exigir_jwt b1-docente2@test.local "$DOCENTE2_JWT"
 PORTADA="covers/$CURSO/$AVATAR_F.png"
 OTRO_ID=$(q "select gen_random_uuid();")
 # PostgREST: pertenencia por CHECK (400 = 23514) y fila por RLS (204 silencioso, se afirma la DB).
@@ -571,6 +583,7 @@ echo "── T-043 · inscripcion por solicitud: la alumna pide, no se activa"
 # Actora PROPIA: b1-alumna tiene que terminar sin fila en curso-ajeno (lo afirma el bloque final).
 alta "b1-solicitante@test.local" '' student
 SOLICITANTE_JWT=$(tok "b1-solicitante@test.local")
+exigir_jwt b1-solicitante@test.local "$SOLICITANTE_JWT"
 SOLICITANTE=$(q "select id from auth.users where email='b1-solicitante@test.local';")
 x "delete from public.enrollments where user_id='$SOLICITANTE' and course_id='$CURSO';"
 x "insert into public.courses (slug,title,discipline,level,price_cents,teacher_id,status)
@@ -621,6 +634,7 @@ afirmar() {  # $1 rotulo · $2 obtenido · $3 esperado
 alta "b1-preguntona@test.local" '' student
 alta "b1-curiosa@test.local" '' student
 PREG_JWT=$(tok "b1-preguntona@test.local"); CUR_JWT=$(tok "b1-curiosa@test.local")
+exigir_jwt b1-preguntona@test.local "$PREG_JWT"; exigir_jwt b1-curiosa@test.local "$CUR_JWT"
 PREG=$(q "select id from auth.users where email='b1-preguntona@test.local';")
 CUR=$(q "select id from auth.users where email='b1-curiosa@test.local';")
 for U in "$PREG" "$CUR"; do
@@ -723,7 +737,9 @@ alta "b1-anuncios-inscripta@test.local" '' student
 alta "b1-anuncios-ajena@test.local" '' teacher
 alta "b1-anuncios-admin@test.local" '' admin
 INSC_JWT=$(tok "b1-anuncios-inscripta@test.local"); AJENA_JWT=$(tok "b1-anuncios-ajena@test.local")
+exigir_jwt b1-anuncios-inscripta@test.local "$INSC_JWT"; exigir_jwt b1-anuncios-ajena@test.local "$AJENA_JWT"
 ADM_JWT=$(tok "b1-anuncios-admin@test.local")
+exigir_jwt b1-anuncios-admin@test.local "$ADM_JWT"
 INSC=$(q "select id from auth.users where email='b1-anuncios-inscripta@test.local';")
 AJENA=$(q "select id from auth.users where email='b1-anuncios-ajena@test.local';")
 ADM=$(q "select id from auth.users where email='b1-anuncios-admin@test.local';")
@@ -845,6 +861,7 @@ RPC_DENIED=${RPC_DENIED:-403}
 alta "b1-admin@test.local" '' admin
 alta "b1-invitada@test.local" '' student
 INVITADA_JWT=$(tok "b1-invitada@test.local")
+exigir_jwt b1-invitada@test.local "$INVITADA_JWT"
 INVITADA=$(q "select id from auth.users where email='b1-invitada@test.local';")
 B1_ADMIN=$(q "select id from auth.users where email='b1-admin@test.local';")
 B1_TOKEN="b1-t049-$(printf 'A%.0s' $(seq 1 35))"
