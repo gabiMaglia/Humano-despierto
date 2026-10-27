@@ -1,10 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
-import SignedImage from "@/components/atoms/SignedImage";
+import CourseCover from "@/components/atoms/CourseCover";
 import Rating from "@/components/atoms/Rating";
 import WishlistButton from "@/components/course/WishlistButton";
-import { placeholderForDiscipline, unsplashUrl } from "@/content/placeholder-photos";
 
 export interface CourseCardData {
   /** Disciplina: elige la foto de muestra cuando el curso no tiene portada. */
@@ -42,29 +40,17 @@ export default function CourseCard({
   tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl, hasPreview,
   className, wishlist, eager,
 }: Props) {
-  const placeholder = placeholderForDiscipline(tag);
   return (
     <div className={cn("group relative h-full", className)}>
       <Link href={`/cursos/${slug}`} className="relative flex h-full flex-col pb-[88px]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-salvia">
-          {coverUrl ? (
-            // alt vacío: el h3 ya nombra el curso; leerlo dos veces es ruido.
-            <SignedImage
-              src={coverUrl}
-              alt=""
-              loading={eager ? "eager" : "lazy"}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            />
-          ) : (
-            <Image
-              src={unsplashUrl(placeholder.id)}
-              alt=""
-              fill
-              loading={eager ? "eager" : "lazy"}
-              sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            />
-          )}
+          <CourseCover
+            coverUrl={coverUrl}
+            discipline={tag}
+            eager={eager}
+            sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
+            className="transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
           {featured && (
             <span className="absolute left-3 top-3 rounded-pill bg-miel-100 px-3 py-1 text-xs font-semibold text-miel-800">
               Destacado

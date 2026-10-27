@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
+import { signUploadUrls } from "@/lib/server/uploads";
 import { progressPercent as progressPercentOf } from "@/lib/utils/progress";
 
 export interface StudentCourseAccess {
@@ -27,6 +29,8 @@ export interface DashboardCourse {
   lastSeenAt: string | null;
   /** T-033 · para ordenar los cursos sin progreso (el orden por último acceso lo arma `lib/learning/tabs`). */
   enrolledAt: string;
+  /** URL firmada de la portada; null sin portada (la vista usa la foto de muestra de su disciplina). */
+  coverUrl: string | null;
 }
 
 export interface StudentRequest {
@@ -84,6 +88,7 @@ interface DashboardCourseRow {
   level: string;
   roman_num: string | null;
   moon_glyph: string | null;
+  cover_path: string | null;
   teacher: DashboardTeacherRow | DashboardTeacherRow[] | null;
   course_modules: DashboardModuleRow[] | null;
 }
@@ -239,7 +244,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
     .select(
       `course_id, enrolled_at,
        course:courses(
-         id, slug, title, title_em, discipline, level, roman_num, moon_glyph,
+         id, slug, title, title_em, discipline, level, roman_num, moon_glyph, cover_path,
          teacher:profiles!courses_teacher_id_fkey(full_name),
          course_modules(position, lessons(id, position, is_published))
        )`
@@ -266,6 +271,13 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
   if (progressError) {
     throw new Error(`No se pudo leer el progreso: ${progressError.message}`);
   }
+
+  // La sesión no puede firmar en `uploads` (la policy de covers es sólo de la dueña): firma
+  // service_role, y sólo paths de filas que RLS ya le devolvió a esta alumna por su inscripción.
+  const covers = await signUploadUrls(
+    createServiceRoleClient(),
+    rows.map((r) => firstOf(r.course)?.cover_path ?? null),
+  );
 
   const progressByCourse = new Map<string, ProgressRow[]>();
   for (const p of (progressRows ?? []) as ProgressRow[]) {
@@ -327,6 +339,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
         continueLessonId,
         lastSeenAt,
         enrolledAt: row.enrolled_at,
+        coverUrl: course.cover_path ? (covers.get(course.cover_path) ?? null) : null,
       };
       return dashboardCourse;
     })
