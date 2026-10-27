@@ -57,9 +57,9 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 | Area | State |
 |------|-------|
 | `webApp/src` | **~22.4k LOC** (non-test). 33 routes (`page.tsx`), 131 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tests: Vitest (745 unit tests in 95 files, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 36 migrations (last `0037`; `0032` applies before `0031` by timestamp, independent), 22 tables, RLS + per-column grants + guard triggers, 825 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.sql`, **local only**. |
+| `webApp/supabase` | **Schema live.** 36 migrations (last `0037`; `0032` applies before `0031` by timestamp, independent), 22 tables, RLS + per-column grants + guard triggers, 825 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.fixtures.sql`, content seed in `seed.sql`, demo data in `demo.sql`: all **local only**, never run in the cloud (see `webApp/supabase/README.md`). |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
-| `packages/tokens` | 763 LOC of the old Cosmos palette — **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
+| `packages/tokens` | 763 LOC of the old Cosmos palette (marked historical in its README, D-66) — **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
 | `design_handoff_humano_humano/` | Real. `reference/brote/` (current visual reference, ADR-015); `reference/hifi/` and `reference/design-system/` are the historical Cosmos spec. Never ships. |
 
