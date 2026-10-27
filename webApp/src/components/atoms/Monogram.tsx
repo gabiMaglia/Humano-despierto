@@ -4,8 +4,8 @@ import { initials } from "@/lib/ui/initials";
 
 const SIZE = { sm: "text-base", md: "text-5xl", lg: "text-8xl" } as const;
 
-/** Lugar de la foto de una guía mientras no tengamos su avatar firmado (D-62): sus iniciales,
- *  nunca la cara de otra persona. Decorativo: el nombre ya está escrito al lado. */
+/** Lugar de la foto de una guía que no subió avatar: sus iniciales, nunca la cara de otra persona.
+ *  Decorativo: el nombre ya está escrito al lado. Se usa a través de `TeacherPortrait`. */
 export default function Monogram({
   name,
   size = "md",

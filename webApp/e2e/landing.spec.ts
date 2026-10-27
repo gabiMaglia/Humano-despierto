@@ -11,6 +11,10 @@ const OCULTA = "Landing e2e: reseña oculta por admin";
 
 let courseId = "";
 
+// D-40 · la portada cachea conteos y testimonios 10 min, también en `next dev` (en disco, entre
+// corridas). Este spec siembra reseñas y tiene que verlas: `no-cache` hace que dev no lea esa caché.
+test.use({ extraHTTPHeaders: { "cache-control": "no-cache" } });
+
 test.beforeAll(async ({ request }) => {
   test.skip(!SERVICE, "falta SUPABASE_SERVICE_ROLE_KEY (webApp/.env.local)");
   await assertStackUp(request);

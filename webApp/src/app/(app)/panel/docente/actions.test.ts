@@ -4,22 +4,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { rateLimitSubject } = vi.hoisted(() => ({ rateLimitSubject: vi.fn() }));
 vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: rateLimitSubject }));
 
-const { createClient, createServiceRoleClient, requireTeacher, assertOwnsCourse, redirect } = vi.hoisted(() => ({
+const { createClient, createServiceRoleClient, requireTeacher, assertOwnsCourse, redirect, revalidateTag } = vi.hoisted(() => ({
   createClient: vi.fn(),
   createServiceRoleClient: vi.fn(),
   requireTeacher: vi.fn(),
   assertOwnsCourse: vi.fn(),
   redirect: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/supabase/service", () => ({ createServiceRoleClient }));
 vi.mock("@/lib/server/teacher", () => ({ requireTeacher, assertOwnsCourse }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag }));
 vi.mock("next/navigation", () => ({ redirect }));
 
-import { deleteCourseAction } from "./actions";
+import { createCourseAction, deleteCourseAction, setCoursePublishedAction, updateCourseAction } from "./actions";
 import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
 
 beforeEach(() => {
@@ -76,5 +77,87 @@ describe("deleteCourseAction · portada (T-047)", () => {
     setup({ cover: null });
     await deleteCourseAction(INITIAL, form());
     expect(createServiceRoleClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("course actions · error por campo (D-100)", () => {
+  function courseForm(overrides: Record<string, string> = {}) {
+    const fd = new FormData();
+    const base: Record<string, string> = {
+      courseId: COURSE, slug: "tarot-iniciatico", title: "Tarot", discipline: "Tarot", level: "Inicial", price: "240", currency: "ARS", language: "es",
+    };
+    for (const [k, v] of Object.entries({ ...base, ...overrides })) fd.set(k, v);
+    return fd;
+  }
+
+  beforeEach(() => {
+    createClient.mockReset();
+    requireTeacher.mockReset().mockResolvedValue({ id: "t", role: "teacher" });
+    assertOwnsCourse.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("un campo inválido vuelve con su nombre, sin tocar la base", async () => {
+    const r = await createCourseAction(INITIAL, courseForm({ price: "doscientos" }));
+    expect(r).toMatchObject({ field: "price", error: "El precio es un número (ej: 240 o 240.00)." });
+    const u = await updateCourseAction(INITIAL, courseForm({ promoVideoId: "https://youtu.be/x" }));
+    expect(u.field).toBe("promoVideoId");
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("un slug repetido (23505) marca el slug", async () => {
+    const dup = { error: { code: "23505", message: "duplicate key" } };
+    createClient.mockResolvedValue({
+      from: () => ({
+        insert: () => ({ select: () => ({ single: async () => ({ data: null, ...dup }) }) }),
+        update: () => ({ eq: async () => dup }),
+      }),
+    });
+    expect((await createCourseAction(INITIAL, courseForm())).field).toBe("slug");
+    expect((await updateCourseAction(INITIAL, courseForm())).field).toBe("slug");
+  });
+
+  it("un error que no es de un campo no inventa uno", async () => {
+    createClient.mockResolvedValue({
+      from: () => ({ update: () => ({ eq: async () => ({ error: { code: "42501", message: "locator" } }) }) }),
+    });
+    const r = await updateCourseAction(INITIAL, courseForm());
+    expect(r.error).toBeTruthy();
+    expect(r.field).toBeUndefined();
+  });
+});
+
+describe("setCoursePublishedAction · portada (DT2)", () => {
+  beforeEach(() => {
+    createClient.mockReset();
+    createServiceRoleClient.mockReset();
+    revalidateTag.mockReset();
+    requireTeacher.mockReset().mockResolvedValue({ id: "t", role: "teacher" });
+    assertOwnsCourse.mockReset().mockResolvedValue(undefined);
+  });
+
+  function publishForm(nextStatus: string) {
+    const fd = new FormData();
+    fd.set("courseId", COURSE);
+    fd.set("nextStatus", nextStatus);
+    return fd;
+  }
+
+  it.each(["published", "draft"])("pasar a %s invalida la caché de la portada", async (nextStatus) => {
+    createClient.mockResolvedValue({
+      from: () => ({ select: () => ({ eq: async () => ({ count: 1, error: null }) }) }),
+    });
+    createServiceRoleClient.mockReturnValue({ from: () => ({ update: () => ({ eq: async () => ({ error: null }) }) }) });
+    const r = await setCoursePublishedAction(INITIAL, publishForm(nextStatus));
+    expect(r.error).toBeNull();
+    expect(revalidateTag).toHaveBeenCalledWith("landing", { expire: 0 });
+  });
+
+  it("si no se pudo publicar, la portada no se toca", async () => {
+    createClient.mockResolvedValue({
+      from: () => ({ select: () => ({ eq: async () => ({ count: 0, error: null }) }) }),
+    });
+    const r = await setCoursePublishedAction(INITIAL, publishForm("published"));
+    expect(r.error).toMatch(/al menos un módulo/);
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });

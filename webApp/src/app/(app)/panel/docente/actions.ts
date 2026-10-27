@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { revalidateLanding } from "@/lib/server/landing-cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { requireTeacher, assertOwnsCourse } from "@/lib/server/teacher";
@@ -10,12 +11,17 @@ import {
   courseFormSchema,
   priceToCents,
   includesToArray,
-  firstIssueMessage,
+  firstIssue,
 } from "@/lib/validation/teacher";
 import type { TeacherActionState } from "@/lib/teacher/action-state";
 import { log } from "@/lib/server/log";
 import { withRateLimit } from "@/lib/server/rate-limit";
 import { limitedState } from "@/lib/rate-limit/core";
+
+function invalid(error: Parameters<typeof firstIssue>[0]): TeacherActionState {
+  const { field, message } = firstIssue(error);
+  return { error: message, success: null, ...(field ? { field } : {}) };
+}
 
 function readCourseForm(formData: FormData) {
   return courseFormSchema.safeParse({
@@ -50,9 +56,7 @@ export const createCourseAction = withRateLimit(
   ): Promise<TeacherActionState> {
     const teacher = await requireTeacher();
     const parsed = readCourseForm(formData);
-    if (!parsed.success) {
-      return { error: firstIssueMessage(parsed.error), success: null };
-    }
+    if (!parsed.success) return invalid(parsed.error);
     const v = parsed.data;
 
     let newCourseId: string | null = null;
@@ -84,7 +88,7 @@ export const createCourseAction = withRateLimit(
 
       if (error) {
         if (error.code === "23505") {
-          return { error: "Ya existe un curso con ese slug. Elegí otro.", success: null };
+          return { error: "Ya existe un curso con ese slug. Elegí otro.", success: null, field: "slug" };
         }
         // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
         // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
@@ -117,7 +121,7 @@ export const updateCourseAction = withRateLimit(
     if (!courseId) return { error: "Falta el curso.", success: null };
 
     const parsed = readCourseForm(formData);
-    if (!parsed.success) return { error: firstIssueMessage(parsed.error), success: null };
+    if (!parsed.success) return invalid(parsed.error);
     const v = parsed.data;
 
     try {
@@ -146,7 +150,7 @@ export const updateCourseAction = withRateLimit(
         .eq("id", courseId);
 
       if (error) {
-        if (error.code === "23505") return { error: "Ya existe un curso con ese slug.", success: null };
+        if (error.code === "23505") return { error: "Ya existe un curso con ese slug.", success: null, field: "slug" };
         // El 42501 lo levanta `guard_locator_exacto` (0025), no Zod: la coincidencia EXACTA de
         // ADR-009 necesita CONSULTAR `lessons`, asi que ningun schema del cliente puede replicarla.
         // Sin esta traduccion la docente ve un error crudo del motor.
@@ -162,6 +166,8 @@ export const updateCourseAction = withRateLimit(
 
     revalidatePath(`/panel/docente/cursos/${courseId}`);
     revalidatePath("/panel/docente");
+    // Disciplina y título de un publicado salen en la portada (disciplinas, firma de testimonios).
+    revalidateLanding();
     return { error: null, success: "Curso actualizado." };
   },
   limitedState,
@@ -258,6 +264,7 @@ export const setCoursePublishedAction = withRateLimit(
     revalidatePath(`/panel/docente/cursos/${courseId}`);
     revalidatePath("/panel/docente");
     revalidatePath("/cursos");
+    revalidateLanding();
     return {
       error: null,
       success: nextStatus === "published" ? "Curso publicado." : "Curso pasado a borrador.",

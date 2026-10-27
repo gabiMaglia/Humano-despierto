@@ -5,7 +5,7 @@ const { rateLimitSubject } = vi.hoisted(() => ({ rateLimitSubject: vi.fn() }));
 vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: rateLimitSubject }));
 import { argsOf, queryChain } from "@/test/query-chain";
 
-const { getCurrentUser, getAdminSupabaseClient, notifyEnrollmentActivated, notifyEnrollmentRejected, revalidatePath, resolveGrantTarget } =
+const { getCurrentUser, getAdminSupabaseClient, notifyEnrollmentActivated, notifyEnrollmentRejected, revalidatePath, revalidateTag, resolveGrantTarget } =
   vi.hoisted(() => ({
     resolveGrantTarget: vi.fn(),
     getCurrentUser: vi.fn(),
@@ -13,11 +13,12 @@ const { getCurrentUser, getAdminSupabaseClient, notifyEnrollmentActivated, notif
     notifyEnrollmentActivated: vi.fn(),
     notifyEnrollmentRejected: vi.fn(),
     revalidatePath: vi.fn(),
+    revalidateTag: vi.fn(),
   }));
 vi.mock("@/lib/server/auth", () => ({ getCurrentUser }));
 vi.mock("@/lib/server/supabase-admin", () => ({ getAdminSupabaseClient }));
 vi.mock("@/lib/server/mail/notify", () => ({ notifyEnrollmentActivated, notifyEnrollmentRejected }));
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ revalidatePath, revalidateTag }));
 vi.mock("@/lib/server/enrollment-grant", () => ({ resolveGrantTarget }));
 
 import {
@@ -26,6 +27,7 @@ import {
   grantEnrollmentByEmailAction,
   hideReviewAction,
   rejectEnrollmentRequestAction,
+  setCourseStatusAction,
   setEnrollmentAction,
   unhideReviewAction,
 } from "./actions";
@@ -185,6 +187,8 @@ describe("hideReviewAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/cursos/[slug]", "page");
     expect(revalidatePath).toHaveBeenCalledWith("/cursos");
     expect(revalidatePath).toHaveBeenCalledWith("/panel/admin/resenas");
+    // DT2 · el testimonio oculto sale de la portada ya, no a los 10 min de la caché.
+    expect(revalidateTag).toHaveBeenCalledWith("landing", { expire: 0 });
   });
 
   it.each([
@@ -206,6 +210,7 @@ describe("hideReviewAction", () => {
     expect(out.error).toMatch(msg);
     expect(out.error).not.toMatch(/detalle interno/);
     expect(revalidatePath).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });
 
@@ -215,6 +220,7 @@ describe("unhideReviewAction", () => {
     const out = await unhideReviewAction(REVIEW, INICIAL, form({}));
     expect(rpc).toHaveBeenCalledWith("moderate_unhide_review", { p_review_id: REVIEW, p_admin_id: ADMIN.id });
     expect(out.success).toBe("La reseña vuelve a estar visible.");
+    expect(revalidateTag).toHaveBeenCalledWith("landing", { expire: 0 });
   });
 
   it("si no estaba oculta lo dice", async () => {
@@ -268,5 +274,20 @@ describe("grantEnrollmentByEmailAction", () => {
       success: null,
     });
     expect(getAdminSupabaseClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("setCourseStatusAction · portada (DT2)", () => {
+  it("archivar o publicar invalida la caché de la portada", async () => {
+    dbReturning({ error: null });
+    const out = await setCourseStatusAction(INICIAL, form({ courseId: COURSE, status: "archived" }));
+    expect(out.error).toBeNull();
+    expect(revalidateTag).toHaveBeenCalledWith("landing", { expire: 0 });
+  });
+
+  it("si la base falla no invalida nada", async () => {
+    dbReturning({ error: { message: "boom" } });
+    await setCourseStatusAction(INICIAL, form({ courseId: COURSE, status: "archived" }));
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });

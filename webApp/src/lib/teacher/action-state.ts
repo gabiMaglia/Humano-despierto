@@ -11,6 +11,18 @@ import type { RateLimitFields } from "@/lib/rate-limit/core";
 export interface TeacherActionState extends RateLimitFields {
   error: string | null;
   success: string | null;
+  /** `name` del campo culpable de `error`; ausente si el error es del formulario entero (D-100). */
+  field?: string;
 }
 
 export const TEACHER_ACTION_INITIAL_STATE: TeacherActionState = { error: null, success: null };
+
+/** El error de `state` si es de este campo; si no, null. */
+export function fieldError(state: TeacherActionState, field: string): string | null {
+  return state.field === field ? state.error : null;
+}
+
+/** El error que no es de ningún campo: el que va junto al botón. */
+export function formError(state: TeacherActionState): string | null {
+  return state.field ? null : state.error;
+}

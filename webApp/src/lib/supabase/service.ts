@@ -8,7 +8,8 @@ import { createClient } from "@supabase/supabase-js";
  * (`courses.status`, `lessons.is_published`/`duration_seconds`, `enrollments`,
  * `profiles.role`) — ADR-003 regla A. También firma el avatar de la ficha pública
  * (`/guias/[slug]`, T-042), nunca lee datos de `profiles`; firma las portadas de cursos
- * PUBLICADOS (`signPublicUploadUrls`, T-047); y es el único que sube a `uploads` (D-34: avatar y
+ * PUBLICADOS (`signPublicUploadUrls`, T-047) y las de los cursos en los que la alumna tiene inscripción
+ * activa, con el path leído por su sesión (`getStudentDashboard`, D-90); y es el único que sube a `uploads` (D-34: avatar y
  * portada, después de validar bytes y titularidad) y el que borra la portada de un curso recién
  * borrado (`deleteCourseAction`). Lee los bytes de la portada de un curso PUBLICADO para su
  * imagen Open Graph (`loadCoverForOg`, T-052; el path sale de la fila, nunca del request).

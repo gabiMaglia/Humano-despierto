@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Icon, { type IconName } from "@/components/atoms/Icon";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import Rating from "@/components/atoms/Rating";
 import SectionHeading from "@/components/atoms/SectionHeading";
 import SignedImage from "@/components/atoms/SignedImage";
@@ -18,6 +18,7 @@ import { COURSE_FAQ } from "@/content/landing";
 import { placeholderForDiscipline, unsplashUrl } from "@/content/placeholder-photos";
 import { visibleDescription } from "@/lib/catalog/description";
 import { firstPreviewLesson } from "@/lib/catalog/free-class";
+import { enrollmentPanelCopy } from "@/lib/enrollment/panel-copy";
 import { getCourseAnnouncements } from "@/lib/server/announcements";
 import { getCourseBySlug } from "@/lib/server/courses";
 import { getStudentCourseAccess, getStudentEnrollmentState } from "@/lib/server/enrollment";
@@ -70,6 +71,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
   const fullTitle = [course.title, course.titleEm].filter(Boolean).join(" ");
   const preview = firstPreviewLesson(course.modules);
+  const panel = enrollmentPanelCopy(enrollment);
   const placeholder = placeholderForDiscipline(course.discipline);
   const incluye: { icon: IconName; text: string }[] = [
     ...(course.lessonCount > 0
@@ -145,16 +147,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             )}
           </div>
           <div className="p-6">
-            <h2 className="text-xl">Pedir la inscripción</h2>
+            <h2 className="text-xl">{panel.title}</h2>
             <Rating average={reviews.summary.average} count={reviews.summary.total} className="mt-1.5" />
             <p className="mb-1 mt-4 text-[30px] font-extrabold leading-none tracking-[-0.02em] text-bosque">
               {formatPriceCents(course.priceCents, course.currency)}
             </p>
-            <p className="mb-5 mt-3 text-sm leading-normal text-suave">
-              Pedís la inscripción, la escuela la revisa y te avisa por mail cuando el curso está habilitado en tu panel.
-            </p>
+            {panel.lead && <p className="mt-3 text-sm leading-normal text-suave">{panel.lead}</p>}
             {/* "Hablar con una guía antes" se quitó (T-043): no hay canal y un mailto expondría el mail de la docente. */}
-            <EnrollmentCta slug={course.slug} state={enrollment} />
+            <div className="mt-5">
+              <EnrollmentCta slug={course.slug} state={enrollment} />
+            </div>
             {enrollment.status !== "active" && (
               <div className="mt-4 flex items-center gap-3">
                 <WishlistButton
@@ -273,8 +275,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           <section aria-labelledby="guia-titulo" className="rounded-lg bg-salvia-100 p-6 md:p-8">
             <h2 id="guia-titulo" className="sr-only">Quién enseña</h2>
             <div className="grid items-start gap-5 sm:grid-cols-[72px_1fr]">
-              {/* CourseDetail no trae avatar firmado (D-62): iniciales, nunca un retrato de stock. */}
-              <Monogram name={course.teacherName} className="h-[88px] w-[72px] rounded-md bg-papel" />
+              <TeacherPortrait name={course.teacherName} src={course.teacherAvatarUrl} className="h-[88px] w-[72px] rounded-md bg-papel" />
               <div className="min-w-0">
                 <p className="text-sm text-suave">Enseña</p>
                 <p className="text-xl font-semibold text-bosque">{course.teacherName}</p>

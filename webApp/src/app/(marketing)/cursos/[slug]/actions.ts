@@ -2,6 +2,7 @@
 
 import type { RateLimitFields } from "@/lib/rate-limit/core";
 import { revalidatePath } from "next/cache";
+import { revalidateLanding } from "@/lib/server/landing-cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { noLocator } from "@/lib/validation/teacher";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/reviews/write.mjs";
 import {
   ENROLLMENT_COPY,
+  duplicateEnrollmentMessage,
   translateEnrollmentError,
   type EnrollmentRequestState,
 } from "@/lib/enrollment/messages";
@@ -67,6 +69,8 @@ export const saveReviewAction = withRateLimit(
     }
 
     revalidatePath(`/cursos/${slug}`);
+    // Una reseña de 5 con texto es candidata a testimonio de la portada.
+    revalidateLanding();
     return { error: null, success: created ? "Gracias por dejar tu reseña." : "Reseña actualizada." };
   },
   limitedState,
@@ -174,6 +178,16 @@ export const requestEnrollmentAction = withRateLimit(
     if (!course) return { error: ENROLLMENT_COPY.courseUnavailable, success: null };
 
     const { error } = await supabase.from("enrollments").insert({ user_id: uid, course_id: course.id });
+    if (error?.code === "23505") {
+      // `enrollments_read` sólo devuelve la fila propia; si la lectura falla, el texto genérico de duplicado.
+      const { data: existing } = await supabase
+        .from("enrollments")
+        .select("status")
+        .eq("course_id", course.id)
+        .eq("user_id", uid)
+        .maybeSingle();
+      return { error: duplicateEnrollmentMessage(existing?.status), success: null };
+    }
     if (error) return { error: translateEnrollmentError(error), success: null };
 
     revalidatePath(`/cursos/${slug}`);

@@ -1,10 +1,19 @@
 import Link from "next/link";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import Reveal from "@/components/layout/Reveal";
 import { LANDING } from "@/content/landing";
 import type { PublicTeacherCard } from "@/lib/server/guias";
 
-export default function GuiasSection({ guias, total }: { guias: PublicTeacherCard[]; total: number }) {
+export default function GuiasSection({
+  guias,
+  total,
+  avatars,
+}: {
+  guias: PublicTeacherCard[];
+  total: number;
+  /** path → URL firmada (`signTeacherAvatars`). */
+  avatars: Map<string, string>;
+}) {
   if (guias.length === 0) return null;
   const g = LANDING.guias;
   return (
@@ -19,8 +28,11 @@ export default function GuiasSection({ guias, total }: { guias: PublicTeacherCar
         <ul className="grid gap-7 md:grid-cols-3">
           {guias.map((guia, i) => (
             <Reveal as="li" key={guia.slug} delay={(i % 3) as 0 | 1 | 2} className="grid grid-cols-[96px_1fr] items-start gap-[18px]">
-              {/* Sin avatar firmado en PublicTeacherCard (D-62): iniciales, nunca un retrato de stock. */}
-              <Monogram name={guia.fullName} className="h-[120px] w-24 rounded-md" />
+              <TeacherPortrait
+                name={guia.fullName}
+                src={guia.avatarPath ? avatars.get(guia.avatarPath) : null}
+                className="h-[120px] w-24 rounded-md"
+              />
               <div className="min-w-0">
                 <h3 className="mb-1 text-lg">{guia.fullName}</h3>
                 {guia.discipline && <p className="mb-2 text-sm font-semibold text-miel-800">{guia.discipline}</p>}

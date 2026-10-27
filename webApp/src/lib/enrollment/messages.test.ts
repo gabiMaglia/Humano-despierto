@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ENROLLMENT_COPY, NO_ROWS, translateEnrollmentError } from "./messages";
+import { ENROLLMENT_COPY, NO_ROWS, duplicateEnrollmentMessage, translateEnrollmentError } from "./messages";
 
 describe("translateEnrollmentError", () => {
   it("23505 es una solicitud que ya existe (c.4)", () => {
@@ -32,5 +32,12 @@ describe("translateEnrollmentError", () => {
     const out = translateEnrollmentError({ code: "XX000", message: "detalle interno de postgres" });
     expect(out).toBe(ENROLLMENT_COPY.generic);
     expect(out).not.toContain("postgres");
+  });
+});
+
+describe("duplicateEnrollmentMessage (D-37)", () => {
+  it("sin estado legible cae en el texto de solicitud existente", () => {
+    expect(duplicateEnrollmentMessage(null)).toBe("Ya tenés una solicitud para este curso.");
+    expect(duplicateEnrollmentMessage("revoked")).toBe("Tu inscripción a este curso fue dada de baja.");
   });
 });

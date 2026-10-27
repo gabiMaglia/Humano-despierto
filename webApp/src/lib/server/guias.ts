@@ -3,6 +3,7 @@ import { cache } from "react";
 import { getPublicSupabaseClient } from "@/lib/server/supabase-public";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { signAvatarUrl } from "@/lib/server/avatar";
+import { signPublicUploadUrls } from "@/lib/server/uploads";
 
 // T-017 · lectura publica de la ficha de docente (`/guias`, `/guias/[slug]`, la seccion
 // "Maestra" de la landing). Reemplaza el mock `guia.ts`.
@@ -28,6 +29,8 @@ export interface PublicTeacherCard {
   yearsPractice: number | null;
   discipline: string | null;
   coursesCount: number;
+  /** El path, no la URL: `sitemap.ts` lee esta lista y no tiene por qué firmar. Firma `signTeacherAvatars`. */
+  avatarPath: string | null;
 }
 
 export interface PublicTeacherCourse {
@@ -123,6 +126,7 @@ function toCard(row: TeacherRow, courses: CourseRow[]): PublicTeacherCard {
     yearsPractice: row.years_practice,
     discipline: mostFrequent(own.map((c) => c.discipline)),
     coursesCount: own.length,
+    avatarPath: row.avatar_path,
   };
 }
 
@@ -180,4 +184,9 @@ export async function getFeaturedTeacher(): Promise<PublicTeacherCard | null> {
   return [...teachers].sort(
     (a, b) => b.coursesCount - a.coursesCount || a.slug.localeCompare(b.slug)
   )[0];
+}
+
+/** Una firma por página para las tarjetas que se dibujan. Los paths salen de fichas que `anon` ya lee. */
+export async function signTeacherAvatars(teachers: { avatarPath: string | null }[]): Promise<Map<string, string>> {
+  return signPublicUploadUrls(teachers.map((t) => t.avatarPath));
 }

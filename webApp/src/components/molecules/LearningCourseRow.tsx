@@ -1,6 +1,7 @@
 import { ButtonLink, buttonClass } from "@/components/atoms/Button";
 import ProgressBar from "@/components/atoms/ProgressBar";
 import Icon from "@/components/atoms/Icon";
+import CourseCover from "@/components/atoms/CourseCover";
 import { courseFullTitle } from "@/lib/ui/course-title";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type { DashboardCourse } from "@/lib/server/enrollment";
@@ -19,8 +20,11 @@ export default function LearningCourseRow({ course: c, certificateCode }: Props)
     // Completado se dice con fondo y etiqueta, no con opacidad (QA T-060 D2).
     <article
       aria-labelledby={`curso-${c.courseId}`}
-      className={`tarjeta grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-center md:gap-6 md:p-6 ${done ? "bg-salvia-100" : ""}`}
+      className={`tarjeta grid gap-4 p-5 md:grid-cols-[120px_minmax(0,1fr)_220px_auto] md:items-center md:gap-6 md:p-6 ${done ? "bg-salvia-100" : ""}`}
     >
+      <div className="relative aspect-[4/3] w-28 overflow-hidden rounded-md bg-salvia md:w-[120px]">
+        <CourseCover coverUrl={c.coverUrl} discipline={c.discipline} sizes="120px" />
+      </div>
       <div className="min-w-0">
         <p className="mb-1 text-sm font-semibold text-miel-800">
           {c.discipline} · {c.teacherName}

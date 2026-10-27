@@ -14,7 +14,7 @@ export interface ChainCall {
 export function queryChain(resolve: (calls: ChainCall[]) => unknown) {
   const calls: ChainCall[] = [];
   const chain: Record<string, unknown> = {};
-  for (const method of ["select", "insert", "update", "upsert", "eq", "neq", "in", "is", "order"]) {
+  for (const method of ["select", "insert", "update", "upsert", "eq", "neq", "in", "is", "order", "range"]) {
     chain[method] = vi.fn((...args: unknown[]) => {
       calls.push({ method, args });
       return chain;
