@@ -74,7 +74,8 @@ test("c.6 · el admin aprueba y la alumna abre una lección no-preview", async (
   await page.context().clearCookies();
   await login(page, ALUMNA);
   await page.goto("/panel");
-  const filaPanel = page.locator("article", { hasText: "Herbario" });
+  // Sin las tarjetas de "Novedades": el stack puede traer anuncios del curso, que también son <article>.
+  const filaPanel = page.locator("article:not(section[aria-label='Novedades de tus cursos'] article)", { hasText: "Herbario" });
   await expect(filaPanel).toHaveCount(1);
   // D-90 · la fila del panel lleva la foto del curso (portada o la de muestra de su disciplina).
   await expect(filaPanel.locator("img")).toHaveCount(1);
