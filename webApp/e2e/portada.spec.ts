@@ -49,7 +49,7 @@ test("c.1 + c.3 · la docente sube, la ve en catalogo y ficha, la reemplaza y la
     }
 
     await subir(page, { name: "portada.png", mimeType: "image/png", buffer: PNG_1X1 });
-    await expect(page.getByText("Portada actualizada.")).toBeVisible();
+    await expect(page.getByText("Portada actualizada.").first()).toBeVisible();
     // La duena la ve firmada con SU sesion (policy uploads_covers_select_own).
     await expect(page.getByRole("img", { name: /Portada de/ })).toHaveAttribute("src", FIRMADA);
 
@@ -64,13 +64,17 @@ test("c.1 + c.3 · la docente sube, la ve en catalogo y ficha, la reemplaza y la
     await expect(pub.getByRole("img", { name: /Portada del curso/ })).toHaveAttribute("src", FIRMADA);
 
     // Reemplazar: otra URL, y la anterior ya no abre (el objeto viejo se borro).
+    // D-45: el aviso de la primera subida sigue en pantalla, así que no sirve para saber que terminó
+    // la segunda. Se espera a que la portada del editor cambie de URL.
+    const editorImg = page.getByRole("img", { name: /Portada de/ }).first();
+    const antes = await editorImg.getAttribute("src");
     await subir(page, { name: "otra.png", mimeType: "image/png", buffer: PNG_1X1 });
-    await expect(page.getByText("Portada actualizada.")).toBeVisible();
+    await expect(editorImg).not.toHaveAttribute("src", antes!);
     await pub.goto(CATALOGO_TAROT);
     await expect(cardImg(pub)).toHaveAttribute("src", FIRMADA);
     const segunda = await cardImg(pub).getAttribute("src");
     expect(segunda).not.toBe(primera);
-    expect((await request.get(primera!)).status()).toBeGreaterThanOrEqual(400);
+    await expect.poll(async () => (await request.get(primera!)).status()).toBeGreaterThanOrEqual(400);
 
     // Quitar: vuelve el degradado, sin <img> en la card ni en la cabecera (c.3).
     await page.getByRole("button", { name: "Quitar portada" }).click();

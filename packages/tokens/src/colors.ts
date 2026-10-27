@@ -1,3 +1,4 @@
+// HISTORICO (D-66): paleta Cosmos, reemplazada por «Brote». Fuente vigente: webApp/src/styles/tokens.css.
 /**
  * Color tokens · Humano demasiado Humano
  *

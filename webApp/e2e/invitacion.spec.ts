@@ -1,7 +1,34 @@
 import type { Page } from "@playwright/test";
-import { expect, test, ALUMNA, assertStackUp } from "./fixtures";
+import { expect, test, ALUMNA, assertStackUp, userIdByEmail } from "./fixtures";
 import { ADMIN, PASSWORD, fillLogin, fillRegister, freshEmail, loginAt, register } from "./account";
 import { authLinkFor, invitationLinkFor } from "./mailpit";
+
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // Sin archivo: el skip de abajo lo dice.
+}
+const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const H = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` };
+
+// D-113: 5 mails por hora por admin con ventana fija. El spec hace 5 por corrida y no limpiaba su cubo:
+// dos corridas en la misma hora fallaban. Se vacía al entrar y al salir.
+async function limpiarCupo(request: import("@playwright/test").APIRequestContext): Promise<void> {
+  const uid = await userIdByEmail(request, ADMIN.email);
+  for (const accion of ["inviteTeacherAction", "resendInvitationAction", "revokeInvitationAction"]) {
+    await request.delete(`${SUPABASE}/rest/v1/rate_limit_buckets?key=eq.${accion}:u:${uid}`, { headers: H });
+  }
+}
+
+test.beforeAll(async ({ request }) => {
+  test.skip(!SERVICE, "falta SUPABASE_SERVICE_ROLE_KEY (webApp/.env.local)");
+  await limpiarCupo(request);
+});
+
+test.afterAll(async ({ request }) => {
+  if (SERVICE) await limpiarCupo(request);
+});
 
 async function invite(page: Page, email: string): Promise<void> {
   await loginAt(page, "/entrar", ADMIN.email, ADMIN.password);
