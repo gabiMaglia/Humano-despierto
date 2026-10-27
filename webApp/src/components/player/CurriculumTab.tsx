@@ -29,11 +29,9 @@ export default function CurriculumTab({ modules, currentCompleted }: Props) {
             <div className="flex items-start gap-3 bg-fondo px-4 py-3">
               <span className="w-5 flex-none pt-0.5 text-sm font-bold tabular-nums text-bosque">{String(m.position)}</span>
               <span className="flex-1 text-sm font-semibold leading-snug text-bosque">{m.title}</span>
-              <span
-                className="flex-none text-xs font-semibold tabular-nums text-suave"
-                aria-label={`${done} de ${m.lessons.length} completadas`}
-              >
-                {done}/{m.lessons.length}
+              <span className="flex-none text-xs font-semibold tabular-nums text-suave">
+                <span aria-hidden="true">{done}/{m.lessons.length}</span>
+                <span className="sr-only">{`${done} de ${m.lessons.length} completadas`}</span>
               </span>
             </div>
             {m.lessons.length > 0 && (

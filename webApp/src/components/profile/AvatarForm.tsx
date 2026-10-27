@@ -12,13 +12,12 @@ import { AVATAR_ACCEPT, exceedsAvatarLimit } from "@/lib/validation/image";
 
 interface Props {
   avatarUrl: string | null;
-  glyph: string | null;
   fullName: string;
 }
 
 const TOO_BIG = "La imagen pesa más de 2 MB.";
 
-export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
+export default function AvatarForm({ avatarUrl, fullName }: Props) {
   const [uploadState, uploadAction, uploading] = useActionState(uploadAvatarAction, ACTION_INITIAL_STATE);
   const [removeState, removeAction, removing] = useActionState(removeAvatarAction, ACTION_INITIAL_STATE);
   // Aviso temprano: por encima de 3 MB Next corta el body antes de la action con un error generico.
@@ -28,7 +27,7 @@ export default function AvatarForm({ avatarUrl, glyph, fullName }: Props) {
   return (
     <section aria-labelledby="avatar-title" className="tarjeta flex flex-col items-center gap-5 p-6 text-center">
       <h2 id="avatar-title" className="text-xl">Imagen</h2>
-      <Avatar size="xl" glyph={glyph} name={fullName} src={avatarUrl} alt={`Imagen de ${fullName}`} />
+      <Avatar size="xl" name={fullName} src={avatarUrl} alt={`Imagen de ${fullName}`} />
       <form action={uploadAction} className="flex w-full flex-col items-stretch gap-3 text-left">
         <label htmlFor="avatar" className="text-sm font-semibold text-tinta">
           Elegir imagen (JPG, PNG o WEBP, hasta 2 MB)

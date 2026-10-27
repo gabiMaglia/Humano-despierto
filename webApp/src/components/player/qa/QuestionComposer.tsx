@@ -6,6 +6,7 @@ import { QA_ACTION_INITIAL_STATE } from "@/lib/lesson-qa/action-state";
 import Button from "@/components/atoms/Button";
 import FormField from "@/components/molecules/FormField";
 import FormStatus from "@/components/molecules/FormStatus";
+import { cn } from "@/lib/utils/cn";
 
 export default function QuestionComposer({ lessonId }: { lessonId: string }) {
   const action = useMemo(() => askQuestion.bind(null, lessonId), [lessonId]);
@@ -19,10 +20,10 @@ export default function QuestionComposer({ lessonId }: { lessonId: string }) {
   return (
     <form ref={formRef} action={formAction} className="mb-5 space-y-4 rounded-md bg-fondo p-4">
       <FormField id={`qa-titulo-${lessonId}`} label="Título de la pregunta">
-        {(c) => <input {...c} name="title" required minLength={3} maxLength={200} placeholder="¿Qué te quedó dando vueltas?" className={`${c.className} text-sm`} />}
+        {(c) => <input {...c} name="title" required minLength={3} maxLength={200} placeholder="¿Qué te quedó dando vueltas?" className={cn(c.className, "text-sm")} />}
       </FormField>
       <FormField id={`qa-cuerpo-${lessonId}`} label="Tu pregunta">
-        {(c) => <textarea {...c} name="body" required maxLength={4000} rows={3} placeholder="Contá en qué minuto y qué no cerró." className={`${c.className} resize-y text-sm`} />}
+        {(c) => <textarea {...c} name="body" required maxLength={4000} rows={3} placeholder="Contá en qué minuto y qué no cerró." className={cn(c.className, "resize-y text-sm")} />}
       </FormField>
       {/* El error de la action no dice de qué campo es: va como estado del formulario. */}
       <FormStatus state={{ error: state.error, success: null }} />

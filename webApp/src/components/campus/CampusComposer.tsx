@@ -6,16 +6,16 @@ import { CAMPUS_ACTION_INITIAL_STATE } from "@/lib/campus/action-state";
 import Avatar from "@/components/atoms/Avatar";
 import Button from "@/components/atoms/Button";
 import FormField from "@/components/molecules/FormField";
+import { cn } from "@/lib/utils/cn";
 
 interface Props {
   courseId: string | null;
   courseSlug: string | null;
-  authorGlyph: string | null;
   authorName?: string | null;
   placeholder: string;
 }
 
-export default function CampusComposer({ courseId, courseSlug, authorGlyph, authorName, placeholder }: Props) {
+export default function CampusComposer({ courseId, courseSlug, authorName, placeholder }: Props) {
   const [state, formAction, isPending] = useActionState(createCampusPostAction, CAMPUS_ACTION_INITIAL_STATE);
   const formRef = useRef<HTMLFormElement>(null);
   const id = useId();
@@ -29,10 +29,10 @@ export default function CampusComposer({ courseId, courseSlug, authorGlyph, auth
       <input type="hidden" name="courseId" value={courseId ?? ""} />
       <input type="hidden" name="courseSlug" value={courseSlug ?? ""} />
       <div className="flex items-start gap-3">
-        <Avatar glyph={authorGlyph} name={authorName} size="lg" className="hidden sm:block" />
+        <Avatar name={authorName} size="lg" className="hidden sm:block" />
         <div className="min-w-0 flex-1">
           <FormField id={`${id}-mensaje`} label="Escribir en el hilo" hideLabel error={state.error}>
-            {(c) => <textarea {...c} name="body" required maxLength={4000} rows={3} placeholder={placeholder} className={`${c.className} resize-y`} />}
+            {(c) => <textarea {...c} name="body" required maxLength={4000} rows={3} placeholder={placeholder} className={cn(c.className, "resize-y")} />}
           </FormField>
           <div className="mt-3 flex justify-end">
             <Button type="submit" size="sm" disabled={isPending} aria-busy={isPending}>

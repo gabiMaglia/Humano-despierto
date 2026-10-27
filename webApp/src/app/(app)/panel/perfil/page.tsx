@@ -23,7 +23,7 @@ export default async function PerfilPage() {
       <SiteHeader />
       <AppPageHeader eyebrow={`Tu cuenta · ${ROLE_LABEL[profile.role]}`} title="Mi perfil" subtitle="Tu nombre, tu imagen y cómo te presentás en la escuela." />
       <main className="mx-auto grid max-w-[1200px] items-start gap-8 px-6 py-12 md:grid-cols-[288px_minmax(0,1fr)]">
-        <AvatarForm avatarUrl={profile.avatarUrl} glyph={profile.glyph} fullName={profile.fullName} />
+        <AvatarForm avatarUrl={profile.avatarUrl} fullName={profile.fullName} />
         <ProfileForm
           profile={{ fullName: profile.fullName, bio: profile.bio, phone: profile.phone, birthDate: profile.birthDate }}
           today={new Date().toISOString().slice(0, 10)}

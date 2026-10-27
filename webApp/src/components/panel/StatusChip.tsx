@@ -11,7 +11,7 @@ const TONE: Record<ChipTone, string> = {
 
 // El signo acompaña al texto: el estado no se dice sólo con el color.
 function Mark({ tone }: { tone: ChipTone }) {
-  const common = { viewBox: "0 0 12 12", className: "h-3 w-3 flex-none", "aria-hidden": true, focusable: false } as const;
+  const common = { viewBox: "0 0 12 12", className: "h-3.5 w-3.5 flex-none", "aria-hidden": true, focusable: false } as const;
   if (tone === "ok") {
     return (
       <svg {...common} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -34,7 +34,7 @@ export default function StatusChip({ tone, children, className }: { tone: ChipTo
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-sm font-semibold whitespace-nowrap",
         TONE[tone],
         className,
       )}
