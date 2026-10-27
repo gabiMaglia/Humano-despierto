@@ -23,7 +23,7 @@ export default function UserRoleRow({ user }: { user: AdminUserRow }) {
     <PanelRow>
       <RowMain title={user.fullName} meta={user.email ?? "sin email"} />
 
-      <form action={formAction} className="flex flex-none items-center gap-2">
+      <form action={formAction} className="flex max-w-full flex-wrap items-center gap-2">
         <input type="hidden" name="userId" value={user.id} />
         <PanelSelect label={`Rol de ${user.fullName}`} hideLabel name="role" defaultValue={user.role} invalid={Boolean(state.error)}>
           {(Object.keys(ROLE_LABEL) as AppRole[]).map((role) => (

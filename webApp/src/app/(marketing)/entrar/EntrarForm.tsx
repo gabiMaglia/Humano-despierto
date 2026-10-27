@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -17,6 +17,7 @@ import { postLoginDestinationAction } from "./actions";
 import GoogleButton from "./GoogleButton";
 
 type Tab = "entrar" | "registro";
+const TABS: Tab[] = ["entrar", "registro"];
 
 interface Props {
   // Ya saneado en el servidor; `null` si faltaba o no era interno (el destino sale del rol).
@@ -93,6 +94,15 @@ export default function EntrarForm({ next, linkError }: Props) {
     setSent(true);
   }
 
+  // Patrón ARIA de tablist: una sola parada de Tab y ← → para cambiar de pestaña.
+  function handleTabKeys(e: KeyboardEvent) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = TABS[(TABS.indexOf(tab) + (e.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length];
+    setTab(next);
+    document.getElementById(`entrar-tab-${next}`)?.focus();
+  }
+
   const tabClass = (active: boolean) =>
     `min-h-12 flex-1 rounded-pill px-4 text-sm font-semibold transition-colors ${
       active ? "bg-bosque text-white" : "text-tinta hover:bg-salvia-100"
@@ -118,12 +128,21 @@ export default function EntrarForm({ next, linkError }: Props) {
         </div>
       ) : (
         <>
-          <div className="mb-6 flex rounded-pill border border-suave bg-papel p-1">
-            {(["entrar", "registro"] as Tab[]).map((t) => (
+          <div
+            role="tablist"
+            aria-label="Entrar o crear cuenta"
+            onKeyDown={handleTabKeys}
+            className="mb-6 flex rounded-pill border border-suave bg-papel p-1"
+          >
+            {TABS.map((t) => (
               <button
                 key={t}
                 type="button"
-                aria-pressed={tab === t}
+                role="tab"
+                id={`entrar-tab-${t}`}
+                aria-selected={tab === t}
+                aria-controls="entrar-panel"
+                tabIndex={tab === t ? 0 : -1}
                 onClick={() => setTab(t)}
                 className={tabClass(tab === t)}
               >
@@ -144,6 +163,7 @@ export default function EntrarForm({ next, linkError }: Props) {
               Hoy no se filtra nada porque los inputs son controlados y no tienen `name`, pero eso
               es un accidente: si alguien agrega `name="password"` la clave viajaría en la query.
               Con POST el peor caso es un 405. */}
+          <div id="entrar-panel" role="tabpanel" aria-labelledby={`entrar-tab-${tab}`}>
           <form onSubmit={handleSubmit} method="post" className="space-y-5">
             {tab === "registro" && (
               <AuthField
@@ -180,7 +200,7 @@ export default function EntrarForm({ next, linkError }: Props) {
                 tab === "entrar" && (
                   <Link
                     href={RECOVER_PATH}
-                    className="inline-flex min-h-8 items-center text-sm font-semibold text-miel-800 underline-offset-4 hover:underline"
+                    className="inline-flex min-h-12 items-center text-sm font-semibold text-miel-800 underline-offset-4 hover:underline"
                   >
                     ¿Olvidaste la clave?
                   </Link>
@@ -197,6 +217,7 @@ export default function EntrarForm({ next, linkError }: Props) {
 
             <SubmitButton loading={loading} label={tab === "entrar" ? "Ingresar" : "Crear cuenta"} />
           </form>
+          </div>
 
           <div className="my-6 flex items-center gap-4">
             <div className="h-px flex-1 bg-salvia" />
