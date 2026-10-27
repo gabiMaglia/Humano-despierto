@@ -30,6 +30,8 @@ tok() {
 exigir_jwt() {
   [ -n "$2" ] && return 0
   echo "no pude autenticar a $1; ¿está levantado el stack? (B-1 NO corrió)"
+  # Si ya se sembro, el curso de ataque quedo publicado: no se deja basura en el catalogo real.
+  x "update public.courses set status='draft' where slug='curso-ajeno';"
   exit 2
 }
 
