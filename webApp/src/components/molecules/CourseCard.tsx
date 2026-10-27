@@ -23,6 +23,8 @@ export interface CourseCardData {
   reviewCount?: number;
   /** URL firmada de la portada (T-047); sin ella, una foto de muestra de su disciplina. */
   coverUrl?: string;
+  /** Sólo con una lección `is_preview` publicada se dice «Clase gratis» (spec Brote, D-67). */
+  hasPreview?: boolean;
 }
 
 interface Props extends CourseCardData {
@@ -37,7 +39,7 @@ interface Props extends CourseCardData {
  *  camino de navegación principal del producto. El botón de guardar es HERMANO del link (un
  *  <button> dentro de un <a> es HTML inválido). */
 export default function CourseCard({
-  tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl,
+  tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl, hasPreview,
   className, wishlist, eager,
 }: Props) {
   const placeholder = placeholderForDiscipline(tag);
@@ -81,7 +83,12 @@ export default function CourseCard({
           </h3>
           <p className="text-sm leading-normal text-suave">Con {teacher}</p>
           <Rating average={rating} count={reviewCount} className="mt-1.5" />
-          <div className="mt-3.5 flex items-center justify-end border-t border-linea pt-3.5 text-sm">
+          <div className="mt-3.5 flex items-center justify-end gap-3 border-t border-linea pt-3.5 text-sm">
+            {hasPreview && (
+              <span className="mr-auto rounded-pill bg-miel-100 px-3 py-1 text-xs font-semibold text-miel-800">
+                Clase gratis
+              </span>
+            )}
             <b className="font-semibold text-bosque">{price}</b>
           </div>
         </div>

@@ -25,6 +25,8 @@ export interface PublishedCourseSummary {
   publishedAt: string | null;
   /** El path, no la URL: `sitemap.ts` tambien lee el catalogo y no tiene por que firmar nada. */
   coverPath: string | null;
+  /** Tiene al menos una lección publicada `is_preview`: lo único que habilita decir «clase gratis» (spec Brote). */
+  hasPreview: boolean;
   /** Derivados de `course_reviews` (ocultas ya filtradas por RLS); ausentes sin reseñas. */
   rating?: number;
   reviewCount?: number;
@@ -87,6 +89,7 @@ interface TeacherRow {
 interface PublishedCourseLessonRow {
   duration_seconds: number;
   is_published: boolean;
+  is_preview: boolean;
 }
 
 interface PublishedCourseModuleRow {
@@ -165,7 +168,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       `id, published_at, slug, title, title_em, subtitle, intro, discipline, level, price_cents,
        currency, roman_num, moon_glyph, featured, cover_path,
        teacher:profiles!courses_teacher_id_fkey(full_name, bio),
-       course_modules(lessons(duration_seconds, is_published))`
+       course_modules(lessons(duration_seconds, is_published, is_preview))`
     )
     .eq("status", "published")
     .order("published_at", { ascending: true });
@@ -192,12 +195,8 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
   return rows.map((row) => {
     const agg = ratings.get(row.id);
     const teacher = firstTeacher(row.teacher);
-    const totalDurationSeconds = (row.course_modules ?? []).reduce((sum, m) => {
-      const moduleSeconds = (m.lessons ?? [])
-        .filter((l) => l.is_published)
-        .reduce((s, l) => s + l.duration_seconds, 0);
-      return sum + moduleSeconds;
-    }, 0);
+    const published = (row.course_modules ?? []).flatMap((m) => (m.lessons ?? []).filter((l) => l.is_published));
+    const totalDurationSeconds = published.reduce((s, l) => s + l.duration_seconds, 0);
     return {
       id: row.id,
       slug: row.slug,
@@ -216,6 +215,7 @@ export async function getPublishedCourses(): Promise<PublishedCourseSummary[]> {
       totalDurationSeconds,
       publishedAt: row.published_at,
       coverPath: row.cover_path ?? null,
+      hasPreview: published.some((l) => l.is_preview),
       ...(agg ? { rating: agg.average, reviewCount: agg.total } : {}),
     };
   });

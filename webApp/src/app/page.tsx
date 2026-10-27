@@ -31,8 +31,7 @@ export default async function LandingPage() {
     ? { text: maestra.quote, guide: { name: maestra.fullName, role: maestra.headline, slug: maestra.slug } }
     : { text: LANDING.hero.fallbackQuote, guide: null };
 
-  // El resumen del catálogo no trae `is_preview` (deuda): sin el dato, el texto prudente.
-  const claim = freeClassClaim({ total: courses.length, withPreview: courses.length === 0 ? 0 : null });
+  const claim = freeClassClaim({ total: courses.length, withPreview: courses.filter((c) => c.hasPreview).length });
 
   return (
     <div className="min-h-screen overflow-x-clip bg-fondo text-tinta">

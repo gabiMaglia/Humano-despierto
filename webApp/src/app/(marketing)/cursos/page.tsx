@@ -279,6 +279,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                       slug={course.slug}
                       rating={course.rating}
                       reviewCount={course.reviewCount}
+                      hasPreview={course.hasPreview}
                       coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}
                       wishlist={{ courseId: course.id, saved: savedIds?.has(course.id) ?? false, loginHref }}
                     />
