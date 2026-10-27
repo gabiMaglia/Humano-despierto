@@ -32,7 +32,9 @@ export default async function LandingPage() {
   ]);
 
   const quote: HeroQuote = maestra?.quote
-    ? { text: maestra.quote, guide: {
+    ? {
+        text: maestra.quote,
+        guide: {
           name: maestra.fullName,
           role: maestra.headline,
           slug: maestra.slug,
