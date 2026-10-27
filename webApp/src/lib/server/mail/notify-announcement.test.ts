@@ -85,7 +85,8 @@ function fakeAdmin(s: Estado) {
         });
       throw new Error(`tabla inesperada: ${table}`);
     },
-    async rpc(_fn: string, a: { p_recipient_user_id: string; p_mail_type: string; p_scope_key: string }) {
+    async rpc(fn: string, a: { p_recipient_user_id: string; p_mail_type: string; p_scope_key: string }) {
+      if (fn !== "claim_or_reclaim_mail_slot") return { data: null, error: null };
       const key = `${a.p_recipient_user_id}|${a.p_mail_type}|${a.p_scope_key}`;
       if (s.claimed.has(key)) return { data: [], error: null };
       s.claimed.add(key);

@@ -23,7 +23,7 @@ export function renderEnrollmentRejectedMail(props: EnrollmentRejectedProps) {
   const bodyHtml = `
     <p style="margin:0 0 14px;">Hola ${escapeHtml(props.studentName)},</p>
     <p style="margin:0 0 14px;">
-      Revisamos tu solicitud para <strong style="color:#f5d76e;">${escapeHtml(props.courseTitle)}</strong>
+      Revisamos tu solicitud para <strong style="color:#1F2E24;">${escapeHtml(props.courseTitle)}</strong>
       y esta vez no pudimos aprobarla.
     </p>${reasonHtml}
     <p style="margin:0;">El catálogo sigue abierto para cuando quieras volver.</p>`;

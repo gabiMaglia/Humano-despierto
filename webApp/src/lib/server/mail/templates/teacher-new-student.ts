@@ -24,8 +24,8 @@ export function renderTeacherNewStudentMail(props: TeacherNewStudentProps) {
   const bodyHtml = `
     <p style="margin:0 0 14px;">Hola ${escapeHtml(props.teacherName)},</p>
     <p style="margin:0 0 14px;">
-      <strong style="color:#f5d76e;">${escapeHtml(props.studentName)}</strong> se acaba de
-      inscribir en <strong style="color:#f5d76e;">${escapeHtml(props.courseTitle)}</strong>.
+      <strong style="color:#1F2E24;">${escapeHtml(props.studentName)}</strong> se acaba de
+      inscribir en <strong style="color:#1F2E24;">${escapeHtml(props.courseTitle)}</strong>.
     </p>
     <p style="margin:0;">Ya tiene acceso al recorrido completo.</p>`;
 

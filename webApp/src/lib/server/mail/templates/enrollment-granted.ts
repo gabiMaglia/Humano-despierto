@@ -18,7 +18,7 @@ export function renderEnrollmentGrantedMail(props: EnrollmentGrantedProps) {
   const bodyHtml = `
     <p style="margin:0 0 14px;">Hola ${escapeHtml(props.studentName)},</p>
     <p style="margin:0 0 14px;">
-      Te inscribieron en <strong style="color:#f5d76e;">${escapeHtml(props.courseTitle)}</strong>,
+      Te inscribieron en <strong style="color:#1F2E24;">${escapeHtml(props.courseTitle)}</strong>,
       guiado por ${escapeHtml(props.teacherName)}. El recorrido completo ya está disponible —
       podés empezar cuando quieras y avanzar en el orden que prefieras.
     </p>

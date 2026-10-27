@@ -219,7 +219,53 @@ async function deliverClaimedMail(claim: MailClaim, mail: Omit<SendMailInput, "i
   });
   if (result.ok) await confirmMailSent(claim);
   else if (result.permanent) await retireMailSlot(claim, result);
+  else if (result.error === "rate_limited") await releaseRateLimitedSlot(claim);
   return result;
+}
+
+/** D-51: un tope de envío no es un intento fallido (no se tocó el transporte): se devuelve el
+ * intento y el turno queda reclamable para la tanda diferida. */
+async function releaseRateLimitedSlot(claim: MailClaim): Promise<void> {
+  const { error } = await getAdminSupabaseClient().rpc("release_rate_limited_mail_slot", {
+    p_id: claim.id,
+    p_claimed_at: claim.claimedAt,
+  });
+  if (error) log.error("mail_slot_release_failed", { claim_id: claim.id, message: error.message });
+}
+
+// Cuántos anuncios retoma una pasada: cada uno puede ser de cientos de mails y el tope global
+// de sendMail corta igual; el resto queda para la próxima invocación del cron.
+const RETRY_ANNOUNCEMENTS_PER_RUN = 2;
+
+/**
+ * D-51 · re-disparo diferido. Toma de `mail_log` los anuncios con turnos pendientes (sin
+ * confirmar, con intentos y vencidos) y vuelve a correr su envío: `claim_or_reclaim_mail_slot`
+ * ya salta lo confirmado y lo vivo, así que es idempotente. Pensado para un cron (ver
+ * /api/mail/retry); nunca lanza.
+ */
+export async function retryPendingAnnouncementMail(): Promise<{ announcements: number }> {
+  try {
+    const cutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { data, error } = await getAdminSupabaseClient()
+      .from("mail_log")
+      .select("scope_key")
+      .eq("mail_type", "course_announcement")
+      .is("sent_at", null)
+      .lt("attempts", 3)
+      .lt("claimed_at", cutoff)
+      .order("claimed_at")
+      .limit(500);
+    if (error) {
+      log.error("mail_retry_query_failed", { message: error.message });
+      return { announcements: 0 };
+    }
+    const ids = [...new Set((data ?? []).map((r: { scope_key: string }) => r.scope_key))].slice(0, RETRY_ANNOUNCEMENTS_PER_RUN);
+    for (const announcementId of ids) await notifyAnnouncementPublished({ announcementId });
+    return { announcements: ids.length };
+  } catch (err) {
+    log.error("mail_retry_failed", { err });
+    return { announcements: 0 };
+  }
 }
 
 interface CourseInfo {
