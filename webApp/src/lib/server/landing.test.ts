@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { queryChain, type ChainCall } from "@/test/query-chain";
+import { argsOf, queryChain, type ChainCall } from "@/test/query-chain";
 
 const { admin, publicClient, unstableCache } = vi.hoisted(() => ({
   admin: { from: vi.fn() },
@@ -66,6 +66,26 @@ describe("getLandingData · conteos (D-41)", () => {
     expect(String(selectOf(students.calls).args[0])).toMatch(/!inner/);
     expect(students.calls.map((c) => c.args)).toContainEqual(["enrollments.status", "active"]);
     expect(log.some((l) => l.table === "enrollments")).toBe(false);
+  });
+});
+
+describe("getLandingData · disciplinas sin el corte de 1000 (DT4)", () => {
+  it("pagina las filas de disciplina hasta la última página", async () => {
+    const log: Log = [];
+    wire(admin, (table, calls) => {
+      const opts = selectOf(calls).args[1] as { head?: boolean } | undefined;
+      if (opts?.head) return { count: 1, data: null, error: null };
+      const range = calls.find((c) => c.method === "range")?.args as [number, number] | undefined;
+      if (!range) return { data: null, error: { message: "sin range" } };
+      const [from] = range;
+      const rows = from === 0 ? 1000 : from === 1000 ? 5 : 0;
+      return { data: Array.from({ length: rows }, () => ({ discipline: from === 0 ? "Tarot" : "Reiki" })), error: null };
+    }, log);
+    wire(publicClient, () => ({ data: [], error: null }), []);
+    const data = await getLandingData();
+    expect(data.disciplines.map((d) => [d.key, d.count])).toEqual([["tarot", 1000], ["reiki", 5]]);
+    const pages = log.filter((l) => l.calls.some((c) => c.method === "range")).map((l) => argsOf(l.calls, "range"));
+    expect(pages).toEqual([[0, 999], [1000, 1999]]);
   });
 });
 

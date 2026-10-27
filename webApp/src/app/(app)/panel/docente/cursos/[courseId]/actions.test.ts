@@ -19,7 +19,7 @@ vi.mock("@/lib/server/youtube", () => ({ resolveYoutubeVideo: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
-import { removeCourseCoverAction, updateLessonAction, uploadCourseCoverAction } from "./actions";
+import { createLessonAction, removeCourseCoverAction, updateLessonAction, uploadCourseCoverAction } from "./actions";
 import { MAX_COVER_BYTES } from "@/lib/validation/image";
 import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
 
@@ -190,5 +190,37 @@ describe("updateLessonAction · error por campo (D-100)", () => {
     expect(await updateLessonAction(INITIAL, lessonForm({ title: "" }))).toMatchObject({ field: "title" });
     expect(await updateLessonAction(INITIAL, lessonForm({ description: "mirá https://x.com" }))).toMatchObject({ field: "description" });
     expect(createClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("createLessonAction · error por campo (DT1)", () => {
+  beforeEach(() => {
+    createClient.mockReset();
+    requireTeacher.mockReset().mockResolvedValue(TEACHER);
+    assertOwnsCourse.mockReset().mockResolvedValue(undefined);
+  });
+
+  function newLessonForm(fields: Record<string, string>) {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries({ courseId: COURSE, moduleId: "m1", title: "Clase", description: "", ...fields })) fd.set(k, v);
+    return fd;
+  }
+
+  it("título vacío o descripción con link vuelven con el campo culpable, sin tocar la base", async () => {
+    expect(await createLessonAction(INITIAL, newLessonForm({ title: "" }))).toMatchObject({ field: "title" });
+    expect(await createLessonAction(INITIAL, newLessonForm({ description: "mirá https://x.com" }))).toMatchObject({ field: "description" });
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("el localizador exacto que frena la base no dice qué campo fue: no inventa uno", async () => {
+    const chain: Record<string, unknown> = {};
+    for (const m of ["select", "eq", "order"]) chain[m] = () => chain;
+    chain.maybeSingle = async () => ({ data: { id: "m1" }, error: null });
+    chain.limit = async () => ({ data: [], error: null });
+    chain.insert = async () => ({ error: { code: "42501", message: "localizador de contenido pago" } });
+    createClient.mockResolvedValue({ from: () => chain });
+    const r = await createLessonAction(INITIAL, newLessonForm({}));
+    expect(r.error).toBeTruthy();
+    expect(r.field).toBeUndefined();
   });
 });

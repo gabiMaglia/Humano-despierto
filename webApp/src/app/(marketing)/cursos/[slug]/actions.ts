@@ -2,6 +2,7 @@
 
 import type { RateLimitFields } from "@/lib/rate-limit/core";
 import { revalidatePath } from "next/cache";
+import { revalidateLanding } from "@/lib/server/landing-cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { noLocator } from "@/lib/validation/teacher";
@@ -68,6 +69,8 @@ export const saveReviewAction = withRateLimit(
     }
 
     revalidatePath(`/cursos/${slug}`);
+    // Una reseña de 5 con texto es candidata a testimonio de la portada.
+    revalidateLanding();
     return { error: null, success: created ? "Gracias por dejar tu reseña." : "Reseña actualizada." };
   },
   limitedState,

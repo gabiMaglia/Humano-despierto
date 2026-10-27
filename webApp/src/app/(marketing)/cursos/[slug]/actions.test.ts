@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // vi.mock se eleva sobre los imports: lo que usa la factory tiene que existir antes, via vi.hoisted.
 const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 const { subject } = vi.hoisted(() => ({ subject: vi.fn() }));
 vi.mock("@/lib/server/rate-limit-subject", () => ({ currentRateLimitSubject: subject }));
 

@@ -13,7 +13,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/supabase/service", () => ({ createServiceRoleClient }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import { updateProfileAction, uploadAvatarAction } from "./actions";
 import { MAX_AVATAR_BYTES } from "@/lib/validation/image";

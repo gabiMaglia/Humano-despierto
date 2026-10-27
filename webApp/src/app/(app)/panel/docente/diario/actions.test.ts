@@ -52,3 +52,28 @@ describe("post actions · error por campo (D-100)", () => {
     expect((await updatePostAction(INITIAL, postForm())).field).toBe("body");
   });
 });
+
+describe("createPostAction · error por campo desde la base (DT1)", () => {
+  beforeEach(() => {
+    __resetRateLimiterForTests();
+    rateLimitSubject.mockResolvedValue({ kind: "user", id: "u-test" });
+    requireTeacher.mockReset().mockResolvedValue({ id: "t", role: "teacher" });
+  });
+
+  function insertFailingWith(code: string) {
+    createClient.mockResolvedValue({
+      from: () => ({ insert: () => ({ select: () => ({ single: async () => ({ data: null, error: { code, message: code } }) }) }) }),
+    });
+  }
+
+  it.each([
+    ["23505", "slug"],
+    ["42501", "body"],
+    ["23514", "body"],
+  ])("%s marca %s", async (code, field) => {
+    insertFailingWith(code);
+    const r = await createPostAction(INITIAL, postForm());
+    expect(r.error).toBeTruthy();
+    expect(r.field).toBe(field);
+  });
+});

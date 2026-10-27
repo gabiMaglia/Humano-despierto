@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { revalidateLanding } from "@/lib/server/landing-cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { requireTeacher, assertOwnsCourse } from "@/lib/server/teacher";
@@ -168,6 +169,8 @@ export const updateCourseAction = withRateLimit(
 
     revalidatePath(`/panel/docente/cursos/${courseId}`);
     revalidatePath("/panel/docente");
+    // Disciplina y título de un publicado salen en la portada (disciplinas, firma de testimonios).
+    revalidateLanding();
     return { error: null, success: "Curso actualizado." };
   },
   limitedState,
@@ -264,6 +267,7 @@ export const setCoursePublishedAction = withRateLimit(
     revalidatePath(`/panel/docente/cursos/${courseId}`);
     revalidatePath("/panel/docente");
     revalidatePath("/cursos");
+    revalidateLanding();
     return {
       error: null,
       success: nextStatus === "published" ? "Curso publicado." : "Curso pasado a borrador.",
