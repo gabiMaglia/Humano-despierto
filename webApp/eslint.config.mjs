@@ -17,6 +17,13 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "blob-report/**",
   ]),
+  // useActionState/withRateLimit fijan la firma (prev, formData): el guion bajo marca lo que no se usa.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    },
+  },
   // T-051: toda salida pasa por lib/server/log.ts (los tests quedan fuera, spían console).
   {
     files: ["src/**/*.{ts,tsx}"],
