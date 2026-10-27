@@ -62,6 +62,36 @@ describe("getCourseBySlug · portada", () => {
   });
 });
 
+describe("getCourseBySlug · avatar de la guía (D-69)", () => {
+  const AVATAR = "avatars/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg";
+  beforeEach(() => signPublicUploadUrls.mockReset());
+
+  it("firma portada y avatar en una sola llamada", async () => {
+    const { client, select } = publicClientReturning({
+      id: "x", slug: "tarot", title: "Tarot", cover_path: PATH, course_modules: [],
+      teacher: { full_name: "Luna", bio: null, slug: "luna", avatar_path: AVATAR },
+    });
+    getPublicSupabaseClient.mockReturnValue(client);
+    signPublicUploadUrls.mockResolvedValue(new Map([[PATH, "https://s/c"], [AVATAR, "https://s/a"]]));
+    const course = await getCourseBySlug("tarot");
+    expect(String((select.mock.calls[0] as unknown[])[0])).toMatch(/avatar_path/);
+    expect(signPublicUploadUrls).toHaveBeenCalledTimes(1);
+    expect(signPublicUploadUrls).toHaveBeenCalledWith([PATH, AVATAR]);
+    expect(course?.coverUrl).toBe("https://s/c");
+    expect(course?.teacherAvatarUrl).toBe("https://s/a");
+  });
+
+  it("sin avatar, teacherAvatarUrl es null (la vista dibuja el Monogram)", async () => {
+    const { client } = publicClientReturning({
+      id: "x", slug: "tarot", title: "Tarot", cover_path: null, course_modules: [],
+      teacher: { full_name: "Luna", bio: null, slug: "luna", avatar_path: null },
+    });
+    getPublicSupabaseClient.mockReturnValue(client);
+    expect((await getCourseBySlug("tarot"))?.teacherAvatarUrl).toBeNull();
+    expect(signPublicUploadUrls).not.toHaveBeenCalled();
+  });
+});
+
 describe("signCatalogCovers", () => {
   it("firma solo las cards que recibe (la pagina visible), no el catalogo entero", async () => {
     signPublicUploadUrls.mockReset().mockResolvedValue(new Map());

@@ -63,6 +63,8 @@ export interface CourseDetail {
   teacherName: string;
   teacherBio: string | null;
   teacherSlug: string | null;
+  /** URL firmada del avatar de la guía; null sin avatar (la vista dibuja el `Monogram`). */
+  teacherAvatarUrl: string | null;
   learningObjectives: string[];
   prerequisites: string[];
   description: string | null;
@@ -84,6 +86,7 @@ interface TeacherRow {
   full_name: string;
   bio: string | null;
   slug: string | null;
+  avatar_path?: string | null;
 }
 
 interface PublishedCourseLessonRow {
@@ -229,7 +232,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
       `id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency, includes,
        learning_objectives, prerequisites, description, language, promo_video_id, updated_at,
        cover_path,
-       teacher:profiles!courses_teacher_id_fkey(full_name, bio, slug),
+       teacher:profiles!courses_teacher_id_fkey(full_name, bio, slug, avatar_path),
        course_modules(position, title, description,
          lessons(id, position, title, duration_seconds, is_preview, is_published))`
     )
@@ -277,10 +280,13 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
   const { data: countData } = await supabase.rpc("course_student_count", { p_course_id: row.id });
   const studentCount = typeof countData === "number" ? countData : 0;
 
-  // La fila ya paso `.eq("status", "published")`: un borrador nunca llega hasta aca (c.6).
-  const coverUrl = row.cover_path
-    ? ((await signPublicUploadUrls([row.cover_path])).get(row.cover_path) ?? null)
-    : null;
+  // La fila ya paso `.eq("status", "published")`: un borrador nunca llega hasta aca (c.6). El avatar
+  // es de la ficha publica de su guia, que `anon` ya lee; los dos se firman en una sola llamada.
+  const avatarPath = teacher?.avatar_path ?? null;
+  const toSign = [row.cover_path, avatarPath].filter((p): p is string => Boolean(p));
+  const signed = toSign.length > 0 ? await signPublicUploadUrls(toSign) : new Map<string, string>();
+  const coverUrl = row.cover_path ? (signed.get(row.cover_path) ?? null) : null;
+  const teacherAvatarUrl = avatarPath ? (signed.get(avatarPath) ?? null) : null;
 
   return {
     id: row.id,
@@ -297,6 +303,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
     teacherName: teacher?.full_name ?? "—",
     teacherBio: teacher?.bio ?? null,
     teacherSlug: teacher?.slug ?? null,
+    teacherAvatarUrl,
     learningObjectives: row.learning_objectives ?? [],
     prerequisites: row.prerequisites ?? [],
     description: row.description,

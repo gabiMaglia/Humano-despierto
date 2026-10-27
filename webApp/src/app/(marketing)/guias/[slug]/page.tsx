@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/atoms/Button";
 import Icon from "@/components/atoms/Icon";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import SectionHeading from "@/components/atoms/SectionHeading";
 import { SITE_OG_IMAGE } from "@/lib/og/site";
 import { getTeacherBySlug } from "@/lib/server/guias";
@@ -65,12 +65,14 @@ export default async function GuiaPage({ params }: { params: Promise<{ slug: str
           )}
         </div>
         <div className="relative mx-auto aspect-[4/5] w-full max-w-[320px] overflow-hidden rounded-lg bg-salvia-100 shadow-lift md:max-w-none">
-          {M.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h; el optimizador de next/image la cachearia mas alla de su vida.
-            <img src={M.avatarUrl} alt={`Retrato de ${M.fullName}`} className="absolute inset-0 h-full w-full object-cover" />
-          ) : (
-            <Monogram name={M.fullName} size="lg" className="absolute inset-0" />
-          )}
+          <TeacherPortrait
+            name={M.fullName}
+            src={M.avatarUrl}
+            alt={`Retrato de ${M.fullName}`}
+            size="lg"
+            loading="eager"
+            className="absolute inset-0"
+          />
         </div>
       </header>
 

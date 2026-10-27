@@ -1,13 +1,13 @@
 import Image from "next/image";
 import { ButtonLink } from "@/components/atoms/Button";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import { HERO_PHOTO, unsplashUrl } from "@/content/placeholder-photos";
 import { LANDING } from "@/content/landing";
 
 export interface HeroQuote {
   text: string;
   /** Guía real que la firmó (`profiles.quote`); sin ella, la frase de respaldo va sin firma. */
-  guide: { name: string; role: string | null; slug: string } | null;
+  guide: { name: string; role: string | null; slug: string; avatarUrl: string | null } | null;
 }
 
 /** Hero B4: foto a sangre, la guía habla. El header va transparente encima (`overHero`). */
@@ -37,7 +37,13 @@ export default function Hero({ quote }: { quote: HeroQuote }) {
           <figcaption className="mb-10 mt-6 flex items-center gap-3.5 text-base">
             {quote.guide ? (
               <>
-                <Monogram name={quote.guide.name} size="sm" className="h-12 w-12 flex-none rounded-full border-2 border-white" />
+                <TeacherPortrait
+                  name={quote.guide.name}
+                  src={quote.guide.avatarUrl}
+                  size="sm"
+                  loading="eager"
+                  className="h-12 w-12 flex-none rounded-full border-2 border-white"
+                />
                 <span>
                   <b className="block font-semibold">{quote.guide.name}</b>
                   {quote.guide.role && <span className="block text-sm text-salvia-100">{quote.guide.role}</span>}

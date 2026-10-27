@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Icon, { type IconName } from "@/components/atoms/Icon";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import Rating from "@/components/atoms/Rating";
 import SectionHeading from "@/components/atoms/SectionHeading";
 import SignedImage from "@/components/atoms/SignedImage";
@@ -273,8 +273,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           <section aria-labelledby="guia-titulo" className="rounded-lg bg-salvia-100 p-6 md:p-8">
             <h2 id="guia-titulo" className="sr-only">Quién enseña</h2>
             <div className="grid items-start gap-5 sm:grid-cols-[72px_1fr]">
-              {/* CourseDetail no trae avatar firmado (D-62): iniciales, nunca un retrato de stock. */}
-              <Monogram name={course.teacherName} className="h-[88px] w-[72px] rounded-md bg-papel" />
+              <TeacherPortrait name={course.teacherName} src={course.teacherAvatarUrl} className="h-[88px] w-[72px] rounded-md bg-papel" />
               <div className="min-w-0">
                 <p className="text-sm text-suave">Enseña</p>
                 <p className="text-xl font-semibold text-bosque">{course.teacherName}</p>
