@@ -30,6 +30,7 @@ export default function Hero({ quote }: { quote: HeroQuote }) {
       {/* Banda superior: el header transparente tiene texto blanco encima de la foto. */}
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,rgb(20_32_24/0.6),rgb(20_32_24/0))]" />
       <div className="relative mx-auto w-full max-w-[1200px] px-6 pb-16 pt-36 md:pb-[72px]">
+        <h1 className="sr-only">{LANDING.hero.heading}</h1>
         <figure>
           <blockquote className="max-w-[20ch] text-[clamp(32px,5.4vw,68px)] font-semibold leading-[1.08] tracking-[-0.025em] text-balance">
             <p>{quote.guide ? `«${quote.text}»` : quote.text}</p>
