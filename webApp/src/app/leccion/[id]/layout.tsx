@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getLessonPlayerData } from "@/lib/server/lesson-player";
+import { isUuid } from "@/lib/validation/image";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,7 +28,8 @@ interface LayoutProps {
  */
 export default async function LeccionLayout({ children, params }: LayoutProps) {
   const { id } = await params;
-  if (!(await getLessonPlayerData(id))) notFound();
+  // Un id que no es UUID reventaba en Postgres (500); acá se corta antes de consultar.
+  if (!isUuid(id) || !(await getLessonPlayerData(id))) notFound();
 
   return <>{children}</>;
 }
