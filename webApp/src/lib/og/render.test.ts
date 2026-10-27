@@ -22,7 +22,6 @@ const COURSE = {
   titleEm: "iniciático",
   discipline: "Tarot",
   teacherName: "Sol Mayor",
-  romanNum: "IV",
 };
 
 describe("OG sin red (D4: next/og no sale a Google Fonts en un request)", () => {

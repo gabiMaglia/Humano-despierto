@@ -167,8 +167,9 @@ from (values
 where public.profiles.id = v.id;
 
 -- ---------------------------------------------------------------- courses (CATALOG_COURSES)
--- price_cents = round(mock "$ N" * 100). roman_num/moon_glyph = num/moon del mock (editorial,
--- no derivan de nada). subtitle/intro/includes solo existen en el mock para tarot-iniciatico
+-- price_cents = round(mock "$ N" * 100). moon_glyph = moon del mock (editorial, no deriva de
+-- nada). La columna `roman_num` del alias `v` ya no se inserta: la columna se retiro (T-080, 0042).
+-- subtitle/intro/includes solo existen en el mock para tarot-iniciatico
 -- (COURSE_DETAIL); el resto usa el "desc" del catalogo como intro y queda sin subtitle/includes.
 --
 -- T-017 · `featured=true` en 3 de los 9 (uno por docente: tarot-iniciatico, carta-natal-esencial,
@@ -186,11 +187,11 @@ with teachers as (
 -- inventado -- es la unica columna real que puede expresar el orden editorial del mock.
 insert into public.courses (
   id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency,
-  roman_num, moon_glyph, includes, teacher_id, status, featured, published_at
+  moon_glyph, includes, teacher_id, status, featured, published_at
 )
 select
   gen_random_uuid(), v.slug, v.title, v.title_em, v.subtitle, v.intro, v.discipline, v.level,
-  v.price_cents, 'ARS', v.roman_num, v.moon_glyph, v.includes, t.id, 'published', v.featured,
+  v.price_cents, 'ARS', v.moon_glyph, v.includes, t.id, 'published', v.featured,
   timestamptz '2026-01-01' + (v.seq * interval '1 day')
 from (values
   (1, 'carta-natal-esencial', 'Carta natal', 'esencial', null::text,
@@ -236,7 +237,7 @@ on conflict (slug) do update set
   title = excluded.title, title_em = excluded.title_em, subtitle = excluded.subtitle,
   intro = excluded.intro, discipline = excluded.discipline, level = excluded.level,
   price_cents = excluded.price_cents, currency = excluded.currency,
-  roman_num = excluded.roman_num, moon_glyph = excluded.moon_glyph,
+  moon_glyph = excluded.moon_glyph,
   includes = excluded.includes, teacher_id = excluded.teacher_id,
   status = excluded.status, featured = excluded.featured, published_at = excluded.published_at;
 

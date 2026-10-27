@@ -41,7 +41,6 @@ describe("getCourseOgData", () => {
       title: "Tarot ",
       title_em: "iniciático",
       discipline: "Tarot",
-      roman_num: "IV",
       cover_path: COVER,
       teacher: [{ full_name: "Sol Mayor" }],
     });
@@ -50,7 +49,6 @@ describe("getCourseOgData", () => {
       title: "Tarot ",
       titleEm: "iniciático",
       discipline: "Tarot",
-      romanNum: "IV",
       teacherName: "Sol Mayor",
       coverPath: COVER,
     });

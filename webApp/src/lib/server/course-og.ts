@@ -17,7 +17,6 @@ type Row = {
   title: string;
   title_em: string | null;
   discipline: string | null;
-  roman_num: string | null;
   cover_path: string | null;
   teacher: { full_name: string | null } | { full_name: string | null }[] | null;
 };
@@ -25,7 +24,7 @@ type Row = {
 export async function getCourseOgData(slug: string): Promise<CourseOgData | null> {
   const { data, error } = await getPublicSupabaseClient()
     .from("courses")
-    .select("title, title_em, discipline, roman_num, cover_path, teacher:profiles!courses_teacher_id_fkey(full_name)")
+    .select("title, title_em, discipline, cover_path, teacher:profiles!courses_teacher_id_fkey(full_name)")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
@@ -39,7 +38,6 @@ export async function getCourseOgData(slug: string): Promise<CourseOgData | null
     title: row.title,
     titleEm: row.title_em,
     discipline: row.discipline,
-    romanNum: row.roman_num,
     teacherName: teacher?.full_name ?? null,
     coverPath: row.cover_path,
   };

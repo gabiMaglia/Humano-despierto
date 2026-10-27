@@ -16,7 +16,6 @@ export interface DashboardCourse {
   titleEm: string | null;
   discipline: string;
   level: string;
-  romanNum: string | null;
   moonGlyph: string | null;
   teacherName: string;
   totalLessons: number;
@@ -82,7 +81,6 @@ interface DashboardCourseRow {
   title_em: string | null;
   discipline: string;
   level: string;
-  roman_num: string | null;
   moon_glyph: string | null;
   teacher: DashboardTeacherRow | DashboardTeacherRow[] | null;
   course_modules: DashboardModuleRow[] | null;
@@ -239,7 +237,7 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
     .select(
       `course_id, enrolled_at,
        course:courses(
-         id, slug, title, title_em, discipline, level, roman_num, moon_glyph,
+         id, slug, title, title_em, discipline, level, moon_glyph,
          teacher:profiles!courses_teacher_id_fkey(full_name),
          course_modules(position, lessons(id, position, is_published))
        )`
@@ -318,7 +316,6 @@ export async function getStudentDashboard(): Promise<StudentDashboard> {
         titleEm: course.title_em,
         discipline: course.discipline,
         level: course.level,
-        romanNum: course.roman_num,
         moonGlyph: course.moon_glyph,
         teacherName: teacher?.full_name ?? "—",
         totalLessons,
