@@ -5,6 +5,14 @@ import { psql } from "./db";
 // T-031 · la docente publica → la inscripta lo ve en la ficha y en /panel → Mailpit tiene un mail
 // por inscripta activa. El título lleva marca de tiempo porque Mailpit es compartido; el anuncio y
 // sus filas de mail_log se borran al final como postgres (el guard deja pasar al servidor).
+// publishAnnouncement topa en 5 por hora y por docente: sin reset, la sexta corrida de la hora
+// falla con "Demasiados intentos". Se limpia el bucket de Sol antes y después.
+function resetPublishBucket(): void {
+  psql(
+    `delete from public.rate_limit_buckets where key = 'publishAnnouncement:u:' || (select id::text from auth.users where email = '${SOL.email}')`,
+  );
+}
+
 test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada inscripta recibe un mail", async ({
   browser,
   request,
@@ -14,6 +22,7 @@ test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada ins
   const title = `Luna nueva en el curso ${Date.now()}`;
   const body = "El jueves repasamos la cruz celta. Traigan el mazo.";
   const slug = ALUMNA.enrolledSlug;
+  resetPublishBucket();
 
   try {
     const solCtx = await browser.newContext();
@@ -85,6 +94,7 @@ test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada ins
 
     await Promise.all([solCtx.close(), alumnaCtx.close(), anonCtx.close()]);
   } finally {
+    resetPublishBucket();
     psql(
       `delete from public.mail_log where mail_type = 'course_announcement' and scope_key in
          (select id::text from public.course_announcements where title = '${title}');
