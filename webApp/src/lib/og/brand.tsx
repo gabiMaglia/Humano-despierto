@@ -11,7 +11,7 @@ export const OG_COLORS = {
   bg: "#1f2e24",
   texto: "#ffffff",
   salvia: "#cfdccb",
-  miel: "#c7922e",
+  miel: "#e6a93a",
 } as const;
 
 /** El brote de la marca (mismo trazo que BrandMark), como SVG: satori no dibuja glifos sin fetch. */
