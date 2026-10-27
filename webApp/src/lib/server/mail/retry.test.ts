@@ -122,6 +122,32 @@ describe("D-51 · anuncio contra el tope global de sendMail", () => {
     for (const s of db.slots.values()) expect(s.attempts).toBe(0);
   });
 
+  it("una pasada retoma como mucho 2 anuncios aunque haya 4 pendientes", async () => {
+    const db = fakeDb(0) as ReturnType<typeof fakeDb>;
+    const base = db.from.bind(db);
+    const pedidos: string[] = [];
+    db.from = ((table: string) => {
+      if (table === "mail_log") {
+        const c: Record<string, unknown> = {};
+        for (const k of ["select", "eq", "is", "lt", "order", "limit"]) c[k] = () => c;
+        c.then = (ok: (v: unknown) => unknown) =>
+          Promise.resolve({ data: ["a1", "a2", "a3", "a4"].map((scope_key) => ({ scope_key })), error: null }).then(ok);
+        return c;
+      }
+      if (table === "course_announcements") {
+        const c: Record<string, unknown> = {};
+        c.select = () => c;
+        c.eq = (_k: string, v: string) => (pedidos.push(v), c);
+        c.maybeSingle = async () => ({ data: null, error: null });
+        return c;
+      }
+      return base(table);
+    }) as typeof db.from;
+    mocks.db = db;
+    await expect(retryPendingAnnouncementMail()).resolves.toEqual({ announcements: 2 });
+    expect(pedidos).toEqual(["a1", "a2"]);
+  });
+
   it("sin nada pendiente no hace nada", async () => {
     mocks.db = fakeDb(0);
     await expect(retryPendingAnnouncementMail()).resolves.toEqual({ announcements: 0 });
