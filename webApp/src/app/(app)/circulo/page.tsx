@@ -28,7 +28,6 @@ export default async function CampusGeneralPage() {
       <CampusComposer
         courseId={null}
         courseSlug={null}
-        authorGlyph={user?.glyph ?? null}
         authorName={user?.fullName ?? null}
         placeholder="Compartí una pregunta, una observación, una presentación..."
       />

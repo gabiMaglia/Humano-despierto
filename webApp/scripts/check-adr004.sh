@@ -51,6 +51,9 @@ PATRONES=(
   'ESTUDIANTE · [IVXLC]+[^A-Za-z]' # "ESTUDIANTE · XII" — el numeral de cohorte, sin la palabra
   'plazas tomadas'               # cupo ⇒ hay una cohorte con cupo
   'próxima en luna'
+  'inscripciones cierran'        # D-42 · plazo de inscripción ⇒ hay una cohorte que cierra
+  'filo del eclipse'             # D-42 · el mismo plazo con ropa simbólica
+  'hablar con una guía'          # D-42 · promete un canal que no existe (T-043)
 )
 
 # Excepciones deliberadas, con su justificación. Se listan para que borrarlas sea

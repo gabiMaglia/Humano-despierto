@@ -95,7 +95,7 @@ export default async function CourseRosterPage({ params }: Props) {
 
       <p className="text-sm text-suave">
         Tus datos básicos (nombre, bio, foto) se editan en{" "}
-        <Link href="/panel/perfil" className="font-semibold text-miel-800 hover:underline">
+        <Link href="/panel/perfil" className="inline-flex min-h-12 items-center font-semibold text-miel-800 hover:underline">
           tu perfil
         </Link>
         .

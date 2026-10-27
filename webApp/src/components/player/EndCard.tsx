@@ -28,7 +28,7 @@ export default function EndCard({ next, closingHref, countdown, onCancel, onGo }
       {countdown !== null && (
         <p className="flex flex-wrap items-center justify-center gap-3 text-base text-salvia-100">
           Siguiente lección en {countdown} s
-          <Button variant="ghost" size="sm" onClick={onCancel} className="text-white hover:bg-bosque-700">
+          <Button variant="ghost-light" size="sm" onClick={onCancel}>
             Cancelar
           </Button>
         </p>

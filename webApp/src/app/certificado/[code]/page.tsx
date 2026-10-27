@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPublicCertificate } from "@/lib/server/certificates";
+import { loadCertificate } from "./data";
 import { formatCertificateDate } from "@/lib/utils/format";
 import PrintButton from "@/components/certificate/PrintButton";
 import BrandMark from "@/components/atoms/BrandMark";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 // publicado (c.6): certifica algo que ya pasó.
 export default async function CertificadoPage({ params }: PageProps) {
   const { code } = await params;
-  const certificate = await getPublicCertificate(code);
+  const certificate = await loadCertificate(code);
 
   if (!certificate) notFound();
 

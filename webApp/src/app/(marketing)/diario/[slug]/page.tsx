@@ -55,7 +55,7 @@ export default async function DiarioPostPage({ params }: Props) {
       <article className="mx-auto max-w-[760px] px-6 pb-24 pt-6">
         <header className="border-b border-linea pb-10">
           <h1 className="text-display-md leading-[1.12] [overflow-wrap:anywhere]">{post.title}</h1>
-          {post.excerpt && <p className="mt-4 text-xl leading-snug text-tinta">{post.excerpt}</p>}
+          {post.excerpt && <p className="mt-4 text-xl leading-snug text-tinta [overflow-wrap:anywhere]">{post.excerpt}</p>}
           <p className="mt-6 text-[15px] text-suave">
             Escribe{" "}
             {post.teacherSlug ? (
@@ -68,7 +68,7 @@ export default async function DiarioPostPage({ params }: Props) {
             · <time dateTime={post.publishedAt}>{formatCertificateDate(post.publishedAt)}</time>
           </p>
         </header>
-        <div className="mt-10 space-y-5 text-[18px] leading-[1.8] text-tinta">
+        <div className="mt-10 space-y-5 text-[18px] leading-[1.8] text-tinta [overflow-wrap:anywhere]">
           {paragraphs.map((para, i) => (
             <p key={i}>{para}</p>
           ))}

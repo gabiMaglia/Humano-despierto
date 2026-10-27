@@ -6,6 +6,7 @@ import { saveReviewAction, type ReviewActionState } from "@/app/(marketing)/curs
 import ActionFeedback from "@/components/reviews/ActionFeedback";
 import { cn } from "@/lib/utils/cn";
 import type { CourseReview } from "@/lib/server/reviews";
+import Button from "@/components/atoms/Button";
 
 const INICIAL: ReviewActionState = { error: null, success: null };
 
@@ -60,18 +61,14 @@ export default function ReviewForm({
         name="body"
         rows={4}
         defaultValue={own?.body ?? ""}
-        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
+        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta"
       />
 
       <ActionFeedback state={state} />
 
-      <button
-        type="submit"
-        disabled={isPending || rating === 0}
-        className="btn btn-primary mt-4 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending || rating === 0} className="mt-4">
         {isPending ? "Guardando…" : own ? "Guardar cambios" : "Publicar testimonio"}
-      </button>
+      </Button>
     </form>
   );
 }

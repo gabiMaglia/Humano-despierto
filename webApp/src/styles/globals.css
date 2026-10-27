@@ -179,6 +179,16 @@
   .btn-ghost:hover:not(:disabled) {
     background: var(--salvia-100);
   }
+  /* Terciario sobre bosque o foto (EndCard del player). */
+  .btn-ghost-light {
+    background: transparent;
+    color: #fff;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .btn-ghost-light:hover:not(:disabled) {
+    background: var(--bosque-700);
+  }
   /* Acción destructiva (borrar, retirar): contorno en `error`, relleno al hover. */
   .btn-danger {
     background: transparent;

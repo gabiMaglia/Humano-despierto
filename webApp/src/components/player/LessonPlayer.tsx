@@ -187,10 +187,12 @@ export default function LessonPlayer({ data, startSeconds = null }: Props) {
                       key={c.id}
                       type="button"
                       onClick={() => seekTo(c.startSeconds)}
+                      // Atajo de ratón: el teclado y los lectores usan la lista de capítulos (44px).
+                      tabIndex={-1}
+                      aria-hidden="true"
                       className="absolute top-1/2 h-3 w-1 -translate-y-1/2 rounded-pill bg-salvia hover:bg-miel"
                       style={{ left: `${(c.startSeconds / effectiveDuration) * 100}%` }}
                       title={c.label}
-                      aria-label={`Ir al capítulo ${c.label}`}
                     />
                   ))}
               </div>

@@ -45,8 +45,8 @@ Nombres **semánticos**: no queda ningún `lila`, `cosmos`, `ink` ni `gold` en e
 | `bosque` | `#1F2E24` | títulos, botón secundario, footer | 13.76 fondo |
 | `bosque-700` | `#33473A` | hover de bosque | — |
 | `suave` | `#5F6E65` | texto secundario, metadatos | 5.20 fondo · 4.78 salvia-100 |
-| `miel` | `#C7922E` | botón primario (texto `bosque` encima: 5.14) | — |
-| `miel-hover` | `#D9A23A` | hover primario | — |
+| `miel` | `#E6A93A` | botón primario (texto `bosque` encima: 6.85) | — |
+| `miel-hover` | `#F0B955` | hover primario | — |
 | `miel-800` | `#8A6219` | enlaces y acento en texto | 5.28 fondo · 4.86 salvia-100 |
 | `miel-100` | `#F7EBD0` | etiquetas («Gratis», «Nuevo») | 4.62 con miel-800 |
 | `musgo` | `#5E7A66` | **sólo** íconos e ilustración (no texto) | 4.56 fondo |
