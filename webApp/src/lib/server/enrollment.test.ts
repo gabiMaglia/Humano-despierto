@@ -100,7 +100,7 @@ describe("getStudentDashboard · portada (D-90)", () => {
     course_id: id,
     enrolled_at: "2026-10-01T10:00:00Z",
     course: {
-      id, slug: id, title: "T", title_em: null, discipline: "Tarot", level: "Inicial", roman_num: null, moon_glyph: null,
+      id, slug: id, title: "T", title_em: null, discipline: "Tarot", level: "Inicial", moon_glyph: null,
       cover_path: cover, teacher: { full_name: "Luna" }, course_modules: [],
     },
   });
