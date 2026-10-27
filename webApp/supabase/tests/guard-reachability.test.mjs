@@ -100,6 +100,13 @@ const CASOS = {
   teacher_invitations_guard: 'service_role crea, revoca y acepta; borrar la cuenta de quien invito o acepto',
 };
 
+// Un solo filtro para la meta-asercion y su meta-control: si el control tuviera su copia, podria
+// seguir verde con la meta-asercion rota (D-14).
+const sinCaso = (enLaDb) => {
+  const declarados = new Set([...Object.keys(CASOS), ...EXENTOS_NO_BLOQUEAN]);
+  return enLaDb.filter((t) => !declarados.has(t));
+};
+
 const triggersDeLaDb = async (db) =>
   (
     await db.query(`
@@ -128,8 +135,7 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
     // llama guard: filtrar por nombre haria que la cobertura dependa de como alguien bautizo algo,
     // que es el mismo agujero que ADR-010 vino a cerrar en la otra mitad de ADR-009.
     const enLaDb = await triggersDeLaDb(db);
-    const declarados = new Set([...Object.keys(CASOS), ...EXENTOS_NO_BLOQUEAN]);
-    const huerfanos = enLaDb.filter((t) => !declarados.has(t));
+    const huerfanos = sinCaso(enLaDb);
 
     assert.deepEqual(
       huerfanos,
@@ -875,10 +881,8 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
     `);
     try {
       const enLaDb = await triggersDeLaDb(db);
-      const declarados = new Set([...Object.keys(CASOS), ...EXENTOS_NO_BLOQUEAN]);
-      const huerfanos = enLaDb.filter((t) => !declarados.has(t));
       assert.deepEqual(
-        huerfanos,
+        sinCaso(enLaDb),
         ['t036_trigger_intruso'],
         'la meta-asercion no detecto un trigger nuevo sin caso — no protege nada',
       );
