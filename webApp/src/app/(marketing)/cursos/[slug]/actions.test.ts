@@ -102,12 +102,16 @@ describe("requestEnrollmentAction", () => {
 
   function sessionWith(
     userId: string | null,
-    results: { course?: unknown; insert?: unknown },
+    results: { course?: unknown; insert?: unknown; existing?: unknown },
   ) {
     const log: { table: string; calls: ChainCall[] }[] = [];
     const from = vi.fn((table: string) => {
-      const { chain, calls } = queryChain(() =>
-        table === "courses" ? results.course : results.insert,
+      const { chain, calls } = queryChain((c) =>
+        table === "courses"
+          ? results.course
+          : c.some((x) => x.method === "insert")
+            ? results.insert
+            : (results.existing ?? { data: null, error: null }),
       );
       log.push({ table, calls });
       return chain;
@@ -147,6 +151,34 @@ describe("requestEnrollmentAction", () => {
     const r = await requestEnrollmentAction("herbario-lunar", INICIAL, new FormData());
     expect(r).toEqual({ error: "Ya tenés una solicitud para este curso.", success: null });
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("D-37 · un curso archivado no está abierto: no inserta", async () => {
+    // RLS sigue dejando leer el archivado a quien lo cursó; el corte es el filtro por status.
+    const { log } = sessionWith(USER, { course: { data: null, error: null } });
+    const r = await requestEnrollmentAction("curso-archivado", INICIAL, new FormData());
+    expect(r).toEqual({ error: "Este curso no está abierto a inscripciones.", success: null });
+    expect(log[0].calls.map((c) => c.args)).toContainEqual(["status", "published"]);
+    expect(log.some((l) => l.calls.some((c) => c.method === "insert"))).toBe(false);
+  });
+
+  it.each([
+    ["revoked", "Tu inscripción a este curso fue dada de baja."],
+    ["rejected", "Tu solicitud para este curso no fue aprobada."],
+    ["active", "Ya estás inscripta en este curso."],
+    ["requested", "Ya tenés una solicitud para este curso."],
+  ])("D-37 · 23505 sobre una fila %s dice lo que pasó", async (status, message) => {
+    const { log } = sessionWith(USER, {
+      course: { data: { id: COURSE }, error: null },
+      insert: { data: null, error: { code: "23505", message: "duplicate key" } },
+      existing: { data: { status }, error: null },
+    });
+    const r = await requestEnrollmentAction("herbario-lunar", INICIAL, new FormData());
+    expect(r).toEqual({ error: message, success: null });
+    const lectura = log.find((l) => l.table === "enrollments" && !l.calls.some((c) => c.method === "insert"));
+    expect(lectura!.calls.map((c) => c.args)).toEqual(
+      expect.arrayContaining([["course_id", COURSE], ["user_id", USER]]),
+    );
   });
 
   it("inserta SOLO user_id de sesión y course_id resuelto en servidor, sin status (c.2)", async () => {

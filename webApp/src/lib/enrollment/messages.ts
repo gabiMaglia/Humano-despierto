@@ -22,6 +22,9 @@ export const ENROLLMENT_COPY = {
   needsLogin: "Necesitás iniciar sesión para pedir un curso.",
   courseUnavailable: "Este curso no está abierto a inscripciones.",
   alreadyRequested: "Ya tenés una solicitud para este curso.",
+  alreadyActive: "Ya estás inscripta en este curso.",
+  alreadyRevoked: "Tu inscripción a este curso fue dada de baja.",
+  alreadyRejected: "Tu solicitud para este curso no fue aprobada.",
   requested: "Solicitud enviada. Te avisamos por mail cuando la escuela la revise.",
   approved: "Inscripción aprobada.",
   rejected: "Solicitud rechazada.",
@@ -48,5 +51,19 @@ export function translateEnrollmentError(error: { code?: string | null; message:
       return ENROLLMENT_COPY.alreadyDecided;
     default:
       return ENROLLMENT_COPY.generic;
+  }
+}
+
+/** Un 23505 al pedir dice que hay fila, no cuál: se traduce con el estado de la fila propia (D-37). */
+export function duplicateEnrollmentMessage(status: string | null | undefined): string {
+  switch (status) {
+    case "active":
+      return ENROLLMENT_COPY.alreadyActive;
+    case "revoked":
+      return ENROLLMENT_COPY.alreadyRevoked;
+    case "rejected":
+      return ENROLLMENT_COPY.alreadyRejected;
+    default:
+      return ENROLLMENT_COPY.alreadyRequested;
   }
 }

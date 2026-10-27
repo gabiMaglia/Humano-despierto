@@ -16,6 +16,7 @@ import {
 } from "@/lib/reviews/write.mjs";
 import {
   ENROLLMENT_COPY,
+  duplicateEnrollmentMessage,
   translateEnrollmentError,
   type EnrollmentRequestState,
 } from "@/lib/enrollment/messages";
@@ -174,6 +175,16 @@ export const requestEnrollmentAction = withRateLimit(
     if (!course) return { error: ENROLLMENT_COPY.courseUnavailable, success: null };
 
     const { error } = await supabase.from("enrollments").insert({ user_id: uid, course_id: course.id });
+    if (error?.code === "23505") {
+      // `enrollments_read` sólo devuelve la fila propia; si la lectura falla, el texto genérico de duplicado.
+      const { data: existing } = await supabase
+        .from("enrollments")
+        .select("status")
+        .eq("course_id", course.id)
+        .eq("user_id", uid)
+        .maybeSingle();
+      return { error: duplicateEnrollmentMessage(existing?.status), success: null };
+    }
     if (error) return { error: translateEnrollmentError(error), success: null };
 
     revalidatePath(`/cursos/${slug}`);
