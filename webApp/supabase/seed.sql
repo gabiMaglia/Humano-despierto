@@ -122,10 +122,10 @@ from (values
    'Luna aprendió a mirar el cielo antes que a leer. En el patio de su abuela, en Coyoacán, las noches se contaban por constelaciones y las tardes por las cartas que tendía para las vecinas del barrio. A los nueve años ya sabía señalar dónde caía la Casa X sin saber todavía qué significaba.' || chr(10) || chr(10) ||
    'Se formó en astrología tropical durante tres años y completó el recorrido con un estudio autodidacta del tarot de Marsella, contrastando cada arcano contra tránsitos reales hasta encontrar dónde se tocan las dos lenguas. Catorce años después enseña con una sola certeza: ninguna técnica reemplaza la escucha atenta de lo que el cuerpo ya sabía antes que la carta lo dijera.',
    '[
-     {"year":"MMXII","title":"Astrología tropical · casas y aspectos","place":"Ciudad de México"},
-     {"year":"MMXV","title":"Tarot de Marsella · estudio de arcanos","place":"Ciudad de México"},
-     {"year":"MMXVIII","title":"Astrología predictiva · tránsitos y progresiones","place":"Online"},
-     {"year":"MMXXII","title":"Ética de la consulta astrológica","place":"Bogotá"}
+     {"year":"2012","title":"Astrología tropical · casas y aspectos","place":"Ciudad de México"},
+     {"year":"2015","title":"Tarot de Marsella · estudio de arcanos","place":"Ciudad de México"},
+     {"year":"2018","title":"Astrología predictiva · tránsitos y progresiones","place":"Online"},
+     {"year":"2022","title":"Ética de la consulta astrológica","place":"Bogotá"}
    ]',
    '[
      {"quote":"Me enseñó a leer mi carta natal sin buscar excusas en ella — a usarla como espejo, no como sentencia.","who":"Renata G.","course":"Carta natal esencial"},
@@ -138,10 +138,10 @@ from (values
    'Sol llegó al tarot a los diecinueve años, cuando una abuela vasca le puso un mazo en las manos y le dijo: "no leas las cartas, dejá que ellas te lean a vos".' || chr(10) || chr(10) ||
    'Estudió astrología tropical con Eugenio Carutti en Buenos Aires y se formó en el tarot de Marsella con la escuela de Alejandro Jodorowsky en Francia. Dieciocho años después, sigue creyendo que el oficio es escuchar.',
    '[
-     {"year":"MMVIII","title":"Tarot de Marsella · Jodorowsky","place":"París"},
-     {"year":"MMXII","title":"Astrología tropical · Casa XI","place":"Buenos Aires"},
-     {"year":"MMXVI","title":"Cábala y simbolismo","place":"Jerusalén"},
-     {"year":"MMXX","title":"Trauma-informed counseling","place":"Online"}
+     {"year":"2008","title":"Tarot de Marsella · Jodorowsky","place":"París"},
+     {"year":"2012","title":"Astrología tropical · Casa XI","place":"Buenos Aires"},
+     {"year":"2016","title":"Cábala y simbolismo","place":"Jerusalén"},
+     {"year":"2020","title":"Trauma-informed counseling","place":"Online"}
    ]',
    '[
      {"quote":"Hizo de un mazo de cartas un espejo del que no quiero alejarme.","who":"Lía M.","course":"Tarot iniciático"},
@@ -154,9 +154,9 @@ from (values
    'Aurora llegó al Reiki buscando alivio para un cuerpo agotado y se quedó por la pregunta que le abrió: ¿qué pasa si el silencio, sostenido con las manos, es en sí mismo una forma de cuidado? De ahí a la herbolaria hubo un solo paso — las plantas del patio de su madre, que ella miraba sin nombrar, empezaron a pedir ser aprendidas.' || chr(10) || chr(10) ||
    'Recibió la maestría en la línea Usui y complementó su formación con herbolaria tradicional y fitoterapia. Doce años después enseña las dos disciplinas con el mismo principio: acompañar el proceso del cuerpo, nunca apurarlo ni reemplazar su criterio.',
    '[
-     {"year":"MMXIV","title":"Reiki nivel I y II · línea Usui","place":"Córdoba"},
-     {"year":"MMXVII","title":"Herbolaria tradicional y fitoterapia","place":"Córdoba"},
-     {"year":"MMXXI","title":"Reiki nivel III · maestría","place":"Buenos Aires"}
+     {"year":"2014","title":"Reiki nivel I y II · línea Usui","place":"Córdoba"},
+     {"year":"2017","title":"Herbolaria tradicional y fitoterapia","place":"Córdoba"},
+     {"year":"2021","title":"Reiki nivel III · maestría","place":"Buenos Aires"}
    ]',
    '[
      {"quote":"No promete nada que no pueda sostener. Solo silencio, presencia y manos quietas — y con eso alcanza.","who":"Marcos T.","course":"Reiki nivel I"},
