@@ -14,6 +14,7 @@ import {
   timestampToSeconds,
   resourceFormSchema,
   firstIssueMessage,
+  firstIssue,
 } from "@/lib/validation/teacher";
 import type { TeacherActionState } from "@/lib/teacher/action-state";
 import { UPLOADS_BUCKET, uploadAsServer } from "@/lib/server/uploads";
@@ -252,7 +253,10 @@ export const createLessonAction = withRateLimit(
       description: String(formData.get("description") ?? ""),
       isPreview: formData.get("isPreview") === "on",
     });
-    if (!parsed.success) return { error: firstIssueMessage(parsed.error), success: null };
+    if (!parsed.success) {
+      const { field, message } = firstIssue(parsed.error);
+      return { error: message, success: null, ...(field ? { field } : {}) };
+    }
 
     try {
       await assertOwnsCourse(courseId, teacher.id);
@@ -316,7 +320,10 @@ export const updateLessonAction = withRateLimit(
       description: String(formData.get("description") ?? ""),
       isPreview: formData.get("isPreview") === "on",
     });
-    if (!parsed.success) return { error: firstIssueMessage(parsed.error), success: null };
+    if (!parsed.success) {
+      const { field, message } = firstIssue(parsed.error);
+      return { error: message, success: null, ...(field ? { field } : {}) };
+    }
 
     try {
       await assertOwnsCourse(courseId, teacher.id);

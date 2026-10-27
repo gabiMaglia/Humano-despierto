@@ -178,3 +178,10 @@ export const resourceFormSchema = z.object({
 export function firstIssueMessage(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Datos inválidos.";
 }
+
+/** El primer problema con el campo que lo causó (el `name` del form), para marcarlo en la vista. */
+export function firstIssue(error: z.ZodError): { field?: string; message: string } {
+  const issue = error.issues[0];
+  const key = issue?.path[0];
+  return { ...(typeof key === "string" ? { field: key } : {}), message: issue?.message ?? "Datos inválidos." };
+}

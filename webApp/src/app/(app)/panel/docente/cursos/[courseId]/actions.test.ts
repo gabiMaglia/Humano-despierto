@@ -19,7 +19,7 @@ vi.mock("@/lib/server/youtube", () => ({ resolveYoutubeVideo: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
-import { removeCourseCoverAction, uploadCourseCoverAction } from "./actions";
+import { removeCourseCoverAction, updateLessonAction, uploadCourseCoverAction } from "./actions";
 import { MAX_COVER_BYTES } from "@/lib/validation/image";
 import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
 
@@ -170,5 +170,25 @@ describe("removeCourseCoverAction", () => {
     expect(r.error).toMatch(/no te pertenece/);
     expect(update).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateLessonAction · error por campo (D-100)", () => {
+  beforeEach(() => {
+    createClient.mockReset();
+    requireTeacher.mockReset().mockResolvedValue(TEACHER);
+    assertOwnsCourse.mockReset().mockResolvedValue(undefined);
+  });
+
+  function lessonForm(fields: Record<string, string>) {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries({ courseId: COURSE, lessonId: "l1", title: "Clase", description: "", ...fields })) fd.set(k, v);
+    return fd;
+  }
+
+  it("título vacío o descripción con link vuelven con el campo culpable", async () => {
+    expect(await updateLessonAction(INITIAL, lessonForm({ title: "" }))).toMatchObject({ field: "title" });
+    expect(await updateLessonAction(INITIAL, lessonForm({ description: "mirá https://x.com" }))).toMatchObject({ field: "description" });
+    expect(createClient).not.toHaveBeenCalled();
   });
 });

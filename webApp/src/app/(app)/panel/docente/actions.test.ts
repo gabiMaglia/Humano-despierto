@@ -19,7 +19,7 @@ vi.mock("@/lib/server/teacher", () => ({ requireTeacher, assertOwnsCourse }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect }));
 
-import { deleteCourseAction } from "./actions";
+import { createCourseAction, deleteCourseAction, updateCourseAction } from "./actions";
 import { __resetRateLimiterForTests } from "@/lib/server/rate-limit";
 
 beforeEach(() => {
@@ -76,5 +76,51 @@ describe("deleteCourseAction · portada (T-047)", () => {
     setup({ cover: null });
     await deleteCourseAction(INITIAL, form());
     expect(createServiceRoleClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("course actions · error por campo (D-100)", () => {
+  function courseForm(overrides: Record<string, string> = {}) {
+    const fd = new FormData();
+    const base: Record<string, string> = {
+      courseId: COURSE, slug: "tarot-iniciatico", title: "Tarot", discipline: "Tarot", level: "Inicial", price: "240", currency: "ARS", language: "es",
+    };
+    for (const [k, v] of Object.entries({ ...base, ...overrides })) fd.set(k, v);
+    return fd;
+  }
+
+  beforeEach(() => {
+    createClient.mockReset();
+    requireTeacher.mockReset().mockResolvedValue({ id: "t", role: "teacher" });
+    assertOwnsCourse.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("un campo inválido vuelve con su nombre, sin tocar la base", async () => {
+    const r = await createCourseAction(INITIAL, courseForm({ price: "doscientos" }));
+    expect(r).toMatchObject({ field: "price", error: "El precio es un número (ej: 240 o 240.00)." });
+    const u = await updateCourseAction(INITIAL, courseForm({ promoVideoId: "https://youtu.be/x" }));
+    expect(u.field).toBe("promoVideoId");
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("un slug repetido (23505) marca el slug", async () => {
+    const dup = { error: { code: "23505", message: "duplicate key" } };
+    createClient.mockResolvedValue({
+      from: () => ({
+        insert: () => ({ select: () => ({ single: async () => ({ data: null, ...dup }) }) }),
+        update: () => ({ eq: async () => dup }),
+      }),
+    });
+    expect((await createCourseAction(INITIAL, courseForm())).field).toBe("slug");
+    expect((await updateCourseAction(INITIAL, courseForm())).field).toBe("slug");
+  });
+
+  it("un error que no es de un campo no inventa uno", async () => {
+    createClient.mockResolvedValue({
+      from: () => ({ update: () => ({ eq: async () => ({ error: { code: "42501", message: "locator" } }) }) }),
+    });
+    const r = await updateCourseAction(INITIAL, courseForm());
+    expect(r.error).toBeTruthy();
+    expect(r.field).toBeUndefined();
   });
 });
