@@ -1,19 +1,24 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
+import ErrorMark from "@/components/atoms/ErrorMark";
 import { cn } from "@/lib/utils/cn";
+import { fieldA11y } from "@/lib/ui/field";
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   id: string;
   label: string;
   aside?: ReactNode;
+  /** Error de este campo: se anuncia (`alert`) y queda asociado al input. */
+  error?: string | null;
 }
 
 // `htmlFor` + `id`: sin la asociación el lector de pantalla no anuncia el campo y Playwright no
 // lo encuentra por su label.
-export default function AuthField({ id, label, aside, className, ...input }: Props) {
+export default function AuthField({ id, label, aside, error, className, ...input }: Props) {
+  const a11y = fieldA11y(id, error, input["aria-describedby"]);
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between">
-        <label htmlFor={id} className="font-display text-eyebrow tracking-cosmic text-ink-soft">
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <label htmlFor={id} className="text-sm font-semibold text-tinta">
           {label}
         </label>
         {aside}
@@ -21,11 +26,20 @@ export default function AuthField({ id, label, aside, className, ...input }: Pro
       <input
         id={id}
         {...input}
+        aria-invalid={a11y["aria-invalid"]}
+        aria-describedby={a11y["aria-describedby"]}
         className={cn(
-          "w-full rounded-ritual border border-lila-300/20 bg-cosmos-0/60 px-4 py-3 font-body text-sm text-ink placeholder:text-ink-faint outline-none transition-colors focus:border-lila-300/50 focus:bg-cosmos-0",
+          "min-h-12 w-full rounded-md border bg-papel px-4 py-3 text-base text-tinta placeholder:text-suave transition-colors",
+          error ? "border-error" : "border-suave",
           className,
         )}
       />
+      {error && (
+        <p id={a11y.errorId} role="alert" className="mt-1.5 flex items-start gap-2 text-sm font-medium text-error">
+          <ErrorMark />
+          {error}
+        </p>
+      )}
     </div>
   );
 }

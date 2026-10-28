@@ -1,5 +1,5 @@
 import type { APIRequestContext } from "@playwright/test";
-import { ALUMNA, assertStackUp, expect, login, test } from "./fixtures";
+import { ALUMNA, assertStackUp, expect, login, test, userIdByEmail } from "./fixtures";
 
 try {
   process.loadEnvFile(".env.local");
@@ -10,11 +10,6 @@ const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const H = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, "Content-Type": "application/json" };
 const WINDOW_S = 600;
-
-async function alumnaId(request: APIRequestContext): Promise<string> {
-  const users = await (await request.get(`${SUPABASE}/auth/v1/admin/users?per_page=200`, { headers: H })).json();
-  return users.users.find((u: { email: string }) => u.email === ALUMNA.email).id as string;
-}
 
 async function courseId(request: APIRequestContext): Promise<string> {
   const res = await request.get(`${SUPABASE}/rest/v1/courses?select=id&slug=eq.${ALUMNA.enrolledSlug}`, { headers: H });
@@ -30,7 +25,7 @@ test("c.1 · la sexta reseña seguida muestra el mensaje humano y no escribe", a
   test.skip(!SERVICE, "falta SUPABASE_SERVICE_ROLE_KEY (webApp/.env.local)");
   test.setTimeout(240_000);
   await assertStackUp(request);
-  const uid = await alumnaId(request);
+  const uid = await userIdByEmail(request, ALUMNA.email);
   const cid = await courseId(request);
   await cleanup(request, uid, cid);
 

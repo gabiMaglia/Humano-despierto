@@ -1,5 +1,8 @@
 "use client";
 
+import Button, { buttonClass } from "@/components/atoms/Button";
+import Icon from "@/components/atoms/Icon";
+
 interface Props {
   /** Siguiente lección publicada; null en la última. */
   next: { id: string; title: string } | null;
@@ -19,19 +22,15 @@ export default function EndCard({ next, closingHref, countdown, onCancel, onGo }
   return (
     <div
       role="status"
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-cosmos-0/90 px-5 text-center"
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-bosque px-5 text-center"
     >
-      {!next && <p className="font-display text-sm tracking-wide text-ink">{label}</p>}
+      {!next && <p className="text-xl font-semibold text-white">{label}</p>}
       {countdown !== null && (
-        <p className="font-body text-xs text-ink-soft">
+        <p className="flex flex-wrap items-center justify-center gap-3 text-base text-salvia-100">
           Siguiente lección en {countdown} s
-          <button
-            type="button"
-            onClick={onCancel}
-            className="ml-3 font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors"
-          >
+          <Button variant="ghost" size="sm" onClick={onCancel} className="text-white hover:bg-bosque-700">
             Cancelar
-          </button>
+          </Button>
         </p>
       )}
       {href && (
@@ -41,9 +40,10 @@ export default function EndCard({ next, closingHref, countdown, onCancel, onGo }
             e.preventDefault();
             onGo(href);
           }}
-          className="font-display text-eyebrow tracking-cosmic text-gold-400 hover:text-lila-300 transition-colors"
+          className={buttonClass({ className: "max-w-full" })}
         >
-          {next ? `${label} →` : "Continuar →"}
+          <span className="truncate">{next ? label : "Continuar"}</span>
+          <Icon name="arrow-right" className="btn-arrow" />
         </a>
       )}
     </div>

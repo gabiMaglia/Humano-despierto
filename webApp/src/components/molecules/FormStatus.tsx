@@ -1,14 +1,24 @@
+import ErrorMark from "@/components/atoms/ErrorMark";
 import type { ActionState } from "@/lib/action-state";
+import { cn } from "@/lib/utils/cn";
 
-/** Mismo dibujo que el estado de `CourseForm`; los formularios viejos migran cuando se toquen. */
-export default function FormStatus({ state }: { state: ActionState }) {
+/** Resultado de un Server Action que no es de un campo (sesión vencida, error de la base, «guardado»).
+ *  El error de un campo va junto al campo (`FormField`); éste queda para lo que es del formulario. */
+export default function FormStatus({ state, id, className }: { state: ActionState; id?: string; className?: string }) {
   if (state.error) {
     return (
-      <p role="alert" className="font-body text-xs text-red-400">
+      <p id={id} role="alert" className={cn("flex items-start gap-2 text-sm font-medium text-error", className)}>
+        <ErrorMark />
         {state.error}
       </p>
     );
   }
-  if (state.success) return <p className="font-body text-xs text-lila-300">{state.success}</p>;
+  if (state.success) {
+    return (
+      <p id={id} role="status" className={cn("text-sm font-medium text-exito", className)}>
+        {state.success}
+      </p>
+    );
+  }
   return null;
 }

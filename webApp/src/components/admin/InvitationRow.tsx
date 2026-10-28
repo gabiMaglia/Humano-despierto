@@ -2,8 +2,12 @@
 
 import { useActionState } from "react";
 import { revokeInvitationAction } from "@/app/(app)/panel/admin/invitaciones/actions";
+import Button from "@/components/atoms/Button";
+import { PanelRow, RowMain } from "@/components/panel/PanelRow";
+import StatusChip from "@/components/panel/StatusChip";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { ADMIN_ACTION_INITIAL_STATE } from "@/lib/admin/action-state";
-import ActionFeedback from "@/components/reviews/ActionFeedback";
+import { INVITATION_STATUS } from "@/lib/panel/status";
 import type { AdminInvitationRow } from "@/lib/server/admin-lists";
 import { formatCertificateDate } from "@/lib/utils/format";
 import ResendInvitationButton from "./ResendInvitationButton";
@@ -11,9 +15,9 @@ import ResendInvitationButton from "./ResendInvitationButton";
 function detail(i: AdminInvitationRow): string {
   switch (i.status) {
     case "pendiente":
-      return `Pendiente · vence el ${formatCertificateDate(i.expiresAt)}`;
+      return `Vence el ${formatCertificateDate(i.expiresAt)}`;
     case "vencida":
-      return `Vencida el ${formatCertificateDate(i.expiresAt)}`;
+      return `Venció el ${formatCertificateDate(i.expiresAt)}`;
     case "aceptada":
       return `Aceptada el ${formatCertificateDate(i.acceptedAt ?? i.expiresAt)}`;
     case "revocada":
@@ -24,28 +28,21 @@ function detail(i: AdminInvitationRow): string {
 export default function InvitationRow({ invitation }: { invitation: AdminInvitationRow }) {
   const [state, revoke, isPending] = useActionState(revokeInvitationAction, ADMIN_ACTION_INITIAL_STATE);
   const pending = invitation.status === "pendiente";
+  const look = INVITATION_STATUS[invitation.status];
   return (
-    <li className="cosmos-card flex flex-wrap items-center gap-4 p-4">
-      <div className="min-w-0 flex-1">
-        <p className="font-display text-sm tracking-wide text-ink">{invitation.email}</p>
-        <p className="font-body text-xs text-ink-faint">{detail(invitation)}</p>
-      </div>
+    <PanelRow>
+      <RowMain title={invitation.email} meta={detail(invitation)} />
+      <StatusChip tone={look.tone}>{look.label}</StatusChip>
       {pending && (
         <form action={revoke}>
           <input type="hidden" name="invitationId" value={invitation.id} />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="btn-ritual btn-ritual-ghost rounded-pill text-[10px] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending ? "…" : "Revocar"}
-          </button>
+          <Button type="submit" variant="danger" size="sm" disabled={isPending} aria-busy={isPending}>
+            {isPending ? "Revocando…" : "Revocar"}
+          </Button>
         </form>
       )}
-      {(pending || invitation.status === "vencida") && <ResendInvitationButton email={invitation.email} label="Reenviar" />}
-      <div className="w-full">
-        <ActionFeedback state={state} />
-      </div>
-    </li>
+      {(pending || invitation.status === "vencida") && <ResendInvitationButton email={invitation.email} label="Reenviar" size="sm" />}
+      <StatusMessage error={state.error} success={state.success} className="w-full" />
+    </PanelRow>
   );
 }

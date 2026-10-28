@@ -23,13 +23,13 @@ export default async function AdminInvitationsPage({
   return (
     <AdminShell active="invitaciones">
       <section aria-labelledby="invitar-titulo">
-        <h2 id="invitar-titulo" className="mb-5 font-display text-lg tracking-wide text-ink">
+        <h2 id="invitar-titulo" className="mb-4 text-xl font-semibold text-bosque">
           Invitar a una docente
         </h2>
         <InviteTeacherForm />
       </section>
       <section aria-labelledby="invitaciones-titulo">
-        <h2 id="invitaciones-titulo" className="mb-5 font-display text-lg tracking-wide text-ink">
+        <h2 id="invitaciones-titulo" className="mb-4 text-xl font-semibold text-bosque">
           Invitaciones
         </h2>
         <AdminPagedList

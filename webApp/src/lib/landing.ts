@@ -37,3 +37,8 @@ export function disciplineCounts(disciplines: string[]): DisciplineCount[] {
     .map(([key, count]) => ({ key, label: taxonomyLabel(key), count }))
     .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
 }
+
+export function joinSpanish(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
+}

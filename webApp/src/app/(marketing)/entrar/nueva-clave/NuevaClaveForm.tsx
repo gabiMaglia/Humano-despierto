@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import AuthField from "@/components/molecules/AuthField";
+import ErrorMark from "@/components/atoms/ErrorMark";
 import SubmitButton from "@/components/atoms/SubmitButton";
 import { updatePasswordAction } from "./actions";
 import { PASSWORD_UPDATE_INITIAL_STATE } from "@/lib/auth/action-state";
@@ -12,7 +13,7 @@ export default function NuevaClaveForm() {
   const [state, formAction, isPending] = useActionState(updatePasswordAction, PASSWORD_UPDATE_INITIAL_STATE);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <AuthField
         id="nueva-clave"
         label="Clave nueva"
@@ -32,7 +33,8 @@ export default function NuevaClaveForm() {
         required
       />
       {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400">
+        <p role="alert" className="flex items-start gap-2 text-sm font-medium text-error">
+          <ErrorMark />
           {state.error}
         </p>
       )}

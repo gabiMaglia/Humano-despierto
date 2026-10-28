@@ -3,6 +3,9 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { moveLessonAction, deleteLessonAction } from "@/app/(app)/panel/docente/cursos/[courseId]/actions";
+import Button from "@/components/atoms/Button";
+import StatusChip from "@/components/panel/StatusChip";
+import StatusMessage from "@/components/panel/StatusMessage";
 import { TEACHER_ACTION_INITIAL_STATE } from "@/lib/teacher/action-state";
 import type { TeacherLessonSummary } from "@/lib/server/teacher";
 
@@ -16,83 +19,44 @@ interface Props {
 
 export default function LessonRow({ courseId, moduleId, lesson, isFirst, isLast }: Props) {
   const [moveState, moveAction, movePending] = useActionState(moveLessonAction, TEACHER_ACTION_INITIAL_STATE);
-  const [deleteState, deleteAction, deletePending] = useActionState(
-    deleteLessonAction,
-    TEACHER_ACTION_INITIAL_STATE
-  );
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteLessonAction, TEACHER_ACTION_INITIAL_STATE);
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-ritual border border-lila-300/12 bg-cosmos-0/40 px-3 py-2.5">
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-linea bg-papel px-3 py-2.5">
       <Link
         href={`/panel/docente/cursos/${courseId}/lecciones/${lesson.id}`}
-        className="min-w-0 flex-1 font-body text-sm text-ink hover:text-lila-300"
+        className="min-h-10 min-w-0 flex-1 basis-48 content-center font-semibold text-tinta [overflow-wrap:anywhere] hover:text-miel-800 hover:underline"
       >
         {lesson.title}
       </Link>
 
-      <div className="flex flex-none items-center gap-1.5 font-display text-[10px] tracking-cosmic uppercase">
-        {lesson.isPreview && (
-          <span className="rounded-pill border border-gold-400/30 px-2 py-0.5 text-gold-400">Vista previa</span>
-        )}
-        <span
-          className={`rounded-pill border px-2 py-0.5 ${
-            lesson.hasVideo ? "border-lila-300/30 text-lila-300" : "border-red-400/30 text-red-400"
-          }`}
-        >
-          {lesson.hasVideo ? "Video ✓" : "Sin video"}
-        </span>
-        <span
-          className={`rounded-pill border px-2 py-0.5 ${
-            lesson.isPublished ? "border-lila-300/30 text-lila-300" : "border-ink-faint/30 text-ink-faint"
-          }`}
-        >
-          {lesson.isPublished ? "Publicada" : "Oculta"}
-        </span>
+      <div className="flex flex-none flex-wrap items-center gap-1.5">
+        {lesson.isPreview && <StatusChip tone="accent">Vista previa</StatusChip>}
+        <StatusChip tone={lesson.hasVideo ? "ok" : "error"}>{lesson.hasVideo ? "Con video" : "Sin video"}</StatusChip>
+        <StatusChip tone={lesson.isPublished ? "ok" : "muted"}>{lesson.isPublished ? "Publicada" : "Oculta"}</StatusChip>
       </div>
 
-      <form action={moveAction} className="flex flex-none gap-1">
+      <form action={moveAction} className="flex flex-none gap-1.5">
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="moduleId" value={moduleId} />
         <input type="hidden" name="lessonId" value={lesson.id} />
-        <button
-          type="submit"
-          name="direction"
-          value="up"
-          disabled={isFirst || movePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
-          aria-label="Subir lección"
-        >
+        <Button type="submit" variant="outline" size="sm" name="direction" value="up" disabled={isFirst || movePending} className="w-10 !px-0" aria-label="Subir lección">
           ↑
-        </button>
-        <button
-          type="submit"
-          name="direction"
-          value="down"
-          disabled={isLast || movePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] disabled:cursor-not-allowed disabled:opacity-30"
-          aria-label="Bajar lección"
-        >
+        </Button>
+        <Button type="submit" variant="outline" size="sm" name="direction" value="down" disabled={isLast || movePending} className="w-10 !px-0" aria-label="Bajar lección">
           ↓
-        </button>
+        </Button>
       </form>
 
       <form action={deleteAction}>
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lesson.id} />
-        <button
-          type="submit"
-          disabled={deletePending}
-          className="btn-ritual btn-ritual-ghost rounded-pill px-2 py-1 text-[10px] text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <Button type="submit" variant="danger" size="sm" disabled={deletePending}>
           Borrar
-        </button>
+        </Button>
       </form>
 
-      {(moveState.error || deleteState.error) && (
-        <p role="alert" className="w-full font-body text-xs text-red-400">
-          {moveState.error || deleteState.error}
-        </p>
-      )}
+      <StatusMessage error={moveState.error || deleteState.error} className="w-full" />
     </li>
   );
 }

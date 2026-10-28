@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RecuperarPage() {
   return (
-    <AuthShell title="Recuperá tu" accent="clave" lead="Escribí el mail con el que te registraste.">
+    <AuthShell aside="recuperar" title="Recuperá tu" accent="clave" lead="Escribí el mail con el que te registraste.">
       <RecuperarForm />
     </AuthShell>
   );

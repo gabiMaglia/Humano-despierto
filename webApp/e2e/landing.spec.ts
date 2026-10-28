@@ -37,7 +37,8 @@ test.afterAll(async ({ request }) => {
 
 test("la portada no trae cifras inventadas y los testimonios son reseñas reales", async ({ page, request }) => {
   await page.goto("/");
-  const hero = page.locator("section").first();
+  // T-061 · las cifras dejaron el hero (B4): viven en su propia sección, con las mismas aserciones.
+  const hero = page.locator('section[aria-labelledby="cifras-titulo"]');
   for (const falso of ["2k", "Cursos vivos", "Iniciadas"]) await expect(hero).not.toContainText(falso);
 
   const count = await request.get(`${SUPABASE}/rest/v1/courses?select=id&status=eq.published`, {

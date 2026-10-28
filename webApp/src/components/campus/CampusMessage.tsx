@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { updateCampusPostAction, moderateCampusPostAction } from "@/app/(app)/circulo/actions";
 import { CAMPUS_ACTION_INITIAL_STATE } from "@/lib/campus/action-state";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import Avatar from "@/components/atoms/Avatar";
+import Button from "@/components/atoms/Button";
+import FormField from "@/components/molecules/FormField";
 import type { CampusPost } from "@/lib/server/campus";
+import { cn } from "@/lib/utils/cn";
 
 const ROLE_LABEL: Record<CampusPost["authorRole"], string> = {
-  student: "ESTUDIANTE",
-  teacher: "DOCENTE",
-  admin: "ADMIN",
+  student: "Estudiante",
+  teacher: "Docente",
+  admin: "Admin",
 };
 
 // Sin `useActionState` a propósito: cerrar el formulario de edición/moderación cuando el
@@ -32,6 +35,7 @@ export default function CampusMessage({
   const [modError, setModError] = useState<string | null>(null);
   const [isEditPending, startEdit] = useTransition();
   const [isModPending, startMod] = useTransition();
+  const id = useId();
 
   function handleEditSubmit(formData: FormData) {
     startEdit(async () => {
@@ -57,21 +61,37 @@ export default function CampusMessage({
     });
   }
 
+  const meta = (
+    <p className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <span className="font-semibold text-bosque">{post.authorName}</span>
+      {!post.isDeleted && (
+        <span
+          className={cn(
+            "rounded-pill px-2 py-0.5 text-xs font-semibold",
+            post.authorRole === "student" ? "bg-salvia-100 text-bosque" : "bg-miel-100 text-miel-800",
+          )}
+        >
+          {ROLE_LABEL[post.authorRole]}
+        </span>
+      )}
+      <span className="text-suave">
+        {formatRelativeTime(post.createdAt)}
+        {!post.isDeleted && post.updatedAt !== post.createdAt && " · editado"}
+      </span>
+    </p>
+  );
+
   if (post.isDeleted) {
     return (
-      <article className="border-b border-lila-300/18 px-5 py-4 opacity-60">
+      // Borrado = fondo y etiqueta, no opacidad (QA T-060 D2: el texto quedaba en 2.4:1).
+      <article className="border-b border-linea bg-salvia-100 px-5 py-5 last:border-b-0 md:px-6">
         <div className="flex items-start gap-3">
-          <Avatar glyph={post.authorGlyph ?? "·"} size="sm" />
+          <Avatar glyph={post.authorGlyph} name={post.authorName} size="md" />
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-              <span>{post.authorName}</span>
-              <span className="text-lila-300/30">·</span>
-              <span>{formatRelativeTime(post.createdAt)}</span>
-            </div>
-            <p className="font-body text-sm italic text-ink-faint line-through decoration-lila-300/40">
-              {post.body}
-            </p>
-            <p className="mt-1.5 font-body text-xs text-ink-faint">
+            {meta}
+            <p className="text-base text-suave line-through decoration-suave/60">{post.body}</p>
+            <p className="mt-2 text-sm text-tinta">
+              <span className="mr-2 rounded-pill bg-papel px-2 py-0.5 text-xs font-semibold text-bosque">Mensaje borrado</span>
               Borrado por {post.deletedByName ?? "moderación"}
               {post.deletedReason ? ` — motivo: "${post.deletedReason}"` : ""}
             </p>
@@ -82,90 +102,72 @@ export default function CampusMessage({
   }
 
   return (
-    <article className="border-b border-lila-300/18 px-5 py-4">
+    <article className="border-b border-linea px-5 py-5 last:border-b-0 md:px-6">
       <div className="flex items-start gap-3">
-        <Avatar glyph={post.authorGlyph ?? post.authorName[0]} size="sm" />
+        <Avatar glyph={post.authorGlyph} name={post.authorName} size="md" />
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex flex-wrap items-center gap-2 font-display text-eyebrow tracking-cosmic text-ink-faint">
-            <span className="text-ink">{post.authorName}</span>
-            <span className="text-lila-300/60">{ROLE_LABEL[post.authorRole]}</span>
-            <span className="text-lila-300/30">·</span>
-            <span>{formatRelativeTime(post.createdAt)}</span>
-            {post.updatedAt !== post.createdAt && <span className="text-ink-faint">(editado)</span>}
-          </div>
+          {meta}
 
           {isEditing ? (
-            <form action={handleEditSubmit} className="mt-1.5">
+            <form action={handleEditSubmit} className="mt-2">
               <input type="hidden" name="postId" value={post.id} />
               <input type="hidden" name="courseSlug" value={courseSlug ?? ""} />
-              <textarea
-                name="body"
-                required
-                maxLength={4000}
-                defaultValue={post.body}
-                rows={2}
-                className="w-full resize-y rounded-ritual border border-lila-300/30 bg-cosmos-0/60 px-3 py-2 font-body text-sm text-ink outline-none focus:border-lila-300/50"
-              />
-              <div className="mt-1.5 flex items-center gap-2">
-                <button type="submit" disabled={isEditPending} className="btn-ritual btn-ritual-primary rounded-pill text-[10px] disabled:opacity-60">
-                  {isEditPending ? "…" : "Guardar"}
-                </button>
-                <button
-                  type="button"
+              <FormField id={`${id}-editar`} label="Editar mensaje" hideLabel error={editError}>
+                {(c) => <textarea {...c} name="body" required maxLength={4000} defaultValue={post.body} rows={3} className={`${c.className} resize-y`} />}
+              </FormField>
+              <div className="mt-2 flex items-center gap-2">
+                <Button type="submit" size="sm" disabled={isEditPending} aria-busy={isEditPending}>
+                  {isEditPending ? "Guardando…" : "Guardar"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setEditError(null);
                     setIsEditing(false);
                   }}
-                  className="font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-ink-soft"
                 >
                   Cancelar
-                </button>
+                </Button>
               </div>
-              {editError && <p role="alert" className="mt-1 font-body text-xs text-red-400">{editError}</p>}
             </form>
           ) : (
-            <p className="whitespace-pre-wrap font-body text-sm text-ink-soft leading-relaxed">{post.body}</p>
+            <p className="whitespace-pre-wrap text-base leading-relaxed text-tinta">{post.body}</p>
           )}
 
           {!isEditing && (post.isOwn || post.canModerate) && (
-            <div className="mt-2 flex items-center gap-3 font-display text-eyebrow tracking-cosmic text-ink-faint">
+            <div className="-ml-3.5 mt-1 flex items-center gap-1">
               {post.isOwn && (
-                <button onClick={() => setIsEditing(true)} className="hover:text-lila-300 transition-colors">
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
                   Editar
-                </button>
+                </Button>
               )}
               {post.canModerate && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={isModerating}
                   onClick={() => {
                     setModError(null);
                     setIsModerating((v) => !v);
                   }}
-                  className="hover:text-red-400 transition-colors"
                 >
                   {isModerating ? "Cancelar" : "Borrar"}
-                </button>
+                </Button>
               )}
             </div>
           )}
 
           {isModerating && (
-            <form action={handleModerateSubmit} className="mt-2 flex flex-wrap items-center gap-2">
+            <form action={handleModerateSubmit} className="mt-2 flex flex-wrap items-start gap-2">
               <input type="hidden" name="postId" value={post.id} />
               <input type="hidden" name="courseSlug" value={courseSlug ?? ""} />
-              <input
-                name="reason"
-                required
-                placeholder="Motivo del borrado (obligatorio)"
-                className="min-w-[220px] flex-1 rounded-ritual border border-red-400/30 bg-cosmos-0/60 px-3 py-1.5 font-body text-xs text-ink placeholder:text-ink-faint outline-none focus:border-red-400/60"
-              />
-              <button
-                type="submit"
-                disabled={isModPending}
-                className="rounded-pill border border-red-400/40 bg-red-400/10 px-3 py-1.5 font-display text-eyebrow tracking-cosmic text-red-400 hover:bg-red-400/20 transition-colors disabled:opacity-60"
-              >
-                {isModPending ? "…" : "Confirmar borrado"}
-              </button>
-              {modError && <p role="alert" className="w-full font-body text-xs text-red-400">{modError}</p>}
+              <FormField id={`${id}-motivo`} label="Motivo del borrado" hideLabel error={modError} className="min-w-[220px] flex-1">
+                {(c) => <input {...c} name="reason" required placeholder="Motivo del borrado (obligatorio)" />}
+              </FormField>
+              <Button type="submit" variant="danger" disabled={isModPending} aria-busy={isModPending}>
+                {isModPending ? "Borrando…" : "Confirmar borrado"}
+              </Button>
             </form>
           )}
         </div>

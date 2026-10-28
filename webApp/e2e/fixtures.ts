@@ -95,6 +95,21 @@ export async function assertStackUp(request: APIRequestContext): Promise<void> {
   }
 }
 
+// El stack local es compartido y las corridas de e2e suman cuentas: pasada la pagina de 200 la
+// fixture ya no aparece en el listado. `filter` busca por substring; el match exacto va aca.
+export async function userIdByEmail(request: APIRequestContext, email: string): Promise<string> {
+  const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const res = await request.get(`${supabase}/auth/v1/admin/users`, {
+    headers: { apikey: service, Authorization: `Bearer ${service}` },
+    params: { filter: email },
+  });
+  const users = (await res.json()).users as { id: string; email: string }[];
+  const id = users.find((u) => u.email === email)?.id;
+  if (!id) throw new Error(`${email} no esta en auth.users del stack local`);
+  return id;
+}
+
 // Los <label> de /entrar no estan asociados a su input, asi que no hay nombre accesible: se
 // localiza por tipo de input. networkidle espera la hidratacion; sin ella el submit es un POST nativo.
 export async function login(page: Page, user: Pick<SeedUser, "email" | "password">): Promise<void> {

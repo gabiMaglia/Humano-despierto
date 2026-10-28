@@ -1,7 +1,9 @@
 "use client";
 
-import { useReportError } from "@/hooks/useReportError";
+import Button from "@/components/atoms/Button";
+import ErrorMark from "@/components/atoms/ErrorMark";
 import { ErrorReference } from "@/components/ErrorReference";
+import { useReportError } from "@/hooks/useReportError";
 
 export default function TeacherPanelError({
   error,
@@ -13,15 +15,16 @@ export default function TeacherPanelError({
   useReportError(error);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cosmos-0 px-6 text-center">
-      <p className="font-display text-lg tracking-wide text-ink">
-        Algo se torció en el panel docente
-      </p>
-      <p className="max-w-md font-body text-sm text-ink-faint">{error.message}</p>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-fondo px-6 text-center">
+      <h1 className="flex items-center gap-2 text-xl font-semibold text-bosque">
+        <ErrorMark />
+        Algo falló en el panel docente
+      </h1>
+      <p className="max-w-md text-suave">{error.message}</p>
       <ErrorReference digest={error.digest} />
-      <button onClick={reset} className="btn-ritual btn-ritual-ghost rounded-pill">
+      <Button variant="outline" onClick={reset}>
         Reintentar
-      </button>
+      </Button>
     </div>
   );
 }

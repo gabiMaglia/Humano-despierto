@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Icon from "@/components/atoms/Icon";
+import { ButtonLink } from "@/components/atoms/Button";
 import Link from "next/link";
 import CourseCard from "@/components/molecules/CourseCard";
-import PageHeader from "@/components/layout/PageHeader";
+import PageIntro from "@/components/layout/PageIntro";
+import { cn } from "@/lib/utils/cn";
 import { getPublishedCourses, signCatalogCovers } from "@/lib/server/courses";
 import { getWishlistIds } from "@/lib/server/wishlist";
 import { formatPriceCents } from "@/lib/utils/format";
@@ -29,6 +32,12 @@ interface CatalogPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+const chip = (active: boolean) =>
+  cn(
+    "inline-flex min-h-10 items-center gap-2 rounded-pill border-[1.5px] px-4 py-2 text-sm font-medium transition-colors",
+    active ? "border-bosque bg-bosque text-white" : "border-salvia bg-papel text-bosque hover:border-bosque",
+  );
+
 function FilterGroup({
   title,
   param,
@@ -42,34 +51,34 @@ function FilterGroup({
 }) {
   if (items.length === 0) return null;
   return (
-    <div className="mb-6">
-      <h4 className="mb-3 font-display text-eyebrow uppercase tracking-[0.2em] text-ink">{title}</h4>
-      <div className="space-y-2">
+    <fieldset className="mb-7">
+      <legend className="mb-3 text-base font-semibold text-bosque">{title}</legend>
+      <ul className="space-y-1">
         {items.map((item) => (
-          <Link
-            key={item.key}
-            href={hrefFor(toggleListParam(current, param, item.key))}
-            aria-pressed={item.active}
-            className="flex items-center gap-2.5 group"
-          >
-            <span
-              className={`h-4 w-4 flex-none rounded-sm border flex items-center justify-center text-[8px] transition-colors ${
-                item.active ? "border-lila-300 bg-lila-300/20 text-lila-300" : "border-lila-300/30 text-transparent"
-              }`}
+          <li key={item.key}>
+            <Link
+              href={hrefFor(toggleListParam(current, param, item.key))}
+              aria-pressed={item.active}
+              className="flex min-h-10 items-center gap-3 rounded-md px-1 text-[15px] text-tinta transition-colors hover:bg-salvia-100"
             >
-              {item.active && "✦"}
-            </span>
-            <span className={`font-body text-sm flex-1 ${item.active ? "text-ink" : "text-ink-soft"}`}>
-              {item.label}
-            </span>
-            <span className="font-display text-[9px] text-ink-faint">{item.count}</span>
-          </Link>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "grid h-5 w-5 flex-none place-items-center rounded-sm border-[1.5px]",
+                  item.active ? "border-bosque bg-bosque text-white" : "border-salvia bg-papel",
+                )}
+              >
+                {item.active && <Icon name="check" className="h-3.5 w-3.5" />}
+              </span>
+              <span className="flex-1">{item.label}</span>
+              <span className="text-sm text-suave">{item.count}</span>
+            </Link>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </fieldset>
   );
 }
-
 
 const ORDER_OPTIONS: { key: CatalogOrder; label: string }[] = [
   { key: "relevancia", label: "Relevancia" },
@@ -79,7 +88,7 @@ const ORDER_OPTIONS: { key: CatalogOrder; label: string }[] = [
 
 export const metadata: Metadata = {
   title: "Cursos",
-  description: "Tarot, astrología, herbalismo, reiki y magia. Cursos on-demand con guías de linaje.",
+  description: "Tarot, astrología, herbolaria, reiki y magia. Cursos completos desde el primer día, con guías que practican lo que enseñan.",
 };
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
@@ -119,177 +128,186 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const activeFilterCount = activeChips.length;
   const hasAnyFilter = activeFilterCount > 0;
 
+  const filterGroups = (
+    <>
+      <FilterGroup title="Nivel" param="nivel" items={levelFacets} current={current} />
+      <FilterGroup title="Duración" param="duracion" items={durationFacets} current={current} />
+    </>
+  );
+  const pageLink = (target: number, label: string, icon: "arrow-left" | "arrow-right", disabled: boolean) => (
+    <Link
+      href={hrefFor(withPage(current, target))}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : undefined}
+      className={cn(
+        "grid h-11 w-11 place-items-center rounded-full border-[1.5px] border-salvia bg-papel text-bosque",
+        disabled ? "pointer-events-none text-suave" : "hover:border-bosque",
+      )}
+    >
+      <Icon name={icon} />
+      <span className="sr-only">{label}</span>
+    </Link>
+  );
+
   return (
-    <div className="min-h-screen bg-cosmos-0">
-      <PageHeader
-        badge={`${allCourses.length} curso${allCourses.length === 1 ? "" : "s"} · ${disciplineFacets.length} disciplina${disciplineFacets.length === 1 ? "" : "s"}`}
-        title={<>El compendio <em className="font-quote italic text-lila-300">vivo</em></>}
-        subtitle="Todos los recorridos están abiertos. Se cursan a tu propio ritmo, sin fecha de inicio."
-      />
-
-      {/* Body */}
-      <div className="mx-auto max-w-7xl px-6 py-10 md:px-12 flex gap-8">
-
-        {/* Sidebar filters */}
-        <aside className="hidden w-64 flex-none lg:block">
-          {/* Search — form GET nativo: sin JS, funciona con el botón atrás y es enlazable. */}
-          <form action="/cursos" method="get" className="mb-6">
-            {state.disciplines.length > 0 && (
-              <input type="hidden" name="disciplina" value={state.disciplines.join(",")} />
-            )}
-            {state.order !== "relevancia" && <input type="hidden" name="orden" value={state.order} />}
-            {state.levels.length > 0 && <input type="hidden" name="nivel" value={state.levels.join(",")} />}
-            {state.durations.length > 0 && (
-              <input type="hidden" name="duracion" value={state.durations.join(",")} />
-            )}
-            <div className="flex items-center gap-2.5 rounded-ritual border border-lila-300/20 bg-cosmos-surface px-3.5 py-2.5">
-              <span className="text-lila-300 text-sm">✦</span>
-              <input
-                type="text"
-                name="q"
-                defaultValue={state.query}
-                placeholder="Buscar en el compendio…"
-                className="flex-1 bg-transparent font-body text-sm text-ink placeholder:text-ink-faint outline-none"
-              />
-            </div>
-          </form>
-          <FilterGroup title="Disciplina" param="disciplina" items={disciplineFacets} current={current} />
-          <FilterGroup title="Nivel" param="nivel" items={levelFacets} current={current} />
-          <FilterGroup title="Duración" param="duracion" items={durationFacets} current={current} />
-          {hasAnyFilter && (
-            <Link
-              href="/cursos"
-              className="mt-2 inline-block font-display text-eyebrow tracking-cosmic text-ink-faint hover:text-lila-300 transition-colors"
-            >
-              Limpiar filtros ✕
-            </Link>
+    <div className="min-h-screen bg-fondo">
+      <PageIntro
+        title="Cursos"
+        lead={`${allCourses.length} curso${allCourses.length === 1 ? "" : "s"} de ${disciplineFacets.length} oficio${disciplineFacets.length === 1 ? "" : "s"}. Completos desde el primer día, sin fechas y sin vencimiento.`}
+      >
+        {/* Búsqueda: form GET nativo, sin JS, enlazable y compatible con el botón atrás. */}
+        <form action="/cursos" method="get" role="search" className="max-w-xl">
+          {state.disciplines.length > 0 && (
+            <input type="hidden" name="disciplina" value={state.disciplines.join(",")} />
           )}
-        </aside>
+          {state.order !== "relevancia" && <input type="hidden" name="orden" value={state.order} />}
+          {state.levels.length > 0 && <input type="hidden" name="nivel" value={state.levels.join(",")} />}
+          {state.durations.length > 0 && <input type="hidden" name="duracion" value={state.durations.join(",")} />}
+          <div className="flex items-center gap-2 rounded-pill border-[1.5px] border-linea bg-papel py-1 pl-5 pr-1 focus-within:border-musgo">
+            <input
+              type="search"
+              name="q"
+              defaultValue={state.query}
+              aria-label="Buscar cursos"
+              placeholder="Buscar por tema, por ejemplo «carta natal»"
+              className="min-w-0 flex-1 bg-transparent py-2 text-[15px] text-tinta outline-none"
+            />
+            <button type="submit" className="grid h-10 w-10 flex-none cursor-pointer place-items-center rounded-full bg-bosque text-white">
+              <Icon name="search" />
+              <span className="sr-only">Buscar</span>
+            </button>
+          </div>
+        </form>
+      </PageIntro>
 
-        {/* Main */}
-        <main className="flex-1 min-w-0">
-          {/* Toolbar */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
-            <div>
-              <span className="font-display text-2xl text-ink">{filtered.length}</span>
-              <span className="ml-2 font-body text-sm text-ink-soft">
+      <div className="mx-auto max-w-[1200px] px-6 pb-24">
+        {disciplineFacets.length > 0 && (
+          <ul aria-label="Filtrar por oficio" className="mb-6 flex flex-wrap gap-2">
+            {disciplineFacets.map((f) => (
+              <li key={f.key}>
+                <Link href={hrefFor(toggleListParam(current, "disciplina", f.key))} aria-pressed={f.active} className={chip(f.active)}>
+                  {f.label}
+                  <span className={f.active ? "text-white" : "text-suave"}>{f.count}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* En móvil el resto de los filtros se pliega; en escritorio va en la columna lateral. */}
+        <details className="mb-6 rounded-lg border border-linea bg-papel px-5 lg:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between font-semibold text-bosque [&::-webkit-details-marker]:hidden">
+            Más filtros
+            <Icon name="chevron-down" />
+          </summary>
+          <div className="pb-2 pt-3">{filterGroups}</div>
+        </details>
+
+        <div className="flex gap-10">
+          <aside aria-label="Filtros" className="hidden w-56 flex-none lg:block">
+            {filterGroups}
+            {hasAnyFilter && (
+              <Link href="/cursos" className="text-sm font-semibold text-miel-800 underline-offset-4 hover:underline">
+                Limpiar filtros
+              </Link>
+            )}
+          </aside>
+
+          <main className="min-w-0 flex-1">
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <p className="text-[15px] text-suave">
+                <b className="text-xl font-semibold text-bosque">{filtered.length}</b>{" "}
                 curso{filtered.length === 1 ? "" : "s"}
                 {hasAnyFilter && ` · ${activeFilterCount} filtro${activeFilterCount === 1 ? "" : "s"} activo${activeFilterCount === 1 ? "" : "s"}`}
-              </span>
-            </div>
-            {hasAnyFilter && (
-              <div className="flex-1 flex flex-wrap gap-2">
-                {activeChips.map((chip) => (
-                  <Link
-                    key={chip.label}
-                    href={chip.href}
-                    className="inline-flex items-center gap-1.5 rounded-pill bg-lila-300/10 border border-lila-300/30 px-3 py-1 font-display text-eyebrow text-lila-300"
-                  >
-                    {chip.label} <span className="text-lila-400 hover:text-gold-400">✕</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <nav aria-label="Ordenar cursos" className="mb-6 flex flex-wrap items-center gap-2">
-            <span className="font-display text-eyebrow uppercase tracking-[0.2em] text-ink-faint">Ordenar</span>
-            {ORDER_OPTIONS.map((o) => (
-              <Link
-                key={o.key}
-                href={hrefFor(withParam(current, "orden", o.key))}
-                aria-pressed={state.order === o.key}
-                className={`rounded-pill border px-3 py-1 font-display text-eyebrow ${
-                  state.order === o.key
-                    ? "border-lila-300/60 bg-lila-300/20 text-lila-300"
-                    : "border-lila-300/20 text-ink-faint hover:text-ink-soft"
-                }`}
-              >
-                {o.label}
-              </Link>
-            ))}
-          </nav>
-
-          {filtered.length === 0 ? (
-            <div className="cosmos-card flex flex-col items-center gap-4 px-6 py-20 text-center">
-              <span className="font-display text-2xl text-lila-300">✧</span>
-              <p className="font-body text-sm text-ink-soft max-w-sm">
-                Ningún curso del compendio coincide con estos filtros. Probá con otra combinación o
-                empezá de nuevo.
               </p>
-              <Link href="/cursos" className="btn-ritual btn-ritual-ghost rounded-pill">
-                Limpiar filtros ✕
-              </Link>
-            </div>
-          ) : (
-            <>
-              {/* Grid */}
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {pageCourses.map((course) => (
-                  <CourseCard
-                    key={course.slug}
-                    num={course.romanNum ?? ""}
-                    tag={course.discipline}
-                    level={course.level}
-                    title={course.title}
-                    titleEm={course.titleEm ?? undefined}
-                    desc={course.desc ?? ""}
-                    teacher={course.teacherName}
-                    price={formatPriceCents(course.priceCents, course.currency)}
-                    moon={course.moonGlyph ?? undefined}
-                    featured={course.featured}
-                    slug={course.slug}
-                    rating={course.rating}
-                    reviewCount={course.reviewCount}
-                    coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}
-                    wishlist={{ courseId: course.id, saved: savedIds?.has(course.id) ?? false, loginHref }}
-                  />
-                ))}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-12 flex items-center justify-center gap-2">
-                  <Link
-                    href={hrefFor(withPage(current, page - 1))}
-                    aria-disabled={page <= 1}
-                    className={`h-9 min-w-9 px-3 rounded-ritual font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
-                      page <= 1
-                        ? "pointer-events-none border-lila-300/10 text-ink-faint/40"
-                        : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
-                    }`}
-                  >
-                    ←
-                  </Link>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                    <Link
-                      key={p}
-                      href={hrefFor(withPage(current, p))}
-                      className={`h-9 min-w-9 px-3 rounded-ritual font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
-                        p === page
-                          ? "bg-lila-300/20 border-lila-300/60 text-lila-300"
-                          : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
-                      }`}
-                    >
-                      {p}
-                    </Link>
+              {hasAnyFilter && (
+                <ul aria-label="Filtros activos" className="flex flex-1 flex-wrap gap-2">
+                  {activeChips.map((c) => (
+                    <li key={c.label}>
+                      <Link
+                        href={c.href}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-pill bg-salvia-100 px-3 py-1 text-sm font-medium text-bosque hover:bg-salvia"
+                      >
+                        {c.label}
+                        <Icon name="close" className="h-3.5 w-3.5" />
+                        <span className="sr-only">(quitar filtro)</span>
+                      </Link>
+                    </li>
                   ))}
-                  <Link
-                    href={hrefFor(withPage(current, page + 1))}
-                    aria-disabled={page >= totalPages}
-                    className={`h-9 min-w-9 px-3 rounded-ritual font-display text-[11px] tracking-wide transition-colors flex items-center justify-center border ${
-                      page >= totalPages
-                        ? "pointer-events-none border-lila-300/10 text-ink-faint/40"
-                        : "border-lila-300/20 text-ink-faint hover:border-lila-300/40 hover:text-ink-soft"
-                    }`}
-                  >
-                    →
-                  </Link>
-                </div>
+                </ul>
               )}
-            </>
-          )}
-        </main>
+            </div>
+
+            <nav aria-label="Ordenar cursos" className="mb-8 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-sm text-suave">Ordenar por</span>
+              {ORDER_OPTIONS.map((o) => (
+                <Link
+                  key={o.key}
+                  href={hrefFor(withParam(current, "orden", o.key))}
+                  aria-pressed={state.order === o.key}
+                  className={chip(state.order === o.key)}
+                >
+                  {o.label}
+                </Link>
+              ))}
+            </nav>
+
+            {filtered.length === 0 ? (
+              <div className="tarjeta flex flex-col items-center gap-5 px-6 py-16 text-center">
+                <p className="max-w-sm text-suave">
+                  Ningún curso coincide con estos filtros. Probá con otra combinación o empezá de nuevo.
+                </p>
+                <ButtonLink href="/cursos" variant="outline">
+                  Limpiar filtros
+                </ButtonLink>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-3">
+                  {pageCourses.map((course, i) => (
+                    <CourseCard
+                      key={course.slug}
+                      eager={i < 3}
+                      tag={course.discipline}
+                      level={course.level}
+                      title={course.title}
+                      titleEm={course.titleEm ?? undefined}
+                      desc={course.desc ?? ""}
+                      teacher={course.teacherName}
+                      price={formatPriceCents(course.priceCents, course.currency)}
+                      featured={course.featured}
+                      slug={course.slug}
+                      rating={course.rating}
+                      reviewCount={course.reviewCount}
+                      coverUrl={course.coverPath ? covers.get(course.coverPath) : undefined}
+                      wishlist={{ courseId: course.id, saved: savedIds?.has(course.id) ?? false, loginHref }}
+                    />
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <nav aria-label="Páginas del catálogo" className="mt-14 flex items-center justify-center gap-2">
+                    {pageLink(page - 1, "Página anterior", "arrow-left", page <= 1)}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <Link
+                        key={p}
+                        href={hrefFor(withPage(current, p))}
+                        aria-current={p === page ? "page" : undefined}
+                        className={cn(
+                          "grid h-11 min-w-11 place-items-center rounded-full px-3 text-[15px] font-semibold",
+                          p === page ? "bg-bosque text-white" : "text-bosque hover:bg-salvia-100",
+                        )}
+                      >
+                        {p}
+                      </Link>
+                    ))}
+                    {pageLink(page + 1, "Página siguiente", "arrow-right", page >= totalPages)}
+                  </nav>
+                )}
+              </>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   );

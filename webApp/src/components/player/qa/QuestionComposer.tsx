@@ -3,7 +3,9 @@
 import { useActionState, useEffect, useMemo, useRef } from "react";
 import { askQuestion } from "@/app/leccion/[id]/actions";
 import { QA_ACTION_INITIAL_STATE } from "@/lib/lesson-qa/action-state";
-import QaTextButton from "./QaTextButton";
+import Button from "@/components/atoms/Button";
+import FormField from "@/components/molecules/FormField";
+import FormStatus from "@/components/molecules/FormStatus";
 
 export default function QuestionComposer({ lessonId }: { lessonId: string }) {
   const action = useMemo(() => askQuestion.bind(null, lessonId), [lessonId]);
@@ -15,35 +17,20 @@ export default function QuestionComposer({ lessonId }: { lessonId: string }) {
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="mb-4 space-y-2 rounded-ritual border border-lila-300/20 bg-cosmos-surface p-3">
-      <input
-        name="title"
-        aria-label="Título de la pregunta"
-        required
-        minLength={3}
-        maxLength={200}
-        placeholder="¿Qué te quedó dando vueltas?"
-        className="w-full bg-transparent font-display text-sm text-ink placeholder:text-ink-faint outline-none"
-      />
-      <textarea
-        name="body"
-        aria-label="Tu pregunta"
-        required
-        maxLength={4000}
-        rows={3}
-        placeholder="Contá en qué minuto y qué no cerró."
-        className="w-full resize-none bg-transparent font-body text-sm text-ink placeholder:text-ink-faint outline-none"
-      />
-      <div className="flex justify-end border-t border-lila-300/10 pt-2">
-        <QaTextButton type="submit" disabled={pending}>
+    <form ref={formRef} action={formAction} className="mb-5 space-y-4 rounded-md bg-fondo p-4">
+      <FormField id={`qa-titulo-${lessonId}`} label="Título de la pregunta">
+        {(c) => <input {...c} name="title" required minLength={3} maxLength={200} placeholder="¿Qué te quedó dando vueltas?" className={`${c.className} text-sm`} />}
+      </FormField>
+      <FormField id={`qa-cuerpo-${lessonId}`} label="Tu pregunta">
+        {(c) => <textarea {...c} name="body" required maxLength={4000} rows={3} placeholder="Contá en qué minuto y qué no cerró." className={`${c.className} resize-y text-sm`} />}
+      </FormField>
+      {/* El error de la action no dice de qué campo es: va como estado del formulario. */}
+      <FormStatus state={{ error: state.error, success: null }} />
+      <div className="flex justify-end">
+        <Button type="submit" size="sm" disabled={pending} aria-busy={pending}>
           {pending ? "Enviando…" : "Preguntar"}
-        </QaTextButton>
+        </Button>
       </div>
-      {state.error && (
-        <p role="alert" className="font-body text-xs text-red-400">
-          {state.error}
-        </p>
-      )}
     </form>
   );
 }

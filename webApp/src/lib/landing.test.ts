@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHeroStats, disciplineCounts } from "./landing";
+import { buildHeroStats, disciplineCounts, joinSpanish } from "./landing";
 
 describe("buildHeroStats", () => {
   it("muestra los tres con rotulo", () => {
@@ -34,4 +34,18 @@ describe("disciplineCounts", () => {
     ]);
   });
   it("vacio sin cursos", () => expect(disciplineCounts([])).toEqual([]));
+});
+
+// La frase completa de la cifra que rota va en .sr-only: tiene que leerse como castellano.
+describe("joinSpanish", () => {
+  it("une con coma y la última con «y»", () => {
+    expect(joinSpanish(["tarot", "astrología", "reiki"])).toBe("tarot, astrología y reiki");
+  });
+  it("dos y uno", () => {
+    expect(joinSpanish(["tarot", "reiki"])).toBe("tarot y reiki");
+    expect(joinSpanish(["tarot"])).toBe("tarot");
+  });
+  it("vacío", () => {
+    expect(joinSpanish([])).toBe("");
+  });
 });

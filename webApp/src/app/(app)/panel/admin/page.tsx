@@ -25,11 +25,11 @@ export default async function AdminPanelPage({
   return (
     <AdminShell active="inscripciones">
       <section aria-labelledby="solicitudes-pendientes">
-        <h2 id="solicitudes-pendientes" className="mb-5 font-display text-lg tracking-wide text-ink">
-          Solicitudes pendientes <span className="text-ink-faint">({requests.length})</span>
+        <h2 id="solicitudes-pendientes" className="mb-4 text-xl font-semibold text-bosque">
+          Solicitudes pendientes <span className="tabular-nums text-suave">({requests.length})</span>
         </h2>
         <ul className="space-y-3">
-          {requests.length === 0 && <li className="font-body text-sm text-ink-faint">No hay solicitudes pendientes.</li>}
+          {requests.length === 0 && <li className="tarjeta p-5 text-suave">No hay solicitudes pendientes.</li>}
           {requests.map((r) => (
             <EnrollmentRequestRow key={r.id} request={r} />
           ))}
@@ -37,7 +37,7 @@ export default async function AdminPanelPage({
       </section>
 
       <section aria-labelledby="inscripciones-titulo">
-        <h2 id="inscripciones-titulo" className="mb-5 font-display text-lg tracking-wide text-ink">
+        <h2 id="inscripciones-titulo" className="mb-4 text-xl font-semibold text-bosque">
           Inscripciones
         </h2>
         <div className="mb-5">

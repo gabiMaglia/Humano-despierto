@@ -1,34 +1,30 @@
+import Icon from "@/components/atoms/Icon";
 import type { PlayerResource } from "@/lib/server/lesson-player";
 
 export default function ResourcesTab({ resources }: { resources: PlayerResource[] }) {
   return (
-    <div className="space-y-3">
+    <ul className="space-y-3">
       {resources.map((r) => (
-        // Link comun y no boton: funciona sin JS y con "guardar como". Sin `download`,
-        // que no aplica a un redirect cross-origin.
-        <a
-          key={r.id}
-          href={r.href}
-          aria-label={`Descargar ${r.name}`}
-          className="flex items-start gap-3 cosmos-card p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
-        >
-          <span className="flex-none font-display text-eyebrow tracking-cosmic text-gold-400 border border-gold-400/40 rounded px-1.5 py-0.5 uppercase">
-            {r.type}
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="font-body text-xs text-ink leading-snug">{r.name}</p>
-            {r.sizeLabel && (
-              <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">{r.sizeLabel}</p>
-            )}
-          </div>
-          <span aria-hidden="true" className="flex-none font-display text-gold-400">
-            ↓
-          </span>
-        </a>
+        <li key={r.id}>
+          {/* Link comun y no boton: funciona sin JS y con "guardar como". Sin `download`,
+              que no aplica a un redirect cross-origin. */}
+          <a
+            href={r.href}
+            aria-label={`Descargar ${r.name}`}
+            className="tarjeta flex items-center gap-3 p-4 transition-colors hover:bg-salvia-100"
+          >
+            <span className="flex-none rounded-sm bg-miel-100 px-2 py-0.5 text-xs font-bold uppercase text-miel-800">
+              {r.type}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold leading-snug text-bosque">{r.name}</span>
+              {r.sizeLabel && <span className="block text-xs text-suave">{r.sizeLabel}</span>}
+            </span>
+            <Icon name="download" className="h-5 w-5 text-musgo" />
+          </a>
+        </li>
       ))}
-      {resources.length === 0 && (
-        <p className="font-body text-xs italic text-ink-faint">Esta lección no tiene recursos.</p>
-      )}
-    </div>
+      {resources.length === 0 && <li className="text-sm text-suave">Esta lección no tiene recursos.</li>}
+    </ul>
   );
 }

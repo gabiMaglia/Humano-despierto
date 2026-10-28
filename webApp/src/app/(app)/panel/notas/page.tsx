@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import { ButtonLink } from "@/components/atoms/Button";
+import SiteHeader from "@/components/layout/SiteHeader";
+import AppPageHeader from "@/components/layout/AppPageHeader";
 import { getStudentNotes } from "@/lib/server/notes";
 import { formatClock } from "@/components/player/formatClock";
 
@@ -14,78 +16,77 @@ export default async function NotasPage() {
   const groups = await getStudentNotes();
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
-      <Nav />
-      <div className="pt-16">
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Lo que anotaste —</p>
-          <h1 className="font-display text-display-md text-ink">
-            Mis <em className="font-quote italic text-lila-300">notas</em>
-          </h1>
-        </header>
+    <div className="min-h-screen bg-fondo text-tinta">
+      <SiteHeader />
+      <AppPageHeader
+        eyebrow="Lo que anotaste"
+        title="Mis notas"
+        subtitle="Cada nota guarda el minuto del video: tocalo para volver a ese momento de la lección."
+      />
 
-        <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
-          {groups.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 py-16 text-center">
-              <p className="max-w-md font-body text-sm text-ink-soft">
-                Todavía no escribiste ninguna nota. Podés anotar mientras mirás cualquier lección.
-              </p>
-              <Link href="/panel" className="btn-ritual btn-ritual-primary rounded-pill">
-                Volver al panel ↦
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-10">
-              {groups.map((g) => (
-                <section key={g.courseId} aria-labelledby={`curso-${g.courseId}`}>
-                  <div className="mb-4 flex flex-wrap items-baseline gap-3">
-                    <h2 id={`curso-${g.courseId}`} className="font-display text-lg tracking-wide text-ink">
-                      {g.title}
-                    </h2>
-                    {!g.hasAccess && (
-                      <span className="font-display text-eyebrow tracking-cosmic text-ink-faint">Sin acceso al curso</span>
-                    )}
-                  </div>
-                  <div className="space-y-6">
-                    {g.modules.map((m) => (
-                      <div key={m.position}>
-                        <h3 className="mb-2 font-display text-eyebrow tracking-cosmic text-gold-400 uppercase">{m.title}</h3>
-                        <div className="space-y-4">
-                          {m.lessons.map((l) => (
-                            <article key={l.lessonId} className="cosmos-card p-5">
-                              <h4 className="mb-3 font-display text-base tracking-wide text-ink">{l.title}</h4>
-                              <ul className="space-y-3">
-                                {l.notes.map((n) => (
-                                  <li key={n.id} className="flex gap-4">
-                                    {n.href ? (
-                                      <Link
-                                        href={n.href}
-                                        aria-label={`Ir al minuto ${formatClock(n.atSeconds)} de ${l.title}`}
-                                        className="flex-none font-display text-eyebrow tracking-cosmic text-lila-300 hover:text-gold-400 transition-colors"
-                                      >
-                                        {formatClock(n.atSeconds)}
-                                      </Link>
-                                    ) : (
-                                      <span className="flex-none font-display text-eyebrow tracking-cosmic text-ink-faint">
-                                        {formatClock(n.atSeconds)}
-                                      </span>
-                                    )}
-                                    <p className="whitespace-pre-wrap font-body text-sm text-ink-soft">{n.body}</p>
-                                  </li>
-                                ))}
-                              </ul>
-                            </article>
-                          ))}
-                        </div>
+      <main className="mx-auto max-w-[1200px] px-6 py-12">
+        {groups.length === 0 ? (
+          <div className="tarjeta flex flex-col items-start gap-4 p-8">
+            <p className="max-w-[46ch] text-base text-tinta">
+              Todavía no escribiste ninguna nota. Podés anotar mientras mirás cualquier lección.
+            </p>
+            <ButtonLink href="/panel" variant="outline" size="sm">
+              Volver al panel
+            </ButtonLink>
+          </div>
+        ) : (
+          <div className="space-y-14">
+            {groups.map((g) => (
+              <section key={g.courseId} aria-labelledby={`curso-${g.courseId}`}>
+                <div className="mb-6 flex flex-wrap items-center gap-3 border-b border-linea pb-3">
+                  <h2 id={`curso-${g.courseId}`} className="text-2xl">
+                    {g.title}
+                  </h2>
+                  {!g.hasAccess && (
+                    <span className="rounded-pill bg-salvia-100 px-3 py-0.5 text-xs font-semibold text-bosque">
+                      Sin acceso al curso
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-8">
+                  {g.modules.map((m) => (
+                    <div key={m.position}>
+                      <h3 className="mb-3 text-sm font-semibold text-miel-800">{m.title}</h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {m.lessons.map((l) => (
+                          <article key={l.lessonId} className="tarjeta p-5">
+                            <h4 className="mb-3 text-base">{l.title}</h4>
+                            <ul className="divide-y divide-linea">
+                              {l.notes.map((n) => (
+                                <li key={n.id} className="flex gap-4 py-3 first:pt-0 last:pb-0">
+                                  {n.href ? (
+                                    <Link
+                                      href={n.href}
+                                      aria-label={`Ir al minuto ${formatClock(n.atSeconds)} de ${l.title}`}
+                                      className="inline-flex h-8 min-w-14 flex-none items-center justify-center rounded-pill bg-miel-100 px-2.5 text-sm font-semibold tabular-nums text-miel-800 transition-colors hover:bg-miel hover:text-bosque"
+                                    >
+                                      {formatClock(n.atSeconds)}
+                                    </Link>
+                                  ) : (
+                                    <span className="inline-flex h-8 min-w-14 flex-none items-center justify-center rounded-pill bg-salvia-100 px-2.5 text-sm font-semibold tabular-nums text-bosque">
+                                      {formatClock(n.atSeconds)}
+                                    </span>
+                                  )}
+                                  <p className="whitespace-pre-wrap text-base text-tinta">{n.body}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          </article>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

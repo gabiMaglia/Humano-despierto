@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Nav from "@/components/layout/Nav";
+import PanelFrame from "@/components/panel/PanelFrame";
+import StatusChip from "@/components/panel/StatusChip";
 import PanelTabs from "@/components/teacher/PanelTabs";
 import AnnouncementComposer from "@/components/teacher/AnnouncementComposer";
 import PublishAnnouncementControl from "@/components/teacher/PublishAnnouncementControl";
@@ -29,93 +30,87 @@ export default async function TeacherAnnouncementsPage({ searchParams }: Props) 
   const withdrawn = announcements.filter((a) => a.deletedAt);
 
   return (
-    <div className="min-h-screen bg-cosmos-0 text-ink">
-      <Nav />
-      <div className="pt-16">
-        <PanelTabs active="anuncios" />
-        <header className="border-b border-lila-300/18 bg-cosmos-surface px-6 py-8 md:px-12">
-          <p className="mb-2 font-display text-eyebrow tracking-[0.25em] text-ink-faint">— Lo que le contás a tu curso —</p>
-          <h1 className="font-display text-display-md text-ink">
-            Tus <em className="font-quote italic text-lila-300">anuncios</em>
-          </h1>
-        </header>
+    <PanelFrame title="Tus anuncios" context="Lo que le contás a tu curso." tabs={<PanelTabs active="anuncios" />}>
+      {!selected && <p className="tarjeta p-6 text-suave">Para anunciar necesitás un curso. Crealo desde la pestaña Cursos.</p>}
 
-        <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 md:px-12">
-          {!selected && (
-            <p className="cosmos-card p-6 font-body text-sm text-ink-faint">
-              Para anunciar necesitás un curso. Crealo desde la pestaña Cursos.
-            </p>
+      {selected && (
+        <>
+          <nav aria-label="Curso" className="flex flex-wrap gap-2">
+            {courses.map((c) => {
+              const current = c.id === selected.id;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/panel/docente/anuncios?curso=${c.id}`}
+                  aria-current={current ? "page" : undefined}
+                  className={`inline-flex min-h-10 items-center rounded-pill border px-4 text-sm font-semibold transition-colors ${
+                    current ? "border-bosque bg-bosque text-white" : "border-linea bg-papel text-bosque hover:bg-salvia-100"
+                  }`}
+                >
+                  {c.title}
+                  <span className={`ml-2 font-normal ${current ? "text-white" : "text-suave"}`}>/cursos/{c.slug}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <section aria-labelledby="anuncio-nuevo-titulo" className="tarjeta p-6">
+            <h2 id="anuncio-nuevo-titulo" className="mb-4 text-xl font-semibold text-bosque">
+              Nuevo anuncio
+            </h2>
+            <AnnouncementComposer courseId={selected.id} />
+          </section>
+
+          {drafts.length > 0 && (
+            <section aria-labelledby="borradores-titulo" className="space-y-4">
+              <h2 id="borradores-titulo" className="text-xl font-semibold text-bosque">Borradores</h2>
+              {drafts.map((a) => (
+                <article key={a.id} aria-label={a.title} className="tarjeta space-y-4 p-6">
+                  <StatusChip tone="muted">Borrador</StatusChip>
+                  <AnnouncementComposer courseId={selected.id} draft={a} />
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-t border-linea pt-4">
+                    <PublishAnnouncementControl courseId={selected.id} announcementId={a.id} />
+                    <WithdrawAnnouncementForm action={withdrawAnnouncement} announcementId={a.id} courseId={selected.id} label="Descartar" />
+                  </div>
+                </article>
+              ))}
+            </section>
           )}
 
-          {selected && (
-            <>
-              <nav aria-label="Curso" className="flex flex-wrap gap-2">
-                {courses.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/panel/docente/anuncios?curso=${c.id}`}
-                    aria-current={c.id === selected.id ? "page" : undefined}
-                    className={`rounded-pill border px-3 py-1 font-display text-eyebrow tracking-cosmic transition-colors ${
-                      c.id === selected.id ? "border-lila-300/60 text-lila-300" : "border-lila-300/20 text-ink-faint hover:text-ink-soft"
-                    }`}
-                  >
-                    {c.title} <span className="text-ink-faint">/cursos/{c.slug}</span>
-                  </Link>
-                ))}
-              </nav>
-
-              <section aria-labelledby="anuncio-nuevo-titulo" className="cosmos-card p-5">
-                <h2 id="anuncio-nuevo-titulo" className="mb-4 font-display text-lg tracking-wide text-ink">
-                  Nuevo anuncio
-                </h2>
-                <AnnouncementComposer courseId={selected.id} />
-              </section>
-
-              {drafts.length > 0 && (
-                <section aria-labelledby="borradores-titulo" className="space-y-4">
-                  <h2 id="borradores-titulo" className="font-display text-lg tracking-wide text-ink">Borradores</h2>
-                  {drafts.map((a) => (
-                    <article key={a.id} aria-label={a.title} className="cosmos-card space-y-4 p-5">
-                      <AnnouncementComposer courseId={selected.id} draft={a} />
-                      <div className="flex flex-wrap items-start justify-between gap-4 border-t border-lila-300/18 pt-4">
-                        <PublishAnnouncementControl courseId={selected.id} announcementId={a.id} />
-                        <WithdrawAnnouncementForm action={withdrawAnnouncement} announcementId={a.id} courseId={selected.id} label="Descartar" />
-                      </div>
-                    </article>
-                  ))}
-                </section>
-              )}
-
-              {published.length > 0 && (
-                <section aria-labelledby="publicados-titulo" className="space-y-4">
-                  <h2 id="publicados-titulo" className="font-display text-lg tracking-wide text-ink">Publicados</h2>
-                  {published.map((a) => (
-                    <article key={a.id} aria-label={a.title} className="cosmos-card p-5">
-                      <p className="mb-1 font-display text-eyebrow tracking-cosmic text-ink-faint uppercase">
-                        {a.publishedAt && <time dateTime={a.publishedAt}>{formatCertificateDate(a.publishedAt)}</time>}
-                      </p>
-                      <h3 className="mb-2 font-display text-base tracking-wide text-ink">{a.title}</h3>
-                      <p className="mb-3 whitespace-pre-line font-body text-sm text-ink-soft">{a.body}</p>
-                      <WithdrawAnnouncementForm action={withdrawAnnouncement} announcementId={a.id} courseId={selected.id} label="Retirar" />
-                    </article>
-                  ))}
-                </section>
-              )}
-
-              {withdrawn.length > 0 && (
-                <section aria-labelledby="retirados-titulo" className="space-y-3">
-                  <h2 id="retirados-titulo" className="font-display text-lg tracking-wide text-ink">Retirados</h2>
-                  {withdrawn.map((a) => (
-                    <p key={a.id} className="cosmos-card p-4 font-body text-sm text-ink-faint">
-                      {a.title} <span className="text-lila-300/30">·</span> motivo: “{a.deletedReason}”
-                    </p>
-                  ))}
-                </section>
-              )}
-            </>
+          {published.length > 0 && (
+            <section aria-labelledby="publicados-titulo" className="space-y-4">
+              <h2 id="publicados-titulo" className="text-xl font-semibold text-bosque">Publicados</h2>
+              {published.map((a) => (
+                <article key={a.id} aria-label={a.title} className="tarjeta p-6">
+                  <div className="mb-2 flex flex-wrap items-center gap-3">
+                    <StatusChip tone="ok">Publicado</StatusChip>
+                    {a.publishedAt && (
+                      <time dateTime={a.publishedAt} className="text-sm tabular-nums text-suave">
+                        {formatCertificateDate(a.publishedAt)}
+                      </time>
+                    )}
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-bosque">{a.title}</h3>
+                  <p className="mb-4 whitespace-pre-line text-base text-tinta">{a.body}</p>
+                  <WithdrawAnnouncementForm action={withdrawAnnouncement} announcementId={a.id} courseId={selected.id} label="Retirar" />
+                </article>
+              ))}
+            </section>
           )}
-        </div>
-      </div>
-    </div>
+
+          {withdrawn.length > 0 && (
+            <section aria-labelledby="retirados-titulo" className="space-y-3">
+              <h2 id="retirados-titulo" className="text-xl font-semibold text-bosque">Retirados</h2>
+              {withdrawn.map((a) => (
+                <p key={a.id} className="tarjeta p-4 text-suave">
+                  <StatusChip tone="muted" className="mr-2">Retirado</StatusChip>
+                  <span className="font-semibold text-tinta">{a.title}</span> · motivo: “{a.deletedReason}”
+                </p>
+              ))}
+            </section>
+          )}
+        </>
+      )}
+    </PanelFrame>
   );
 }

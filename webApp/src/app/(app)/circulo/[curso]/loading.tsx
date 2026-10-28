@@ -1,7 +1,9 @@
 export default function CampusCourseLoading() {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <p className="font-display text-eyebrow tracking-cosmic text-ink-faint">Abriendo el hilo…</p>
+    <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true">
+      <p role="status" className="text-base text-suave">
+        Abriendo el hilo…
+      </p>
     </div>
   );
 }

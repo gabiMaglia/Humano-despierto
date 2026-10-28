@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils/cn";
+import Icon from "@/components/atoms/Icon";
 
-/** §4: sin raster ni iconos de librería — `★`/`☆` Unicode. El glifo va `aria-hidden` y el valor
- *  viaja en texto: una fila de estrellas mudas no dice nada en un lector de pantalla (X-01). */
+/** Estrellas de línea (`Icon`, ADR-015), decorativas: el valor viaja en texto, porque una fila de
+ *  estrellas mudas no dice nada en un lector de pantalla (X-01). */
 export default function Stars({
   value,
   size = "sm",
@@ -14,15 +15,18 @@ export default function Stars({
   const llenas = Math.round(value);
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        aria-hidden="true"
-        className={cn("font-display tracking-[0.15em] text-gold-400", size === "lg" ? "text-2xl" : "text-sm")}
-      >
-        {"★".repeat(llenas)}
-        <span className="text-ink-faint">{"☆".repeat(5 - llenas)}</span>
+      <span className="inline-flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Icon
+            key={n}
+            name="star"
+            filled={n <= llenas}
+            className={cn(n <= llenas ? "text-miel" : "text-suave", size === "lg" ? "h-6 w-6" : "h-3.5 w-3.5")}
+          />
+        ))}
       </span>
       {showValue && (
-        <span className={cn("font-display text-gold-400", size === "lg" ? "text-2xl" : "text-sm")}>
+        <span className={cn("font-display text-miel-800", size === "lg" ? "text-2xl" : "text-sm")}>
           {value.toFixed(1)}
         </span>
       )}
