@@ -33,7 +33,7 @@ test("la ficha de una carta tiene su título y JSON-LD", async ({ page }) => {
   await expect(page).toHaveTitle(/La Luna/);
   const ld = await page.locator('script[type="application/ld+json"]').first().textContent();
   expect(ld).toContain('"Article"');
-  await expect(page.getByRole("img", { name: "La Luna" })).toBeVisible();
+  await expect(page.getByRole("figure", { name: "La Luna" })).toBeVisible();
 });
 
 test("alumna: guarda la tirada, la ve en el panel y la borra", async ({ page }) => {

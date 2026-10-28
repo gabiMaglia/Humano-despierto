@@ -36,6 +36,28 @@
       "Los oros dominan: hablamos de bases, recursos y constancia."
     ]
   },
+  "panorama_ausente": {
+    "bastos": [
+      "No aparece ningún basto: la acción y el impulso no están en juego hoy.",
+      "Sin bastos en la tirada: falta el fuego, y el tema se mueve más por dentro que por empuje.",
+      "Ningún basto a la vista: no es momento de arrancar proyectos, sino de ver."
+    ],
+    "copas": [
+      "No aparece ninguna copa: lo emocional queda en segundo plano.",
+      "Sin copas en la tirada: los afectos no son el centro de esto.",
+      "Ninguna copa a la vista: el tema se juega más en los hechos que en el sentir."
+    ],
+    "espadas": [
+      "No aparece ninguna espada: el conflicto y la duda no son lo central.",
+      "Sin espadas en la tirada: la cabeza no es el problema acá.",
+      "Ninguna espada a la vista: hay menos tensión mental de la que temés."
+    ],
+    "oros": [
+      "No aparece ningún oro: lo material no está en juego hoy.",
+      "Sin oros en la tirada: el cuerpo y los recursos quedan fuera de foco.",
+      "Ningún oro a la vista: el tema no pasa por lo concreto ni por la plata."
+    ]
+  },
   "panorama_gente": [
     "Aparecen varias figuras: hay otras personas con peso real en esto.",
     "Las figuras de corte se repiten: no estás sola en la situación, y eso cuenta.",
@@ -86,23 +108,23 @@
   "hilo": {
     "intensifica": [
       "{A} y {b} comparten elemento: lo que trae la primera, la segunda lo amplifica.",
-      "{Dea} a {b} no hay freno: misma energía, más intensa.",
-      "{B} sube el volumen {dea}."
+      "{Dea} {ab} no hay freno: misma energía, más intensa.",
+      "Con {b} sube el volumen de lo que traía {a}."
     ],
     "refuerza": [
-      "{A} alimenta {ab}: una le da pie a la otra.",
+      "Lo que viene {dea} alimenta {ab}: una le da pie a la otra.",
       "Entre {a} y {b} hay buena química; el pasaje es natural.",
-      "{B} toma lo que deja {a} y lo lleva más lejos."
+      "Lo que deja {a} sigue su curso con {b} y llega más lejos."
     ],
     "debilita": [
       "{A} y {b} se contradicen: lo que una enciende, la otra lo enfría. Ahí está la tensión.",
-      "{Dea} a {b} hay un choque; no se anulan, pero se frenan.",
-      "{B} le pone un límite {dea}."
+      "{Dea} {ab} hay un choque; no se anulan, pero se frenan.",
+      "Con {b} aparece un límite para {a}."
     ],
     "neutral": [
-      "{A} deja lugar {ab} sin empujar ni frenar.",
-      "{Dea} a {b} el paso es tranquilo.",
-      "{B} sigue {aa} por su propio camino."
+      "Pasar {dea} {ab} no empuja ni frena: cada una sigue su ritmo.",
+      "{Dea} {ab} el paso es tranquilo.",
+      "Entre {a} y {b} no hay choque ni empuje: cada una sigue su propio camino."
     ]
   },
   "combo": [

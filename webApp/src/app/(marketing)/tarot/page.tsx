@@ -16,13 +16,13 @@ export const metadata: Metadata = {
 export default function TarotPage() {
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <header className="mx-auto max-w-[1200px] px-6 pb-12 pt-10">
+      <div className="mx-auto max-w-[1200px] px-6 pb-12 pt-10">
         <p className="text-sm font-semibold text-miel-800">Tarot online</p>
         <h1 className="mt-3 max-w-[20ch] text-display-lg leading-[1.08] tracking-[-0.025em]">Tirá las cartas y leé lo que te devuelven</h1>
         <p className="mt-5 max-w-[56ch] text-lg text-suave">
           Las 78 cartas del Rider-Waite de 1909, cuatro tiradas y una lectura que no pega significados sueltos: relaciona cada carta con la que viene antes y con la que sigue.
         </p>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-[1200px] px-6 pb-20">
         <p className="text-sm font-semibold text-miel-800">Elegí una tirada</p>
@@ -30,7 +30,7 @@ export default function TarotPage() {
         <ul className="-mt-2 grid gap-5 sm:grid-cols-2">
           {SPREADS.map((s) => (
             <li key={s.slug} className="tarjeta flex flex-col gap-3 p-6">
-              <h2 className="text-xl font-bold text-bosque">{s.nombre}</h2>
+              <h3 className="text-xl font-bold text-bosque">{s.nombre}</h3>
               <p className="text-suave">{s.descripcion}</p>
               <p className="text-sm text-suave">{s.cartas.join(" o ")} {s.cartas[0] === 1 && s.cartas.length === 1 ? "carta" : "cartas"}</p>
               <div className="mt-auto pt-2">

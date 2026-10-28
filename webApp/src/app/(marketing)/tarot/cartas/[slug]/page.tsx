@@ -47,7 +47,7 @@ export default async function CartaPage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <div className="mx-auto max-w-[1000px] px-6 pt-8">
         <Link href="/tarot/cartas" className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-miel-800 hover:underline">
           <Icon name="arrow-left" />

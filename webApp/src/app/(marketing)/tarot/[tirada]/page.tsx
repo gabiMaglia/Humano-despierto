@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import Button from "@/components/atoms/Button";
 import Icon from "@/components/atoms/Icon";
 import Picker from "@/components/tarot/Picker";
+import { CARDS } from "@/lib/tarot/cards";
+import type { CardName } from "@/lib/tarot/card-names";
 import { MAX_QUESTION, sanitizeQuestion } from "@/lib/tarot/question";
 import { spreadBySlug, SPREADS } from "@/lib/tarot/spreads";
 
@@ -32,6 +34,7 @@ export default async function TiradaPage({ params, searchParams }: { params: Pro
   const n = Number(first(sp.n));
   const count = spread.cartas.includes(n) ? n : spread.cartas[0]!;
   const reversedEnabled = spread.allowReversed && first(sp.inv) !== "0";
+  const names: CardName[] = CARDS.map((c) => ({ indice: c.indice, id: c.id, nombre_es: c.nombre_es }));
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
@@ -44,7 +47,7 @@ export default async function TiradaPage({ params, searchParams }: { params: Pro
         {first(sp.listo) === "1" ? (
           <div className="mt-10">
             {question && <p className="mb-6 text-center text-tinta">Tu pregunta: «{question}»</p>}
-            <Picker spread={spread} count={count} reversedEnabled={reversedEnabled} question={question} />
+            <Picker spread={spread} count={count} reversedEnabled={reversedEnabled} question={question} names={names} />
           </div>
         ) : (
           <form method="get" className="mt-10 max-w-[48ch] space-y-6">

@@ -13,6 +13,7 @@ export type Proportions = {
   majorsDominant: boolean;
   dominantSuit: Suit | null;
   absentSuits: Suit[];
+  absentSuit: Suit | null;
   courts: number;
   peopleInvolved: boolean;
   reversed: number;
@@ -70,16 +71,18 @@ function proportions(placed: PlacedCard[]): Proportions {
   const minors = placed.filter((p) => p.card.arcano === "menor");
   const bySuit = new Map<Suit, number>();
   for (const p of minors) bySuit.set(p.card.palo!, (bySuit.get(p.card.palo!) ?? 0) + 1);
-  const dominant = [...bySuit.entries()].find(([, c]) => minors.length >= 2 && c * 2 >= minors.length);
+  const dominant = [...bySuit.entries()].find(([, c]) => c >= 2 && c * 2 >= minors.length);
   const courts = placed.filter((p) => p.card.arcano === "menor" && p.card.numero >= 11).length;
   const reversed = placed.filter((p) => p.reversed).length;
   const numbers = new Map<number, number>();
   for (const p of minors.filter((m) => m.card.numero <= 10)) numbers.set(p.card.numero, (numbers.get(p.card.numero) ?? 0) + 1);
+  const absent = n >= 3 ? SUITS.filter((s) => !bySuit.has(s)) : [];
   return {
     majors,
     majorsDominant: n >= 3 && majors * 2 >= n,
     dominantSuit: dominant ? dominant[0] : null,
-    absentSuits: n >= 3 ? SUITS.filter((s) => !bySuit.has(s)) : [],
+    absentSuits: absent,
+    absentSuit: minors.length >= 3 && absent.length === 1 ? absent[0]! : null,
     courts,
     peopleInvolved: courts >= 2,
     reversed,

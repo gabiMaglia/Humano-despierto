@@ -79,6 +79,18 @@ describe("buildReading", () => {
     expect(f.proportions.absentSuits).toEqual(["espadas", "oros"]);
   });
 
+  it("palo dominante exige al menos 2 cartas del palo", () => {
+    const r: Reading = { spread: "pasado-presente-futuro", cards: [{ indice: idx("el-sol"), reversed: false }, { indice: idx("tres-de-bastos"), reversed: false }, { indice: idx("tres-de-copas"), reversed: false }] };
+    expect(buildReading(r).proportions.dominantSuit).toBeNull();
+  });
+
+  it("un único palo ausente entre 3 o más menores se informa", () => {
+    const r: Reading = { spread: "pasado-presente-futuro", cards: ["tres-de-bastos", "dos-de-copas", "as-de-espadas"].map((s) => ({ indice: idx(s), reversed: false })) };
+    expect(buildReading(r).proportions.absentSuit).toBe("oros");
+    const dos: Reading = { spread: "pasado-presente-futuro", cards: ["tres-de-bastos", "dos-de-copas", "el-sol"].map((s) => ({ indice: idx(s), reversed: false })) };
+    expect(buildReading(dos).proportions.absentSuit).toBeNull();
+  });
+
   it("quintaesencia solo en cruz celta, con reducción a 1..22 y el Loco como 22", () => {
     const cards = ["la-torre", "el-sol", "la-luna", "el-mundo", "as-de-bastos", "dos-de-copas", "tres-de-espadas", "cuatro-de-oros", "cinco-de-bastos", "seis-de-copas"].map((s) => ({ indice: idx(s), reversed: false }));
     const f = buildReading({ spread: "cruz-celta", cards });

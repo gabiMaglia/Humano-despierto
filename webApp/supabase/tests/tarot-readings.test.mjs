@@ -86,6 +86,7 @@ describe('tarot_readings', () => {
     ['sin i', { cards: '[{"r":false},{"r":false},{"r":false}]' }],
     ['elementos no objeto', { cards: '[1,2,3]' }],
     ['índice no entero', { cards: '[{"i":1.5,"r":false},{"i":2,"r":false},{"i":3,"r":false}]' }],
+    ['claves de más en una carta', { cards: '[{"i":1,"r":false,"x":"basura"},{"i":2,"r":false},{"i":3,"r":false}]' }],
     ['cards no array', { cards: '{"i":1}' }],
   ]) {
     test(`rechaza ${nombre}`, async () => {
@@ -98,6 +99,20 @@ describe('tarot_readings', () => {
   test('sí/no acepta 1 y 3 cartas', async () => {
     assert.equal((await save(db, asStudent, { spread: 'si-o-no', cards: JSON.stringify([{ i: 7, r: false }]) })).ok, true);
     assert.equal((await save(db, asStudent, { spread: 'si-o-no', cards: JSON.stringify([{ i: 7, r: false }, { i: 8, r: true }, { i: 9, r: false }]) })).ok, true);
+  });
+
+  test('tope de 1000 tiradas guardadas por usuaria', async () => {
+    await db.exec(`alter table public.tarot_readings disable trigger tarot_readings_guard`);
+    await db.query(
+      `insert into public.tarot_readings (user_id, spread_id, cards, reversed_enabled)
+       select $1, 'carta-del-dia', '[{"i":1,"r":false}]'::jsonb, false from generate_series(1, 1000)`,
+      [ID.otro],
+    );
+    await db.exec(`alter table public.tarot_readings enable trigger tarot_readings_guard`);
+    const r = await save(db, asOutsider, { spread: 'carta-del-dia', cards: JSON.stringify([{ i: 5, r: false }]), reversed: false });
+    assert.equal(r.ok, false);
+    assert.equal(r.code, '23514');
+    assert.match(r.message, /límite/);
   });
 
   test('rechaza una pregunta con un localizador conocido (ADR-009, mitad exacta)', async () => {

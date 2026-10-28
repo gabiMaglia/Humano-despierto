@@ -73,9 +73,17 @@ begin
     raise exception 'cantidad de cartas inválida para %', new.spread_id using errcode = '23514';
   end if;
 
+  -- PostgREST inserta sin pasar por el rate limit de la app: este tope es el respaldo.
+  if (select count(*) from public.tarot_readings where user_id = new.user_id) >= 1000 then
+    raise exception 'límite de tiradas guardadas' using errcode = '23514';
+  end if;
+
   for elem in select * from jsonb_array_elements(new.cards) loop
     if jsonb_typeof(elem) <> 'object' then
       raise exception 'carta mal formada' using errcode = '23514';
+    end if;
+    if elem - 'i' - 'r' <> '{}'::jsonb then
+      raise exception 'carta con claves de más' using errcode = '23514';
     end if;
     if coalesce(jsonb_typeof(elem -> 'i'), '') <> 'number' or coalesce(jsonb_typeof(elem -> 'r'), '') <> 'boolean' then
       raise exception 'carta mal formada' using errcode = '23514';

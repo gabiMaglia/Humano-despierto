@@ -68,6 +68,7 @@ function panorama(facts: ReadingFacts, rng: () => number): string | null {
   const parts: string[] = [];
   if (pr.majorsDominant) parts.push(pick(rng, templates.panorama_mayores));
   if (pr.dominantSuit) parts.push(pick(rng, templates.panorama_palo[pr.dominantSuit]));
+  if (pr.absentSuit) parts.push(pick(rng, templates.panorama_ausente[pr.absentSuit]));
   if (pr.peopleInvolved) parts.push(pick(rng, templates.panorama_gente));
   if (pr.blocked) parts.push(pick(rng, templates.panorama_bloqueo));
   for (const n of pr.repeatedNumbers) parts.push(fill(pick(rng, templates.panorama_numero), { numero: String(n) }));

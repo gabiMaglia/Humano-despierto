@@ -11,7 +11,7 @@ const INITIAL: ActionState & { id?: string } = ACTION_INITIAL_STATE;
 export default function SaveReadingButton({ t, c, q, inv }: { t: string; c: string; q: string | null; inv: boolean }) {
   const [state, action, pending] = useActionState(saveTarotReadingAction, INITIAL);
   if (state.id) {
-    return <Link href={`/tarot/lectura/${state.id}`} className="text-sm font-semibold text-exito hover:underline">Guardada. Verla en mi panel</Link>;
+    return <Link href="/panel/tarot" className="text-sm font-semibold text-exito hover:underline">Guardada. Verla en mi panel</Link>;
   }
   return (
     <form action={action} className="flex items-center gap-3">

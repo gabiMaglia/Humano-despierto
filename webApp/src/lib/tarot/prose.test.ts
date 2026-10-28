@@ -26,6 +26,12 @@ describe("renderReading", () => {
     expect(t.apertura).toContain("¿Volverá?");
   });
 
+  it("informa el palo ausente", () => {
+    const r: Reading = { spread: "pasado-presente-futuro", cards: ["tres-de-bastos", "dos-de-copas", "as-de-espadas"].map((sl) => ({ indice: CARDS.find((c) => c.id === sl)!.indice, reversed: false })) };
+    const t = renderReading(buildReading(r), 5);
+    expect(t.panorama).toMatch(/oro/i);
+  });
+
   it("sí/no con desempate lo dice", () => {
     const r: Reading = { spread: "si-o-no", cards: [{ indice: 19, reversed: false }, { indice: 14, reversed: false }, { indice: 16, reversed: false }] };
     const t = renderReading(buildReading(r), 3);
@@ -79,6 +85,8 @@ describe("renderReading", () => {
 
               const text = all.join(" ");
               expect(text, ctx).not.toMatch(/\bde (El|La|Los) |\ba (El|La|Los) /);
+              expect(text.match(/.{15}(?<!\p{L})(de|a) el(?!\p{L}).{5}/iu)?.[0] ?? "", ctx).toBe("");
+              expect(text, ctx).not.toMatch(/límite (del|de la) /i);
               for (const p of facts.placed) {
                 const n = nombrar(p.card);
                 expect(text.includes(`${n} invertid`), `${ctx}: invertida tras ${n}`).toBe(false);

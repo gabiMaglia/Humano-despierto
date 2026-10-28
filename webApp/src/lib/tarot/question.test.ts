@@ -25,4 +25,15 @@ describe("sanitizeQuestion", () => {
   it("colapsa un NBSP interior en un espacio normal", () => {
     expect(sanitizeQuestion("hola\u00A0\u00A0mundo")).toBe("hola mundo");
   });
+  it("quita caracteres de control y de dirección bidi", () => {
+    expect(sanitizeQuestion("ho\u0000la\u202E mun\u2066do")).toBe("ho la mun do");
+    expect(sanitizeQuestion("\u0000\u202E")).toBeNull();
+  });
+  it("nunca deja un surrogate suelto, ni al cortar ni en la entrada", () => {
+    const lone = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    expect(sanitizeQuestion("a\ud83d")).toBe("a");
+    const cortada = sanitizeQuestion("a".repeat(MAX_QUESTION - 1) + "\u{1F52E}\u{1F52E}")!;
+    expect(lone.test(cortada)).toBe(false);
+    expect(Array.from(cortada)).toHaveLength(MAX_QUESTION);
+  });
 });

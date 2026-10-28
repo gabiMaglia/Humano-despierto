@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import CardBack from "@/components/tarot/CardBack";
 import TarotCard from "@/components/tarot/TarotCard";
 import SpreadLayout from "@/components/tarot/SpreadLayout";
-import { cardByIndex } from "@/lib/tarot/cards";
+import type { CardName } from "@/lib/tarot/card-names";
 import { encodeReading, type DrawnCard } from "@/lib/tarot/codec";
 import { cryptoRng, drawReversed, shuffleDeck } from "@/lib/tarot/draw";
 import { positionsFor, type Spread } from "@/lib/tarot/spreads";
 import { cn } from "@/lib/utils/cn";
 
-export default function Picker({ spread, count, reversedEnabled, question }: { spread: Spread; count: number; reversedEnabled: boolean; question: string | null }) {
+export default function Picker({ spread, count, reversedEnabled, question, names }: { spread: Spread; count: number; reversedEnabled: boolean; question: string | null; names: CardName[] }) {
   const router = useRouter();
   const positions = positionsFor(spread, count);
   // Se mezcla una vez por montaje: el abanico es la misma permutación mientras la persona elige.
@@ -29,12 +29,14 @@ export default function Picker({ spread, count, reversedEnabled, question }: { s
       return;
     }
     const used = new Set(chosen.map((c) => c.slot));
-    const next = Array.from(deckRef.current?.querySelectorAll<HTMLButtonElement>("button[data-slot]") ?? []).find((b) => !used.has(Number(b.dataset.slot)));
-    next?.focus();
+    const buttons = Array.from(deckRef.current?.querySelectorAll<HTMLButtonElement>("button[data-slot]") ?? []);
+    const justPicked = chosen[chosen.length - 1]!.slot;
+    const free = (b: HTMLButtonElement) => !used.has(Number(b.dataset.slot));
+    (buttons.find((b) => Number(b.dataset.slot) > justPicked && free(b)) ?? buttons.find(free))?.focus();
   }, [chosen, positions.length]);
 
   const last = chosen[chosen.length - 1];
-  const lastCard = last ? cardByIndex(last.card.indice) : undefined;
+  const lastCard = last ? names[last.card.indice] : undefined;
   const placed = last && lastCard ? `Carta ${chosen.length}: ${lastCard.nombre_es}${last.card.reversed ? " al revés" : ""}, para ${positions[chosen.length - 1]!.nombre}. ` : "";
 
   function pick(slot: number) {
@@ -56,7 +58,7 @@ export default function Picker({ spread, count, reversedEnabled, question }: { s
       </p>
       <SpreadLayout positions={positions} render={(p, i) => {
         const c = chosen[i];
-        return c ? <TarotCard card={cardByIndex(c.card.indice)!} reversed={c.card.reversed} size="sm" /> : <div role="img" className="aspect-[1/1.7] w-16 rounded-md border border-dashed border-salvia" aria-label={`${p.nombre}, vacía`} />;
+        return c ? <TarotCard card={names[c.card.indice]!} reversed={c.card.reversed} size="sm" /> : <div role="img" className="aspect-[1/1.7] w-16 rounded-md border border-dashed border-salvia" aria-label={`${p.nombre}, vacía`} />;
       }} />
       <ul ref={deckRef} className="flex flex-wrap justify-center gap-1" aria-label="Mazo mezclado, boca abajo">
         {deck.map((_, slot) => (
