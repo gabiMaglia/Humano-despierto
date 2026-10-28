@@ -19,9 +19,9 @@ function form(fields: Record<string, string>): FormData {
   return fd;
 }
 
-function client({ user = { id: UID } as { id: string } | null, insertError = null as { code: string } | null } = {}) {
+function client({ user = { id: UID } as { id: string } | null, insertError = null as { code: string } | null, deleted = [{ id: "x" }] as { id: string }[] } = {}) {
   const insert = vi.fn().mockReturnValue({ select: () => ({ single: async () => ({ data: insertError ? null : { id: "r-1" }, error: insertError }) }) });
-  const del = vi.fn().mockReturnValue({ eq: async () => ({ error: null }) });
+  const del = vi.fn().mockReturnValue({ eq: () => ({ select: async () => ({ data: deleted, error: null }) }) });
   createClient.mockResolvedValue({ auth: { getUser: async () => ({ data: { user } }) }, from: () => ({ insert, delete: del }) });
   return { insert, del };
 }
@@ -63,7 +63,23 @@ describe("saveTarotReadingAction", () => {
   });
 });
 
+describe("saveTarotReadingAction (error de base)", () => {
+  it("si el insert falla, devuelve el error genérico", async () => {
+    client({ insertError: { code: "23514" } });
+    const r = await saveTarotReadingAction(INITIAL, form({ t: "pasado-presente-futuro", c: "0r.45.12", inv: "1" }));
+    expect(r.error).toBe("No se pudo guardar la tirada.");
+    expect(r.id).toBeUndefined();
+  });
+});
+
 describe("deleteTarotReadingAction", () => {
+  it("si no borró ninguna fila, avisa que no la encontró", async () => {
+    client({ deleted: [] });
+    const r = await deleteTarotReadingAction(INITIAL, form({ id: "11111111-1111-4111-8111-111111111111" }));
+    expect(r.error).toBe("No encontramos esa tirada.");
+    expect(r.success).toBeNull();
+  });
+
   it("borra por id con el cliente de sesión", async () => {
     const { del } = client();
     const r = await deleteTarotReadingAction(INITIAL, form({ id: "11111111-1111-4111-8111-111111111111" }));

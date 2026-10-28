@@ -26,8 +26,6 @@ export default async function LecturaPage({ searchParams }: { searchParams: Prom
   const { data: { user } } = await supabase.auth.getUser();
   const shareHref = `/tarot/lectura?t=${reading.spread}&c=${encodeReading(reading)}`;
 
-  const currentPath = `/tarot/lectura?t=${reading.spread}&c=${encodeReading(reading)}${question ? `&q=${encodeURIComponent(question)}` : ""}`;
-
   return (
     <div className="min-h-screen bg-fondo text-tinta">
       <main className="mx-auto max-w-[1000px] px-6 py-12">
@@ -39,7 +37,7 @@ export default async function LecturaPage({ searchParams }: { searchParams: Prom
           {user ? (
             <SaveReadingButton t={reading.spread} c={encodeReading(reading)} q={question} inv={facts.spread.allowReversed} />
           ) : (
-            <ButtonLink href={`/entrar?next=${encodeURIComponent(currentPath)}`} variant="ghost">Creá tu cuenta para guardar tus tiradas</ButtonLink>
+            <ButtonLink href={`/entrar?next=${encodeURIComponent(shareHref)}`} variant="ghost">Creá tu cuenta para guardar tus tiradas</ButtonLink>
           )}
           <Link href={shareHref} className="text-sm font-semibold text-miel-800 hover:underline" data-testid="compartir">Enlace para compartir (sin tu pregunta)</Link>
         </div>

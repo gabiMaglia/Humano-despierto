@@ -47,8 +47,9 @@ export const deleteTarotReadingAction = withRateLimit(
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return SESSION_EXPIRED;
-    const { error } = await supabase.from("tarot_readings").delete().eq("id", id.data);
+    const { data, error } = await supabase.from("tarot_readings").delete().eq("id", id.data).select("id");
     if (error) return { error: "No se pudo borrar la tirada.", success: null };
+    if (!data || data.length === 0) return { error: "No encontramos esa tirada.", success: null };
     revalidatePath("/panel/tarot");
     return { error: null, success: "Tirada borrada." };
   },
