@@ -48,7 +48,7 @@ npm run test:e2e # Playwright; needs `npx supabase start`; starts its own `next 
 ```bash
 cd webApp/supabase
 npm install
-npm test         # 825 tests, ~1-4 min, no Docker and no credentials needed
+npm test         # 881 tests, ~1-4 min, no Docker and no credentials needed
 ```
 Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply in filename order.
 
@@ -56,8 +56,8 @@ Runs against **PGlite** (embedded Postgres). Migrations in `migrations/` apply i
 
 | Area | State |
 |------|-------|
-| `webApp/src` | **~22.4k LOC** (non-test). 33 routes (`page.tsx`), 131 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tarot engine (pure, no DB, no AI) in `src/lib/tarot/`; 78 card scans in `public/tarot/rws/`. Tests: Vitest (745 unit tests in 95 files, next to the file) + Playwright (`e2e/`), T-039. |
-| `webApp/supabase` | **Schema live.** 38 migrations (last `0071`; `0032` applies before `0031` by timestamp, independent), 23 tables (`tarot_readings`, ADR-016), RLS + per-column grants + guard triggers, 825 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.fixtures.sql`, content seed in `seed.sql`, demo data in `demo.sql`: all **local only**, never run in the cloud (see `webApp/supabase/README.md`). |
+| `webApp/src` | **~24.0k LOC** (non-test). 40 routes (`page.tsx`), 143 files under `components/`, no mock modules (`lib/mocks/` removed in T-053), `tokens.css`. Real Supabase queries everywhere. Tarot engine (pure, no DB, no AI) in `src/lib/tarot/`; 78 card scans in `public/tarot/rws/`. Tests: Vitest (894 unit tests in 117 files, next to the file) + Playwright (`e2e/`), T-039. |
+| `webApp/supabase` | **Schema live.** 43 migrations (last `0071`; `0032` applies before `0031` by timestamp, independent), 23 tables (`tarot_readings`, ADR-016), RLS + per-column grants + guard triggers, 881 mutation tests (PGlite). Private Storage bucket `uploads`: `avatars/` (T-042) and `covers/` (T-047), uploads only via service_role; its policies are only tested over HTTP by b1. Fixtures `@test.local` (admin, docente, alumna) in `seed.fixtures.sql`, content seed in `seed.sql`, demo data in `demo.sql`: all **local only**, never run in the cloud (see `webApp/supabase/README.md`). |
 | `mobileApp/` | **Empty directory.** No Expo scaffold. **Out of scope for Phase 2.** |
 | `packages/tokens` | 763 LOC of the old Cosmos palette (marked historical in its README, D-66) — **consumed by nobody**: `webApp` does not import it (it uses its own `src/styles/tokens.css`) and `mobileApp` does not exist. Kept for when mobile returns. |
 | `Gentleman-Skills/` | **Empty directory.** Referenced by the old CLAUDE.md; there is nothing in it. |
@@ -266,7 +266,8 @@ visual reference: `design_handoff_humano_humano/reference/brote/b4-brote2.html`.
   looks up in the log); student routes use `layout/ErrorScreen`, the Campus `campus/CampusError`.
   A rate-limited action answers in the form state's `error`, so each form shows it with its usual
   error pattern (`FormStatus`, `panel/StatusMessage`, `reviews/ActionFeedback`), never a new banner.
-- **Raster is allowed for photography, always through `next/image`**, with reserved size. Las 78 cartas del tarot (`public/tarot/rws/*.webp`, dominio público, ver `CREDITS.md`) son la segunda fuente de raster permitida, también por `next/image`. A photo that
+- **The 78 tarot card scans** (`public/tarot/rws/*.webp`, public domain, see `CREDITS.md`) are the second raster source, also served through `next/image`.
+- **Raster is allowed for photography, always through `next/image`**, with reserved size. A photo that
   carries content gets a real `alt`; a decorative one next to text that already names the thing (the
   photo of a course card, whose title is the link) gets `alt=""`. The only remote host in `images.remotePatterns` is `images.unsplash.com`, and only the closed,
   hand-verified list in `src/content/placeholder-photos.ts` (marked PLACEHOLDER in code; id

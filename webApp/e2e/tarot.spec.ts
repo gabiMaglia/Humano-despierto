@@ -16,6 +16,7 @@ test("anónima: PPF de punta a punta, la URL lleva la tirada y el enlace de comp
   await expect(page.getByText("Elegí la carta para: Pasado")).toBeVisible();
   for (const n of [3, 17, 60]) await page.getByRole("button", { name: `Carta ${n} del mazo` }).click();
   await expect(page).toHaveURL(/\/tarot\/lectura\?t=pasado-presente-futuro&c=\d+r?\.\d+r?\.\d+r?&q=/);
+  expect(new URL(page.url()).searchParams.get("q")).toBe("¿Qué viene?");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("¿Qué viene?");
   const share = await page.getByTestId("compartir").getAttribute("href");
   expect(share).not.toContain("q=");
