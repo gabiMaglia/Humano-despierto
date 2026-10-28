@@ -15,7 +15,7 @@ title_of() { curl -s "$BASE$1" | grep -o '<title>[^<]*</title>' | head -1 | sed 
 
 echo "== titles unicos por ruta publica =="
 seen_titles=""
-for p in / /cursos /diario /guias /entrar; do
+for p in / /cursos /diario /guias /entrar /tarot /tarot/cartas /tarot/cartas/el-loco; do
   t=$(title_of "$p")
   if [ -z "$t" ]; then
     echo "  FALLA  $p — sin <title>"; fail=1; continue

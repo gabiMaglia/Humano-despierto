@@ -3,6 +3,8 @@ import { getSiteUrl } from "@/lib/server/site-url";
 import { getPublishedCourses } from "@/lib/server/courses";
 import { getPublishedPosts } from "@/lib/server/diario";
 import { getPublicTeachers } from "@/lib/server/guias";
+import { CARDS } from "@/lib/tarot/cards";
+import { SPREADS } from "@/lib/tarot/spreads";
 
 /** Solo contenido publicado, y sale de la base — no de una lista escrita a mano que se
  * desactualiza el día que alguien despublica un curso. Misma doctrina que los conteos de T-019:
@@ -17,6 +19,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${site}/diario`, priority: 0.7 },
   ];
 
+  const tarot: MetadataRoute.Sitemap = [
+    { url: `${site}/tarot`, priority: 0.9 },
+    { url: `${site}/tarot/cartas`, priority: 0.7 },
+    ...SPREADS.map((s) => ({ url: `${site}/tarot/${s.slug}`, priority: 0.7 })),
+    ...CARDS.map((c) => ({ url: `${site}/tarot/cartas/${c.id}`, priority: 0.5 })),
+  ];
+
   const [cursos, posts, guias] = await Promise.all([
     getPublishedCourses(),
     getPublishedPosts(),
@@ -25,6 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...estaticas,
+    ...tarot,
     ...cursos.map((c) => ({ url: `${site}/cursos/${c.slug}`, priority: 0.8 })),
     ...guias.map((g) => ({ url: `${site}/guias/${g.slug}`, priority: 0.6 })),
     ...posts.map((p) => ({

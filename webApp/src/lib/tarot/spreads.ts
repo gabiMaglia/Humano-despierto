@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 import raw from "./data/spreads.json";
 
 export const SPREAD_SLUGS = ["carta-del-dia", "si-o-no", "pasado-presente-futuro", "cruz-celta"] as const;

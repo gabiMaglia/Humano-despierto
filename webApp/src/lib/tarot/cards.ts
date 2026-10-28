@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/zod";
 import raw from "./data/cards.json";
 
 export type Suit = "bastos" | "copas" | "espadas" | "oros";
