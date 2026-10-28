@@ -34,7 +34,7 @@ export default function PanelFrame({ title, context, back, tabs, actions, width 
           <div className={cn("mx-auto flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-6 py-8 md:px-12", WIDTH[width])}>
             <div className="min-w-0 flex-1">
               {back && (
-                <Link href={back.href} className="mb-2 inline-flex min-h-8 items-center text-sm font-semibold text-miel-800 hover:underline">
+                <Link href={back.href} className="-mb-1 inline-flex min-h-12 items-center text-sm font-semibold text-miel-800 hover:underline">
                   <span aria-hidden="true" className="mr-1.5">←</span>
                   {back.label}
                 </Link>

@@ -3,6 +3,9 @@ import { argsOf, queryChain, type ChainCall } from "@/test/query-chain";
 
 const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
+const { signUploadUrls, serviceClient } = vi.hoisted(() => ({ signUploadUrls: vi.fn(), serviceClient: { storage: {} } }));
+vi.mock("@/lib/server/uploads", () => ({ signUploadUrls }));
+vi.mock("@/lib/supabase/service", () => ({ createServiceRoleClient: () => serviceClient }));
 
 import { getStudentDashboard, getStudentEnrollmentState } from "./enrollment";
 
@@ -88,5 +91,38 @@ describe("getStudentDashboard · requests", () => {
   it("sin sesión no hay cursos ni solicitudes", async () => {
     session(null, () => ({ data: [], error: null }));
     expect(await getStudentDashboard()).toEqual({ courses: [], requests: [] });
+  });
+});
+
+describe("getStudentDashboard · portada (D-90)", () => {
+  const COVER = `covers/${COURSE}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.jpg`;
+  const course = (id: string, cover: string | null) => ({
+    course_id: id,
+    enrolled_at: "2026-10-01T10:00:00Z",
+    course: {
+      id, slug: id, title: "T", title_em: null, discipline: "Tarot", level: "Inicial", moon_glyph: null,
+      cover_path: cover, teacher: { full_name: "Luna" }, course_modules: [],
+    },
+  });
+
+  beforeEach(() => {
+    createClient.mockReset();
+    signUploadUrls.mockReset();
+  });
+
+  it("lee cover_path con la sesión y firma sólo esas portadas, en una llamada", async () => {
+    const { log } = session(USER, (table, calls) => {
+      if (table === "enrollments" && !calls.some((c) => c.method === "in")) {
+        return { data: [course(COURSE, COVER), course("sin", null)], error: null };
+      }
+      return { data: [], error: null };
+    });
+    signUploadUrls.mockResolvedValue(new Map([[COVER, "https://s/c?token=1"]]));
+    const dash = await getStudentDashboard();
+    const activos = log.find((l) => l.table === "enrollments" && !l.calls.some((c) => c.method === "in"));
+    expect(String(argsOf(activos!.calls, "select")?.[0])).toMatch(/cover_path/);
+    expect(signUploadUrls).toHaveBeenCalledTimes(1);
+    expect(signUploadUrls).toHaveBeenCalledWith(serviceClient, [COVER, null]);
+    expect(dash.courses.map((c) => [c.courseId, c.coverUrl])).toEqual([[COURSE, "https://s/c?token=1"], ["sin", null]]);
   });
 });

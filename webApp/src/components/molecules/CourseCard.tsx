@@ -1,10 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
-import SignedImage from "@/components/atoms/SignedImage";
+import CourseCover from "@/components/atoms/CourseCover";
 import Rating from "@/components/atoms/Rating";
 import WishlistButton from "@/components/course/WishlistButton";
-import { placeholderForDiscipline, unsplashUrl } from "@/content/placeholder-photos";
 
 export interface CourseCardData {
   /** Disciplina: elige la foto de muestra cuando el curso no tiene portada. */
@@ -23,6 +21,8 @@ export interface CourseCardData {
   reviewCount?: number;
   /** URL firmada de la portada (T-047); sin ella, una foto de muestra de su disciplina. */
   coverUrl?: string;
+  /** Sólo con una lección `is_preview` publicada se dice «Clase gratis» (spec Brote, D-67). */
+  hasPreview?: boolean;
 }
 
 interface Props extends CourseCardData {
@@ -37,32 +37,20 @@ interface Props extends CourseCardData {
  *  camino de navegación principal del producto. El botón de guardar es HERMANO del link (un
  *  <button> dentro de un <a> es HTML inválido). */
 export default function CourseCard({
-  tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl,
+  tag, title, titleEm, teacher, price, level, featured, slug, rating, reviewCount, coverUrl, hasPreview,
   className, wishlist, eager,
 }: Props) {
-  const placeholder = placeholderForDiscipline(tag);
   return (
     <div className={cn("group relative h-full", className)}>
       <Link href={`/cursos/${slug}`} className="relative flex h-full flex-col pb-[88px]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-salvia">
-          {coverUrl ? (
-            // alt vacío: el h3 ya nombra el curso; leerlo dos veces es ruido.
-            <SignedImage
-              src={coverUrl}
-              alt=""
-              loading={eager ? "eager" : "lazy"}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            />
-          ) : (
-            <Image
-              src={unsplashUrl(placeholder.id)}
-              alt=""
-              fill
-              loading={eager ? "eager" : "lazy"}
-              sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            />
-          )}
+          <CourseCover
+            coverUrl={coverUrl}
+            discipline={tag}
+            eager={eager}
+            sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
+            className="transition-transform duration-[1200ms] ease-brote group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
           {featured && (
             <span className="absolute left-3 top-3 rounded-pill bg-miel-100 px-3 py-1 text-xs font-semibold text-miel-800">
               Destacado
@@ -81,7 +69,12 @@ export default function CourseCard({
           </h3>
           <p className="text-sm leading-normal text-suave">Con {teacher}</p>
           <Rating average={rating} count={reviewCount} className="mt-1.5" />
-          <div className="mt-3.5 flex items-center justify-end border-t border-linea pt-3.5 text-sm">
+          <div className="mt-3.5 flex items-center justify-end gap-3 border-t border-linea pt-3.5 text-sm">
+            {hasPreview && (
+              <span className="mr-auto rounded-pill bg-miel-100 px-3 py-1 text-xs font-semibold text-miel-800">
+                Clase gratis
+              </span>
+            )}
             <b className="font-semibold text-bosque">{price}</b>
           </div>
         </div>

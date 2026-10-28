@@ -32,13 +32,11 @@ export default function EnrollmentCta({ slug, state }: { slug: string; state: St
         />
       );
     case "active":
+      // «Ya estás inscripta» es el título del panel (D-109): acá sólo el camino.
       return (
-        <div className="space-y-3">
-          <Estado title="Ya estás inscripta" />
-          <ButtonLink href="/panel" full arrow>
-            Ir a mi panel
-          </ButtonLink>
-        </div>
+        <ButtonLink href="/panel" full arrow>
+          Ir a mi panel
+        </ButtonLink>
       );
     case "revoked":
       return <Estado title="Tu inscripción fue dada de baja" />;

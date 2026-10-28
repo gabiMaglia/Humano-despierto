@@ -8,7 +8,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/server/supabase-public", () => ({ getPublicSupabaseClient }));
 vi.mock("@/lib/server/uploads", () => ({ signPublicUploadUrls }));
 
-import { getCourseBySlug, signCatalogCovers } from "./courses";
+import { getCourseBySlug, getPublishedCourses, signCatalogCovers } from "./courses";
 
 const PATH = "covers/40000000-0000-4000-8000-00000000000a/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.jpg";
 
@@ -62,10 +62,67 @@ describe("getCourseBySlug · portada", () => {
   });
 });
 
+describe("getCourseBySlug · avatar de la guía (D-69)", () => {
+  const AVATAR = "avatars/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg";
+  beforeEach(() => signPublicUploadUrls.mockReset());
+
+  it("firma portada y avatar en una sola llamada", async () => {
+    const { client, select } = publicClientReturning({
+      id: "x", slug: "tarot", title: "Tarot", cover_path: PATH, course_modules: [],
+      teacher: { full_name: "Luna", bio: null, slug: "luna", avatar_path: AVATAR },
+    });
+    getPublicSupabaseClient.mockReturnValue(client);
+    signPublicUploadUrls.mockResolvedValue(new Map([[PATH, "https://s/c"], [AVATAR, "https://s/a"]]));
+    const course = await getCourseBySlug("tarot");
+    expect(String((select.mock.calls[0] as unknown[])[0])).toMatch(/avatar_path/);
+    expect(signPublicUploadUrls).toHaveBeenCalledTimes(1);
+    expect(signPublicUploadUrls).toHaveBeenCalledWith([PATH, AVATAR]);
+    expect(course?.coverUrl).toBe("https://s/c");
+    expect(course?.teacherAvatarUrl).toBe("https://s/a");
+  });
+
+  it("sin avatar, teacherAvatarUrl es null (la vista dibuja el Monogram)", async () => {
+    const { client } = publicClientReturning({
+      id: "x", slug: "tarot", title: "Tarot", cover_path: null, course_modules: [],
+      teacher: { full_name: "Luna", bio: null, slug: "luna", avatar_path: null },
+    });
+    getPublicSupabaseClient.mockReturnValue(client);
+    expect((await getCourseBySlug("tarot"))?.teacherAvatarUrl).toBeNull();
+    expect(signPublicUploadUrls).not.toHaveBeenCalled();
+  });
+});
+
 describe("signCatalogCovers", () => {
   it("firma solo las cards que recibe (la pagina visible), no el catalogo entero", async () => {
     signPublicUploadUrls.mockReset().mockResolvedValue(new Map());
     await signCatalogCovers([{ coverPath: PATH }, { coverPath: null }]);
     expect(signPublicUploadUrls).toHaveBeenCalledWith([PATH, null]);
+  });
+});
+
+describe("getPublishedCourses · hasPreview (D-67)", () => {
+  function catalogClient(rows: unknown[]) {
+    const select = vi.fn(() => ({ eq: () => ({ order: async () => ({ data: rows, error: null }) }) }));
+    const reviews = { select: () => ({ in: async () => ({ data: [], error: null }) }) };
+    return { select, client: { from: (t: string) => (t === "courses" ? { select } : reviews) } };
+  }
+  const base = { slug: "s", title: "T", discipline: "Tarot", level: "Inicial", price_cents: 100, currency: "ARS", teacher: null };
+
+  beforeEach(() => getPublicSupabaseClient.mockReset());
+
+  it("afirma clase gratis sólo del curso con una lección publicada is_preview", async () => {
+    const { client, select } = catalogClient([
+      { ...base, id: "con", course_modules: [{ lessons: [{ duration_seconds: 60, is_published: true, is_preview: true }] }] },
+      { ...base, id: "sin", course_modules: [{ lessons: [{ duration_seconds: 60, is_published: true, is_preview: false }] }] },
+      // Una vista previa sin publicar no se puede ver: no cuenta.
+      { ...base, id: "borrador", course_modules: [{ lessons: [{ duration_seconds: 60, is_published: false, is_preview: true }] }] },
+      { ...base, id: "vacio", course_modules: null },
+    ]);
+    getPublicSupabaseClient.mockReturnValue(client);
+    const courses = await getPublishedCourses();
+    expect(String((select.mock.calls[0] as unknown[])[0])).toMatch(/is_preview/);
+    expect(Object.fromEntries(courses.map((c) => [c.id, c.hasPreview]))).toEqual({
+      con: true, sin: false, borrador: false, vacio: false,
+    });
   });
 });

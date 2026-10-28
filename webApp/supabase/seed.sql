@@ -122,10 +122,10 @@ from (values
    'Luna aprendió a mirar el cielo antes que a leer. En el patio de su abuela, en Coyoacán, las noches se contaban por constelaciones y las tardes por las cartas que tendía para las vecinas del barrio. A los nueve años ya sabía señalar dónde caía la Casa X sin saber todavía qué significaba.' || chr(10) || chr(10) ||
    'Se formó en astrología tropical durante tres años y completó el recorrido con un estudio autodidacta del tarot de Marsella, contrastando cada arcano contra tránsitos reales hasta encontrar dónde se tocan las dos lenguas. Catorce años después enseña con una sola certeza: ninguna técnica reemplaza la escucha atenta de lo que el cuerpo ya sabía antes que la carta lo dijera.',
    '[
-     {"year":"MMXII","title":"Astrología tropical · casas y aspectos","place":"Ciudad de México"},
-     {"year":"MMXV","title":"Tarot de Marsella · estudio de arcanos","place":"Ciudad de México"},
-     {"year":"MMXVIII","title":"Astrología predictiva · tránsitos y progresiones","place":"Online"},
-     {"year":"MMXXII","title":"Ética de la consulta astrológica","place":"Bogotá"}
+     {"year":"2012","title":"Astrología tropical · casas y aspectos","place":"Ciudad de México"},
+     {"year":"2015","title":"Tarot de Marsella · estudio de arcanos","place":"Ciudad de México"},
+     {"year":"2018","title":"Astrología predictiva · tránsitos y progresiones","place":"Online"},
+     {"year":"2022","title":"Ética de la consulta astrológica","place":"Bogotá"}
    ]',
    '[
      {"quote":"Me enseñó a leer mi carta natal sin buscar excusas en ella — a usarla como espejo, no como sentencia.","who":"Renata G.","course":"Carta natal esencial"},
@@ -138,10 +138,10 @@ from (values
    'Sol llegó al tarot a los diecinueve años, cuando una abuela vasca le puso un mazo en las manos y le dijo: "no leas las cartas, dejá que ellas te lean a vos".' || chr(10) || chr(10) ||
    'Estudió astrología tropical con Eugenio Carutti en Buenos Aires y se formó en el tarot de Marsella con la escuela de Alejandro Jodorowsky en Francia. Dieciocho años después, sigue creyendo que el oficio es escuchar.',
    '[
-     {"year":"MMVIII","title":"Tarot de Marsella · Jodorowsky","place":"París"},
-     {"year":"MMXII","title":"Astrología tropical · Casa XI","place":"Buenos Aires"},
-     {"year":"MMXVI","title":"Cábala y simbolismo","place":"Jerusalén"},
-     {"year":"MMXX","title":"Trauma-informed counseling","place":"Online"}
+     {"year":"2008","title":"Tarot de Marsella · Jodorowsky","place":"París"},
+     {"year":"2012","title":"Astrología tropical · Casa XI","place":"Buenos Aires"},
+     {"year":"2016","title":"Cábala y simbolismo","place":"Jerusalén"},
+     {"year":"2020","title":"Trauma-informed counseling","place":"Online"}
    ]',
    '[
      {"quote":"Hizo de un mazo de cartas un espejo del que no quiero alejarme.","who":"Lía M.","course":"Tarot iniciático"},
@@ -154,9 +154,9 @@ from (values
    'Aurora llegó al Reiki buscando alivio para un cuerpo agotado y se quedó por la pregunta que le abrió: ¿qué pasa si el silencio, sostenido con las manos, es en sí mismo una forma de cuidado? De ahí a la herbolaria hubo un solo paso — las plantas del patio de su madre, que ella miraba sin nombrar, empezaron a pedir ser aprendidas.' || chr(10) || chr(10) ||
    'Recibió la maestría en la línea Usui y complementó su formación con herbolaria tradicional y fitoterapia. Doce años después enseña las dos disciplinas con el mismo principio: acompañar el proceso del cuerpo, nunca apurarlo ni reemplazar su criterio.',
    '[
-     {"year":"MMXIV","title":"Reiki nivel I y II · línea Usui","place":"Córdoba"},
-     {"year":"MMXVII","title":"Herbolaria tradicional y fitoterapia","place":"Córdoba"},
-     {"year":"MMXXI","title":"Reiki nivel III · maestría","place":"Buenos Aires"}
+     {"year":"2014","title":"Reiki nivel I y II · línea Usui","place":"Córdoba"},
+     {"year":"2017","title":"Herbolaria tradicional y fitoterapia","place":"Córdoba"},
+     {"year":"2021","title":"Reiki nivel III · maestría","place":"Buenos Aires"}
    ]',
    '[
      {"quote":"No promete nada que no pueda sostener. Solo silencio, presencia y manos quietas — y con eso alcanza.","who":"Marcos T.","course":"Reiki nivel I"},
@@ -167,8 +167,9 @@ from (values
 where public.profiles.id = v.id;
 
 -- ---------------------------------------------------------------- courses (CATALOG_COURSES)
--- price_cents = round(mock "$ N" * 100). roman_num/moon_glyph = num/moon del mock (editorial,
--- no derivan de nada). subtitle/intro/includes solo existen en el mock para tarot-iniciatico
+-- price_cents = round(mock "$ N" * 100). moon_glyph = moon del mock (editorial, no deriva de
+-- nada). La columna `roman_num` del alias `v` ya no se inserta: la columna se retiro (T-080, 0042).
+-- subtitle/intro/includes solo existen en el mock para tarot-iniciatico
 -- (COURSE_DETAIL); el resto usa el "desc" del catalogo como intro y queda sin subtitle/includes.
 --
 -- T-017 · `featured=true` en 3 de los 9 (uno por docente: tarot-iniciatico, carta-natal-esencial,
@@ -186,11 +187,11 @@ with teachers as (
 -- inventado -- es la unica columna real que puede expresar el orden editorial del mock.
 insert into public.courses (
   id, slug, title, title_em, subtitle, intro, discipline, level, price_cents, currency,
-  roman_num, moon_glyph, includes, teacher_id, status, featured, published_at
+  moon_glyph, includes, teacher_id, status, featured, published_at
 )
 select
   gen_random_uuid(), v.slug, v.title, v.title_em, v.subtitle, v.intro, v.discipline, v.level,
-  v.price_cents, 'ARS', v.roman_num, v.moon_glyph, v.includes, t.id, 'published', v.featured,
+  v.price_cents, 'ARS', v.moon_glyph, v.includes, t.id, 'published', v.featured,
   timestamptz '2026-01-01' + (v.seq * interval '1 day')
 from (values
   (1, 'carta-natal-esencial', 'Carta natal', 'esencial', null::text,
@@ -236,7 +237,7 @@ on conflict (slug) do update set
   title = excluded.title, title_em = excluded.title_em, subtitle = excluded.subtitle,
   intro = excluded.intro, discipline = excluded.discipline, level = excluded.level,
   price_cents = excluded.price_cents, currency = excluded.currency,
-  roman_num = excluded.roman_num, moon_glyph = excluded.moon_glyph,
+  moon_glyph = excluded.moon_glyph,
   includes = excluded.includes, teacher_id = excluded.teacher_id,
   status = excluded.status, featured = excluded.featured, published_at = excluded.published_at;
 
@@ -790,86 +791,5 @@ from (values
 ) as v(id, author_id, teacher_name, body, at)
 left join teachers t on t.full_name = v.teacher_name
 on conflict (id) do update set body = excluded.body, updated_at = excluded.updated_at;
-
--- ---------------------------------------------------------------- fixtures de prueba por rol
--- T-038 c.7 · Antes vivian solo en la base local y un `db reset` los borro (N-01). Contrasena
--- de los tres: test-1234. Mismo patron que las docentes de arriba: el trigger
--- on_auth_user_created siembra profiles como student y el UPDATE corrige el rol. La docente
--- no lleva slug a proposito: sin slug queda fuera del directorio publico /guias.
--- Solo para local: el ticket que lleve el schema a la nube los excluye.
-insert into auth.users (
-  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  confirmation_token, recovery_token, email_change_token_new, email_change
-) values
-  ('d0000000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'admin@test.local',
-   crypt('test-1234', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Admin de Prueba"}'::jsonb,
-   now(), now(), '', '', '', ''),
-  ('d0000000-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'docente@test.local',
-   crypt('test-1234', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Docente de Prueba"}'::jsonb,
-   now(), now(), '', '', '', ''),
-  ('d0000000-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alumna@test.local',
-   crypt('test-1234', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Alumna de Prueba"}'::jsonb,
-   now(), now(), '', '', '', '')
-on conflict (id) do nothing;
-
-update public.profiles set role = 'admin'
-where id = 'd0000000-0000-4000-8000-000000000001' and role <> 'admin';
-
-update public.profiles set role = 'teacher'
-where id = 'd0000000-0000-4000-8000-000000000002' and role <> 'teacher';
-
--- La alumna de prueba cursa tarot-iniciatico (tiene lecciones publicadas con video_id) y NO
--- esta en herbario-lunar: T-039 c.7 usa ese curso como ataque R-8.
-insert into public.enrollments (user_id, course_id, status, granted_by)
-select 'd0000000-0000-4000-8000-000000000003'::uuid, c.id, 'active', null
-from public.courses c where c.slug = 'tarot-iniciatico'
-on conflict (user_id, course_id) do update set status = excluded.status;
-
--- T-044 · Fixtures de recursos descargables. Cada uno existe para UN criterio del ticket:
--- el de la leccion preview (c.3: anonima baja), el `link` sin drive_file_id (c.2: 302 a `url`),
--- el de otro curso en leccion NO preview (c.6: un id ajeno bajo leccion propia no abre nada) y
--- la alumna revocada (c.7: la fila de inscripcion existe, solo el status la deja afuera).
--- Los drive_file_id son placeholders: el E2E verifica el `Location`, nunca sigue el redirect.
-delete from public.lesson_resources where id in (
-  'e0440000-0000-4000-8000-000000000001', 'e0440000-0000-4000-8000-000000000002',
-  'e0440000-0000-4000-8000-000000000003');
-
-insert into public.lesson_resources (id, course_id, lesson_id, position, type, name, drive_file_id, url, size_label)
-select v.id::uuid, l.course_id, l.id, v.position, v.type, v.name, v.drive_file_id, v.url, v.size_label
-from (values
-  ('e0440000-0000-4000-8000-000000000001', 'tarot-iniciatico', 3, 1, 1, 'pdf',
-   'Plantilla de la tirada de tres cartas', 'SEED_PLACEHOLDER_PREVIEW_1', null::text, '1 pág'),
-  ('e0440000-0000-4000-8000-000000000002', 'tarot-iniciatico', 3, 4, 4, 'link',
-   'Glosario de arcanos en línea', null::text, 'https://example.org/glosario-arcanos', null::text),
-  ('e0440000-0000-4000-8000-000000000003', 'herbario-lunar', 2, 1, 1, 'pdf',
-   'Calendario de cosecha lunar', 'SEED_PLACEHOLDER_HERB_1', null::text, '2 págs')
-) as v(id, slug, module_position, lesson_position, position, type, name, drive_file_id, url, size_label)
-join public.courses c on c.slug = v.slug
-join public.course_modules cm on cm.course_id = c.id and cm.position = v.module_position
-join public.lessons l on l.module_id = cm.id and l.position = v.lesson_position;
-
-insert into auth.users (
-  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  confirmation_token, recovery_token, email_change_token_new, email_change
-) values
-  ('d0000000-0000-4000-8000-000000000441', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'revocada@test.local',
-   crypt('test-1234', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Alumna Revocada"}'::jsonb,
-   now(), now(), '', '', '', '')
-on conflict (id) do nothing;
-
-insert into public.enrollments (user_id, course_id, status, granted_by)
-select 'd0000000-0000-4000-8000-000000000441'::uuid, c.id, 'revoked', null
-from public.courses c where c.slug = 'tarot-iniciatico'
-on conflict (user_id, course_id) do update set status = excluded.status;
 
 commit;

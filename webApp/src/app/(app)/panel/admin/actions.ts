@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateLanding } from "@/lib/server/landing-cache";
 import { z } from "zod";
 import { notifyEnrollmentActivated, notifyEnrollmentRejected } from "@/lib/server/mail/notify";
 import { hasLocator } from "@/lib/validation/locator.mjs";
@@ -144,6 +145,8 @@ async function setEnrollment(
   }
 
   revalidatePath("/panel/admin", "layout");
+  // La cifra de inscriptas de la portada cuenta inscripciones activas.
+  revalidateLanding();
   return {
     error: null,
     success: status === "active" ? "Inscripción activada." : "Inscripción dada de baja.",
@@ -183,6 +186,7 @@ export const setCourseStatusAction = withRateLimit(
 
     revalidatePath("/panel/admin", "layout");
     revalidatePath("/cursos");
+    revalidateLanding();
     return { error: null, success: "Estado del curso actualizado." };
   },
   limitedState,
@@ -231,6 +235,7 @@ export const approveEnrollmentRequestAction = withRateLimit(
 
     revalidatePath("/panel/admin", "layout");
     revalidatePath("/cursos/[slug]", "page");
+    revalidateLanding();
     return { error: null, success: ENROLLMENT_COPY.approved };
   },
   limitedState,
@@ -285,6 +290,7 @@ function moderationError(code: string | undefined, fallback: string): string {
 }
 
 function revalidateModeration() {
+  revalidateLanding();
   revalidatePath("/cursos/[slug]", "page");
   revalidatePath("/cursos");
   revalidatePath("/panel/admin/resenas");

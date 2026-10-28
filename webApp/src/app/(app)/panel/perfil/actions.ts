@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateLanding } from "@/lib/server/landing-cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { AVATAR_BUCKET } from "@/lib/server/avatar";
@@ -37,6 +38,8 @@ function translateDbError(code: string | undefined, fallback: string): string {
 
 function revalidateProfile() {
   revalidatePath("/panel/perfil");
+  // El nombre firma sus testimonios en la portada.
+  revalidateLanding();
   revalidatePath("/guias/[slug]", "page");
 }
 

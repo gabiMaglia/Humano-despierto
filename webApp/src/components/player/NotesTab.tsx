@@ -2,15 +2,17 @@
 
 import { useId, useState } from "react";
 import Button from "@/components/atoms/Button";
-import FormField from "@/components/molecules/FormField";
+import FormField, { FieldError } from "@/components/molecules/FormField";
 import { formatClock } from "@/components/player/formatClock";
 import type { LessonNotes } from "@/components/player/useLessonNotes";
 import type { PlayerNote } from "@/lib/server/lesson-player";
+import { cn } from "@/lib/utils/cn";
 
 function NoteItem({ note, api }: { note: PlayerNote; api: LessonNotes }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.body);
   const id = useId();
+  const noteError = api.error?.scope === note.id ? api.error.message : null;
 
   async function save() {
     if (await api.edit(note.id, draft)) setEditing(false);
@@ -24,9 +26,9 @@ function NoteItem({ note, api }: { note: PlayerNote; api: LessonNotes }) {
       </span>
       {editing ? (
         <div>
-          <FormField id={`${id}-editar`} label="Editar nota" hideLabel>
+          <FormField id={`${id}-editar`} label="Editar nota" hideLabel error={noteError}>
             {(c) => (
-              <textarea {...c} value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} className={`${c.className} resize-y text-sm`} />
+              <textarea {...c} value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} className={cn(c.className, "resize-y text-sm")} />
             )}
           </FormField>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -56,6 +58,7 @@ function NoteItem({ note, api }: { note: PlayerNote; api: LessonNotes }) {
               Borrar
             </Button>
           </div>
+          <FieldError id={`${id}-error`} error={noteError} />
         </>
       )}
     </li>
@@ -89,7 +92,7 @@ export default function NotesTab({ isAuthenticated, canTakeNotes, currentTime, a
   return (
     <div>
       <div className="mb-5 rounded-md bg-fondo p-4">
-        <FormField id="nueva-nota" label="Nueva nota" error={api.error}>
+        <FormField id="nueva-nota" label="Nueva nota" error={api.error?.scope === "add" ? api.error.message : null}>
           {(c) => (
             <textarea
               {...c}
@@ -97,7 +100,7 @@ export default function NotesTab({ isAuthenticated, canTakeNotes, currentTime, a
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Anotá un momento, un símbolo, una sospecha..."
               rows={3}
-              className={`${c.className} resize-y text-sm`}
+              className={cn(c.className, "resize-y text-sm")}
             />
           )}
         </FormField>

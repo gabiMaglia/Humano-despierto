@@ -31,7 +31,6 @@ export default async function CampusCoursePage({ params }: PageProps) {
         <CampusComposer
           courseId={thread.courseId}
           courseSlug={thread.slug}
-          authorGlyph={user?.glyph ?? null}
           authorName={user?.fullName ?? null}
           placeholder="Compartí una pregunta, una observación, algo del módulo..."
         />

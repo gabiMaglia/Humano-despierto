@@ -9,6 +9,8 @@
 
 export interface LandingContent {
   hero: {
+    /** `<h1>` visible sólo para lectores de pantalla y buscadores: la cita no es un título. */
+    heading: string;
     fallbackQuote: string;
     fallbackByline: string;
     ctaCursos: string;
@@ -32,6 +34,7 @@ export interface LandingContent {
 
 export const LANDING: LandingContent = {
   hero: {
+    heading: "Humano Despierto, escuela online de oficios holísticos",
     fallbackQuote: "Se aprende de alguien que practica lo que enseña.",
     fallbackByline: "Escuela online de tarot, astrología, herbolaria, reiki y magia.",
     ctaCursos: "Ver los cursos",

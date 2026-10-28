@@ -13,7 +13,7 @@ import { LANDING } from "@/content/landing";
 import { freeClassClaim } from "@/lib/catalog/free-class";
 import { getLandingData } from "@/lib/server/landing";
 import { getPublishedCourses, signCatalogCovers } from "@/lib/server/courses";
-import { getFeaturedTeacher, getPublicTeachers } from "@/lib/server/guias";
+import { getFeaturedTeacher, getPublicTeachers, signTeacherAvatars } from "@/lib/server/guias";
 
 export default async function LandingPage() {
   const [{ stats, disciplines, testimonials }, courses, guias, maestra] = await Promise.all([
@@ -25,14 +25,25 @@ export default async function LandingPage() {
 
   // Destacados primero; si la escuela marcó menos de tres, se completa con el resto del catálogo.
   const featured = [...courses.filter((c) => c.featured), ...courses.filter((c) => !c.featured)].slice(0, 3);
-  const covers = await signCatalogCovers(featured);
+  const guiasVisibles = guias.slice(0, 3);
+  const [covers, avatars] = await Promise.all([
+    signCatalogCovers(featured),
+    signTeacherAvatars(maestra ? [...guiasVisibles, maestra] : guiasVisibles),
+  ]);
 
   const quote: HeroQuote = maestra?.quote
-    ? { text: maestra.quote, guide: { name: maestra.fullName, role: maestra.headline, slug: maestra.slug } }
+    ? {
+        text: maestra.quote,
+        guide: {
+          name: maestra.fullName,
+          role: maestra.headline,
+          slug: maestra.slug,
+          avatarUrl: maestra.avatarPath ? (avatars.get(maestra.avatarPath) ?? null) : null,
+        },
+      }
     : { text: LANDING.hero.fallbackQuote, guide: null };
 
-  // El resumen del catálogo no trae `is_preview` (deuda): sin el dato, el texto prudente.
-  const claim = freeClassClaim({ total: courses.length, withPreview: courses.length === 0 ? 0 : null });
+  const claim = freeClassClaim({ total: courses.length, withPreview: courses.filter((c) => c.hasPreview).length });
 
   return (
     <div className="min-h-screen overflow-x-clip bg-fondo text-tinta">
@@ -43,7 +54,7 @@ export default async function LandingPage() {
         <FeaturedCourses courses={featured} covers={covers} total={courses.length} disciplines={disciplines} />
         <Cifras stats={stats} disciplines={disciplines} />
         <LunarCalendar days={lunarDays(new Date())} />
-        <GuiasSection guias={guias.slice(0, 3)} total={guias.length} />
+        <GuiasSection guias={guiasVisibles} total={guias.length} avatars={avatars} />
         <Testimonios items={testimonials} />
         <Empezar claim={claim} />
       </main>

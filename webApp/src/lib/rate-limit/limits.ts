@@ -119,5 +119,6 @@ export const RATE_LIMIT_EXEMPT: Readonly<Record<string, string>> = {
   requestPasswordResetAction: "GoTrue limita email_sent por hora; un límite propio cambiaría la respuesta neutra.",
   updatePasswordAction: "Exige la sesión del link de recuperación; GoTrue limita token_verifications al canjearlo.",
   resolveClosingHref: "Idempotente: la única escritura posible (el certificado) es una por curso y la decide ensureCertificate.",
+  "api/mail/retry/route.ts#GET": "Cron con secreto (CRON_SECRET); sin él responde 401/503 y no envía nada propio: reintenta turnos ya existentes de mail_log.",
   "auth/callback/route.ts#GET": "Canje de código de GoTrue: lo limita token_verifications.",
 };

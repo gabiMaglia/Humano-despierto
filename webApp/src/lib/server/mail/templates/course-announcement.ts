@@ -23,7 +23,7 @@ export function renderCourseAnnouncementMail(props: CourseAnnouncementProps) {
     <p style="margin:0 0 14px;">Hola ${escapeHtml(props.studentName)},</p>
     <p style="margin:0 0 14px;">
       ${escapeHtml(props.teacherName)} publicó un anuncio en
-      <strong style="color:#f5d76e;">${escapeHtml(props.courseTitle)}</strong>:
+      <strong style="color:#1F2E24;">${escapeHtml(props.courseTitle)}</strong>:
     </p>
     <p style="margin:0 0 10px;font-weight:bold;">${escapeHtml(props.announcementTitle)}</p>
     ${paragraphs.map((p) => `<p style="margin:0 0 14px;">${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("\n    ")}`;

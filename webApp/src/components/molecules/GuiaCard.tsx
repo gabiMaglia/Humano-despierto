@@ -1,13 +1,14 @@
 import Link from "next/link";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import type { PublicTeacherCard } from "@/lib/server/guias";
 
 /** Tarjeta de guía (B1): retrato 4:5, nombre, oficio y una línea. Toda la tarjeta es el link. */
-export default function GuiaCard({ slug, fullName, headline, location, coursesCount, discipline }: PublicTeacherCard) {
+export default function GuiaCard({
+  slug, fullName, headline, location, coursesCount, discipline, avatarUrl,
+}: PublicTeacherCard & { avatarUrl?: string | null }) {
   return (
     <article className="group relative">
-      {/* Sin avatar firmado en PublicTeacherCard (D-62): iniciales, nunca un retrato de stock. */}
-      <Monogram name={fullName} className="mb-4 aspect-[4/5] w-full rounded-lg" />
+      <TeacherPortrait name={fullName} src={avatarUrl} className="mb-4 aspect-[4/5] w-full rounded-lg" />
       <h2 className="text-xl">
         <Link href={`/guias/${slug}`} className="after:absolute after:inset-0 group-hover:text-miel-800">
           {fullName}

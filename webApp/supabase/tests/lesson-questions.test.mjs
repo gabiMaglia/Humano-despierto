@@ -186,15 +186,20 @@ describe('T-030 · Q&A por leccion', () => {
 
     // E3 del arquitecto (R-2, D-16): `teacher_id` solo no alcanza. Una duena degradada de rol
     // sigue siendo `teacher_id` del curso y su respuesta no puede nacer "de docente".
-    test('la duena con rol que ya no es teacher responde: false', async () => {
-      await db.exec(`reset role; begin;`);
+    // T-080 · D-16: con `owns_course` leyendo el rol, la degradada ya no es duena -- y sin
+    // inscripcion tampoco alcanza la pregunta. Antes respondia (como no-docente) porque seguia
+    // leyendo el Q&A de su ex curso, que es justo lo que D-16 cierra. Lo que este caso protegia
+    // (que su respuesta NO salga como de docente) sigue valiendo: no sale de ninguna forma.
+    test('la duena con rol que ya no es teacher no responde como docente (D-16: no responde)', async () => {
+      // Sin BEGIN: un rechazo aborta la transaccion y el `reset role` del helper revienta con
+      // 25P02. Se degrada y se restaura a mano.
+      await comoOwner(db, `update public.profiles set role = 'student' where id = $1`, [ID.teacherA]);
       try {
-        await db.query(`update public.profiles set role = 'student' where id = $1`, [ID.teacherA]);
         const r = await responder(db, DUENA, q, 'Respondo sin ser docente.');
-        assert.equal(r.ok, true, r.message);
-        assert.equal(r.rows[0].is_instructor_answer, false);
+        assert.equal(r.ok, false, 'la degradada sigue alcanzando el Q&A de su ex curso');
+        assert.equal(r.code, PRIV);
       } finally {
-        await db.exec(`reset role; rollback;`);
+        await comoOwner(db, `update public.profiles set role = 'teacher' where id = $1`, [ID.teacherA]);
       }
     });
 

@@ -13,8 +13,6 @@ const SIZES: Record<Size, string> = {
 };
 
 interface Props {
-  /** Dato de la persona (`profiles.glyph`); si no tiene, iniciales de `name` o una hoja. */
-  glyph?: string | null;
   name?: string | null;
   src?: string | null;
   alt?: string;
@@ -23,7 +21,7 @@ interface Props {
   className?: string;
 }
 
-export default function Avatar({ glyph, name, src, alt, size = "md", online, className }: Props) {
+export default function Avatar({ name, src, alt, size = "md", online, className }: Props) {
   const fallback = initials(name);
   return (
     <div className={cn("relative flex-none", className)}>
@@ -39,7 +37,7 @@ export default function Avatar({ glyph, name, src, alt, size = "md", online, cla
           <img src={src} alt={alt ?? ""} className="h-full w-full rounded-full object-cover" />
         ) : (
           <span aria-hidden="true" className="font-display font-semibold leading-none text-bosque">
-            {glyph || fallback || <Icon name="leaf" className="h-1/2 w-1/2 text-musgo" />}
+            {fallback || <Icon name="leaf" className="h-1/2 w-1/2 text-musgo" />}
           </span>
         )}
       </div>

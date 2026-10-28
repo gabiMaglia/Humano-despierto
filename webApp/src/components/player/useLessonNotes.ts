@@ -13,7 +13,8 @@ function messageOf(error: unknown, fallback: string): string {
 export interface LessonNotes {
   notes: PlayerNote[];
   busy: boolean;
-  error: string | null;
+  /** `scope` es "add" o el id de la nota: así cada campo muestra sólo SU error. */
+  error: { scope: string; message: string } | null;
   add: (atSeconds: number, body: string) => Promise<boolean>;
   edit: (id: string, body: string) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
@@ -23,16 +24,16 @@ export interface LessonNotes {
 export function useLessonNotes(lessonId: string, initial: PlayerNote[]): LessonNotes {
   const [notes, setNotes] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LessonNotes["error"]>(null);
 
-  async function run(fallback: string, op: () => Promise<void>): Promise<boolean> {
+  async function run(scope: string, fallback: string, op: () => Promise<void>): Promise<boolean> {
     setBusy(true);
     setError(null);
     try {
       await op();
       return true;
     } catch (e) {
-      setError(messageOf(e, fallback));
+      setError({ scope, message: messageOf(e, fallback) });
       return false;
     } finally {
       setBusy(false);
@@ -44,17 +45,17 @@ export function useLessonNotes(lessonId: string, initial: PlayerNote[]): LessonN
     busy,
     error,
     add: (atSeconds, body) =>
-      run("No se pudo guardar la nota.", async () => {
+      run("add", "No se pudo guardar la nota.", async () => {
         const note = await saveLessonNote(lessonId, atSeconds, body);
         setNotes((prev) => [...prev, note].sort(byTime));
       }),
     edit: (id, body) =>
-      run("No se pudo editar la nota.", async () => {
+      run(id, "No se pudo editar la nota.", async () => {
         const note = await updateLessonNote(id, body);
         setNotes((prev) => prev.map((n) => (n.id === id ? note : n)).sort(byTime));
       }),
     remove: (id) =>
-      run("No se pudo borrar la nota.", async () => {
+      run(id, "No se pudo borrar la nota.", async () => {
         await deleteLessonNote(id);
         setNotes((prev) => prev.filter((n) => n.id !== id));
       }),

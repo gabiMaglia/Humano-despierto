@@ -7,6 +7,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import { requireTeacher } from "@/lib/server/teacher";
 import { assertOwnsPost } from "@/lib/server/diario";
 import { diarioPostFormSchema } from "@/lib/validation/diario";
+import { firstIssue } from "@/lib/validation/teacher";
 import type { TeacherActionState } from "@/lib/teacher/action-state";
 import { withRateLimit } from "@/lib/server/rate-limit";
 import { limitedState } from "@/lib/rate-limit/core";
@@ -20,9 +21,17 @@ function readPostForm(formData: FormData) {
   });
 }
 
-function firstIssue(error: { issues: { message: string }[] }): string {
-  return error.issues[0]?.message ?? "Datos inválidos.";
+function invalid(error: Parameters<typeof firstIssue>[0]): TeacherActionState {
+  const { field, message } = firstIssue(error);
+  return { error: message, success: null, ...(field ? { field } : {}) };
 }
+
+// El 23514/42501 lo levanta el guard del cuerpo (0018): título y resumen ya los frenó Zod.
+const BODY_LOCATOR: TeacherActionState = {
+  error: "El cuerpo no puede contener el link o id de un material pago de la plataforma.",
+  success: null,
+  field: "body",
+};
 
 // Criterio 1: nace en draft. `teacher_id` viaja en el INSERT (0018 lo permite) pero
 // `diario_posts_insert_own` (RLS) exige `teacher_id = auth.uid()`, y `guard_diario_posts`
@@ -36,7 +45,7 @@ export const createPostAction = withRateLimit(
   ): Promise<TeacherActionState> {
     const teacher = await requireTeacher();
     const parsed = readPostForm(formData);
-    if (!parsed.success) return { error: firstIssue(parsed.error), success: null };
+    if (!parsed.success) return invalid(parsed.error);
     const v = parsed.data;
 
     let newPostId: string | null = null;
@@ -55,13 +64,8 @@ export const createPostAction = withRateLimit(
         .single();
 
       if (error) {
-        if (error.code === "23505") return { error: "Ya existe un post con ese slug. Elegí otro.", success: null };
-        if (error.code === "23514" || error.code === "42501") {
-          return {
-            error: "El cuerpo no puede contener el link o id de un material pago de la plataforma.",
-            success: null,
-          };
-        }
+        if (error.code === "23505") return { error: "Ya existe un post con ese slug. Elegí otro.", success: null, field: "slug" };
+        if (error.code === "23514" || error.code === "42501") return BODY_LOCATOR;
         return { error: `No se pudo crear el post: ${error.message}`, success: null };
       }
       newPostId = data.id;
@@ -86,7 +90,7 @@ export const updatePostAction = withRateLimit(
     if (!postId) return { error: "Falta el post.", success: null };
 
     const parsed = readPostForm(formData);
-    if (!parsed.success) return { error: firstIssue(parsed.error), success: null };
+    if (!parsed.success) return invalid(parsed.error);
     const v = parsed.data;
 
     try {
@@ -98,13 +102,8 @@ export const updatePostAction = withRateLimit(
         .eq("id", postId);
 
       if (error) {
-        if (error.code === "23505") return { error: "Ya existe un post con ese slug.", success: null };
-        if (error.code === "23514" || error.code === "42501") {
-          return {
-            error: "El cuerpo no puede contener el link o id de un material pago de la plataforma.",
-            success: null,
-          };
-        }
+        if (error.code === "23505") return { error: "Ya existe un post con ese slug.", success: null, field: "slug" };
+        if (error.code === "23514" || error.code === "42501") return BODY_LOCATOR;
         return { error: `No se pudo guardar: ${error.message}`, success: null };
       }
     } catch (err) {

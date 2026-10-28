@@ -58,7 +58,6 @@ export const courseFormSchema = z.object({
     .toUpperCase()
     .regex(/^[A-Z]{3}$/, "La moneda son 3 letras (ej: ARS).")
     .default("ARS"),
-  romanNum: noLocator(z.string().trim().max(20).optional().or(z.literal("")), "numeral"),
   moonGlyph: noLocator(z.string().trim().max(8).optional().or(z.literal("")), "glifo"),
   // `includes` es el gemelo semántico de `lesson_resources.name`: el "qué incluye el curso"
   // del catálogo. Se valida línea por línea porque en la DB es text[] y el CHECK va por elemento.
@@ -177,4 +176,11 @@ export const resourceFormSchema = z.object({
 
 export function firstIssueMessage(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Datos inválidos.";
+}
+
+/** El primer problema con el campo que lo causó (el `name` del form), para marcarlo en la vista. */
+export function firstIssue(error: z.ZodError): { field?: string; message: string } {
+  const issue = error.issues[0];
+  const key = issue?.path[0];
+  return { ...(typeof key === "string" ? { field: key } : {}), message: issue?.message ?? "Datos inválidos." };
 }

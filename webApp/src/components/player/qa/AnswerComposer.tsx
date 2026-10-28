@@ -5,6 +5,7 @@ import { answerQuestion } from "@/app/leccion/[id]/actions";
 import { QA_ACTION_INITIAL_STATE } from "@/lib/lesson-qa/action-state";
 import FormField from "@/components/molecules/FormField";
 import QaTextButton from "./QaTextButton";
+import { cn } from "@/lib/utils/cn";
 
 export default function AnswerComposer({ lessonId, questionId }: { lessonId: string; questionId: string }) {
   const action = useMemo(() => answerQuestion.bind(null, lessonId, questionId), [lessonId, questionId]);
@@ -18,7 +19,7 @@ export default function AnswerComposer({ lessonId, questionId }: { lessonId: str
   return (
     <form ref={formRef} action={formAction} className="mt-4 border-t border-linea pt-3">
       <FormField id={`qa-respuesta-${questionId}`} label="Tu respuesta" hideLabel error={state.error}>
-        {(c) => <textarea {...c} name="body" required maxLength={4000} rows={2} placeholder="Responder…" className={`${c.className} resize-y text-sm`} />}
+        {(c) => <textarea {...c} name="body" required maxLength={4000} rows={2} placeholder="Responder…" className={cn(c.className, "resize-y text-sm")} />}
       </FormField>
       <div className="mt-2 flex justify-end">
         <QaTextButton type="submit" disabled={pending}>

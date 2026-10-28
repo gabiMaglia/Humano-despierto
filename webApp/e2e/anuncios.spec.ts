@@ -5,6 +5,14 @@ import { psql } from "./db";
 // T-031 · la docente publica → la inscripta lo ve en la ficha y en /panel → Mailpit tiene un mail
 // por inscripta activa. El título lleva marca de tiempo porque Mailpit es compartido; el anuncio y
 // sus filas de mail_log se borran al final como postgres (el guard deja pasar al servidor).
+// publishAnnouncement topa en 5 por hora y por docente: sin reset, la sexta corrida de la hora
+// falla con "Demasiados intentos". Se limpia el bucket de Sol antes y después.
+function resetPublishBucket(): void {
+  psql(
+    `delete from public.rate_limit_buckets where key = 'publishAnnouncement:u:' || (select id::text from auth.users where email = '${SOL.email}')`,
+  );
+}
+
 test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada inscripta recibe un mail", async ({
   browser,
   request,
@@ -14,6 +22,7 @@ test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada ins
   const title = `Luna nueva en el curso ${Date.now()}`;
   const body = "El jueves repasamos la cruz celta. Traigan el mazo.";
   const slug = ALUMNA.enrolledSlug;
+  resetPublishBucket();
 
   try {
     const solCtx = await browser.newContext();
@@ -85,6 +94,7 @@ test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada ins
 
     await Promise.all([solCtx.close(), alumnaCtx.close(), anonCtx.close()]);
   } finally {
+    resetPublishBucket();
     psql(
       `delete from public.mail_log where mail_type = 'course_announcement' and scope_key in
          (select id::text from public.course_announcements where title = '${title}');
@@ -95,9 +105,28 @@ test("la docente publica: la inscripta lo ve en la ficha y en /panel, y cada ins
 
 test("c.8: un curso sin anuncios publicados no dibuja la sección (sin 'aún no hay anuncios')", async ({ page, request }) => {
   await assertStackUp(request);
-  await login(page, DELFINA);
-  await page.goto(`/cursos/${DELFINA.enrolledSlug}`);
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Anuncios" })).toHaveCount(0);
-  await expect(page.getByText(/aún no hay anuncios/i)).toHaveCount(0);
+  // El stack puede traer anuncios cargados (demo): se busca un curso publicado que no tenga ninguno
+  // y se inscribe a Delfina un rato; la fila se borra al final solo si la creó este test.
+  const slug = psql(
+    `select c.slug from public.courses c where c.status = 'published'
+        and not exists (select 1 from public.course_announcements a where a.course_id = c.id and a.published_at is not null)
+      order by c.slug limit 1`,
+  );
+  expect(slug, "no hay ningún curso publicado sin anuncios").not.toBe("");
+  const delfina = `(select u.id from auth.users u where u.email = '${DELFINA.email}')`;
+  const curso = `(select id from public.courses where slug = '${slug}')`;
+  const creada =
+    psql(
+      `insert into public.enrollments (user_id, course_id, status) values (${delfina}, ${curso}, 'active')
+         on conflict do nothing returning 1`,
+    ) !== "";
+  try {
+    await login(page, DELFINA);
+    await page.goto(`/cursos/${slug}`);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Anuncios" })).toHaveCount(0);
+    await expect(page.getByText(/aún no hay anuncios/i)).toHaveCount(0);
+  } finally {
+    if (creada) psql(`delete from public.enrollments where user_id = ${delfina} and course_id = ${curso}`);
+  }
 });

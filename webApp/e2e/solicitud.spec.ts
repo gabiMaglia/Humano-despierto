@@ -7,6 +7,9 @@ const DE_LA_ALUMNA = `user_id = '${ALUMNA_ID}' and course_id = (select id from p
 
 function borrarSolicitud(): void {
   psql(`delete from public.enrollments where ${DE_LA_ALUMNA};`);
+  // requestEnrollmentAction topa en 5 por hora y por usuaria: dos corridas seguidas la agotan y la
+  // ficha muestra "Demasiados intentos" en vez de "Solicitud enviada". Se resetea el bucket de la alumna.
+  psql(`delete from public.rate_limit_buckets where key = 'requestEnrollmentAction:u:${ALUMNA_ID}';`);
 }
 
 function leccionNoPreview(): string {
@@ -26,6 +29,8 @@ test.afterAll(borrarSolicitud);
 test("c.1 · sin sesión, Solicitar inscripción lleva a /entrar con next y no crea nada", async ({ page, request }) => {
   await assertStackUp(request);
   await page.goto(`/cursos/${SLUG}`);
+  const panel = page.getByRole("complementary", { name: "Resumen del curso" });
+  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Pedir la inscripción");
   await page.getByRole("link", { name: /Solicitar inscripción/ }).click();
   await expect(page).toHaveURL(/\/entrar\?next=(%2F|\/)cursos(%2F|\/)herbario-lunar$/);
   expect(psql(`select count(*) from public.enrollments where ${DE_LA_ALUMNA};`)).toBe("0");
@@ -37,6 +42,10 @@ test("c.2 + c.3 · la alumna pide, la ficha dice Solicitud enviada, el panel la 
   await page.getByRole("button", { name: /Solicitar inscripción/ }).click();
 
   await expect(page.getByText("Solicitud enviada").first()).toBeVisible();
+  // D-109 · con el pedido hecho, el panel ya no invita a pedir.
+  await expect(
+    page.getByRole("complementary", { name: "Resumen del curso" }).getByRole("heading", { level: 2 }),
+  ).toHaveText("Tu pedido está en revisión");
   await expect(page.getByRole("button", { name: /Solicitar inscripción/ })).toHaveCount(0);
   expect(
     psql(
@@ -68,7 +77,15 @@ test("c.6 · el admin aprueba y la alumna abre una lección no-preview", async (
   await page.context().clearCookies();
   await login(page, ALUMNA);
   await page.goto("/panel");
-  await expect(page.locator("article", { hasText: "Herbario" })).toHaveCount(1);
+  // Sin las tarjetas de "Novedades": el stack puede traer anuncios del curso, que también son <article>.
+  const filaPanel = page.locator("article:not(section[aria-label='Novedades de tus cursos'] article)", { hasText: "Herbario" });
+  await expect(filaPanel).toHaveCount(1);
+  // D-90 · la fila del panel lleva la foto del curso (portada o la de muestra de su disciplina).
+  await expect(filaPanel.locator("img")).toHaveCount(1);
+  await page.goto(`/cursos/${SLUG}`);
+  await expect(
+    page.getByRole("complementary", { name: "Resumen del curso" }).getByRole("heading", { level: 2 }),
+  ).toHaveText("Ya estás inscripta");
   const res = await page.goto(`/leccion/${leccionNoPreview()}`);
   expect(res?.status()).toBe(200);
   await expect(page.locator("iframe")).toHaveAttribute("src", /youtube\.com/);

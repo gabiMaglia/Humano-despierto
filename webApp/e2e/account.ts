@@ -14,7 +14,7 @@ export function freshEmail(tag: string): string {
 // networkidle espera la hidratación: sin ella el submit es un envío nativo y no el de Supabase.
 export async function fillRegister(page: Page, email: string, name = "Alumna de Prueba"): Promise<void> {
   await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: "Crear cuenta" }).first().click();
+  await page.getByRole("tab", { name: "Crear cuenta" }).click();
   await page.getByLabel("Nombre").fill(name);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Contraseña").fill(PASSWORD);

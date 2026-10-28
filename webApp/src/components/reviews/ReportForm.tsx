@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { reportReviewAction, type ReviewActionState } from "@/app/(marketing)/cursos/[slug]/actions";
 import ActionFeedback from "@/components/reviews/ActionFeedback";
+import Button from "@/components/atoms/Button";
 
 const INICIAL: ReviewActionState = { error: null, success: null };
 
@@ -35,16 +36,12 @@ export default function ReportForm({ reviewId, slug }: { reviewId: string; slug:
           maxLength={1000}
           required
           aria-describedby={helpId}
-          className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
+          className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta"
         />
         <ActionFeedback state={state} />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="btn btn-outline mt-3 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" variant="outline" disabled={isPending} className="mt-3">
           {isPending ? "Enviando…" : "Enviar reporte"}
-        </button>
+        </Button>
       </form>
     </details>
   );

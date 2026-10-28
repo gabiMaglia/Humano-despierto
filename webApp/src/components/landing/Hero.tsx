@@ -1,13 +1,13 @@
 import Image from "next/image";
 import { ButtonLink } from "@/components/atoms/Button";
-import Monogram from "@/components/atoms/Monogram";
+import TeacherPortrait from "@/components/atoms/TeacherPortrait";
 import { HERO_PHOTO, unsplashUrl } from "@/content/placeholder-photos";
 import { LANDING } from "@/content/landing";
 
 export interface HeroQuote {
   text: string;
   /** Guía real que la firmó (`profiles.quote`); sin ella, la frase de respaldo va sin firma. */
-  guide: { name: string; role: string | null; slug: string } | null;
+  guide: { name: string; role: string | null; slug: string; avatarUrl: string | null } | null;
 }
 
 /** Hero B4: foto a sangre, la guía habla. El header va transparente encima (`overHero`). */
@@ -30,6 +30,7 @@ export default function Hero({ quote }: { quote: HeroQuote }) {
       {/* Banda superior: el header transparente tiene texto blanco encima de la foto. */}
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,rgb(20_32_24/0.6),rgb(20_32_24/0))]" />
       <div className="relative mx-auto w-full max-w-[1200px] px-6 pb-16 pt-36 md:pb-[72px]">
+        <h1 className="sr-only">{LANDING.hero.heading}</h1>
         <figure>
           <blockquote className="max-w-[20ch] text-[clamp(32px,5.4vw,68px)] font-semibold leading-[1.08] tracking-[-0.025em] text-balance">
             <p>{quote.guide ? `«${quote.text}»` : quote.text}</p>
@@ -37,7 +38,13 @@ export default function Hero({ quote }: { quote: HeroQuote }) {
           <figcaption className="mb-10 mt-6 flex items-center gap-3.5 text-base">
             {quote.guide ? (
               <>
-                <Monogram name={quote.guide.name} size="sm" className="h-12 w-12 flex-none rounded-full border-2 border-white" />
+                <TeacherPortrait
+                  name={quote.guide.name}
+                  src={quote.guide.avatarUrl}
+                  size="sm"
+                  loading="eager"
+                  className="h-12 w-12 flex-none rounded-full border-2 border-white"
+                />
                 <span>
                   <b className="block font-semibold">{quote.guide.name}</b>
                   {quote.guide.role && <span className="block text-sm text-salvia-100">{quote.guide.role}</span>}

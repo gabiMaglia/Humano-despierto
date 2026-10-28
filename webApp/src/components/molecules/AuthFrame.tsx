@@ -15,7 +15,16 @@ export default function AuthFrame({ aside, children }: { aside: AuthAsideKey; ch
         {children}
       </div>
       <aside className="relative hidden min-h-[560px] overflow-hidden rounded-lg bg-salvia lg:block">
-        <Image src={unsplashUrl(photo.id)} alt={photo.alt} fill sizes="(min-width: 1152px) 560px, 50vw" className="object-cover" />
+        {/* Sin `loading="eager"`: en celular el aside es display:none y un eager igual se bajaría.
+            Lazy no descarga lo oculto; `fetchPriority` sube la prioridad cuando sí se ve (lg). */}
+        <Image
+          src={unsplashUrl(photo.id)}
+          alt={photo.alt}
+          fill
+          fetchPriority="high"
+          sizes="(min-width: 1152px) 560px, 50vw"
+          className="object-cover"
+        />
         <figure className="absolute inset-x-6 bottom-6 flex items-center gap-4 rounded-md bg-papel p-5 shadow-lift">
           <LeafIllustration className="w-10 flex-none" />
           <blockquote className="text-lg font-semibold leading-snug text-bosque">{phrase}</blockquote>

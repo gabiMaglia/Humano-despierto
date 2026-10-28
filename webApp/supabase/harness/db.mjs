@@ -66,6 +66,15 @@ export async function asUser(db, { sub, role = 'authenticated', userRole }, fn) 
   }
 }
 
+/**
+ * Ejecuta `fn` como un Server Action con la service_role key: rol `service_role` REAL (no el
+ * owner `postgres`) y `auth.uid()` nulo. `reset role` corre como superusuario, que pasa grants
+ * que service_role puede no tener (D-13): un caso "de servidor" tiene que correr con este helper.
+ */
+export async function asService(db, fn) {
+  return asUser(db, { sub: null, role: 'service_role' }, fn);
+}
+
 export async function asAnon(db, fn) {
   await db.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify({ role: 'anon' })]);
   await db.exec(`set role anon;`);

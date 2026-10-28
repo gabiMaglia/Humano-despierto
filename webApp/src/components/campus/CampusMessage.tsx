@@ -86,7 +86,7 @@ export default function CampusMessage({
       // Borrado = fondo y etiqueta, no opacidad (QA T-060 D2: el texto quedaba en 2.4:1).
       <article className="border-b border-linea bg-salvia-100 px-5 py-5 last:border-b-0 md:px-6">
         <div className="flex items-start gap-3">
-          <Avatar glyph={post.authorGlyph} name={post.authorName} size="md" />
+          <Avatar name={post.authorName} size="md" />
           <div className="min-w-0 flex-1">
             {meta}
             <p className="text-base text-suave line-through decoration-suave/60">{post.body}</p>
@@ -104,7 +104,7 @@ export default function CampusMessage({
   return (
     <article className="border-b border-linea px-5 py-5 last:border-b-0 md:px-6">
       <div className="flex items-start gap-3">
-        <Avatar glyph={post.authorGlyph} name={post.authorName} size="md" />
+        <Avatar name={post.authorName} size="md" />
         <div className="min-w-0 flex-1">
           {meta}
 
@@ -113,7 +113,7 @@ export default function CampusMessage({
               <input type="hidden" name="postId" value={post.id} />
               <input type="hidden" name="courseSlug" value={courseSlug ?? ""} />
               <FormField id={`${id}-editar`} label="Editar mensaje" hideLabel error={editError}>
-                {(c) => <textarea {...c} name="body" required maxLength={4000} defaultValue={post.body} rows={3} className={`${c.className} resize-y`} />}
+                {(c) => <textarea {...c} name="body" required maxLength={4000} defaultValue={post.body} rows={3} className={cn(c.className, "resize-y")} />}
               </FormField>
               <div className="mt-2 flex items-center gap-2">
                 <Button type="submit" size="sm" disabled={isEditPending} aria-busy={isEditPending}>

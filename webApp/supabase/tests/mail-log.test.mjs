@@ -421,3 +421,75 @@ describe('T-031 · course_announcement', () => {
     assert.equal(r.rows.length, 1);
   });
 });
+
+describe('release_rate_limited_mail_slot — devolver el intento de un envío topado (D-51, 0070)', () => {
+  let db;
+
+  before(async () => {
+    ({ db } = await bootDatabase());
+    await seed(db);
+  });
+  after(async () => db.close());
+
+  const release = (id, claimedAt) =>
+    attempt(db, `select public.release_rate_limited_mail_slot($1, $2)`, [id, claimedAt]);
+  const rowOf = async (id) =>
+    (await db.query(`select attempts, sent_at, claimed_at, claimed_at < now() - interval '10 minutes' as vencido from public.mail_log where id = $1`, [id])).rows[0];
+  const claim = async (userId, scope) => (await asService(db, () => claimOrReclaim(db, userId, 'course_announcement', scope))).rows[0];
+
+  test('anon y authenticated no pueden ejecutarla (42501)', async () => {
+    const c = await claim(ID.student, 'rel-priv');
+    const anon = await asAnon(db, () => release(c.id, c.claimed_at));
+    assert.equal(anon.ok, false);
+    assert.equal(anon.code, PRIV_DENIED);
+    const auth = await asStudent(db, () => release(c.id, c.claimed_at));
+    assert.equal(auth.ok, false);
+    assert.equal(auth.code, PRIV_DENIED);
+    assert.equal((await rowOf(c.id)).attempts, 1, 'el intento denegado no tocó la fila');
+    // La tabla ya bloquea (SECURITY INVOKER); esto fija que el EXECUTE mismo esté revocado, no solo el efecto.
+    const { rows } = await db.query(
+      `select has_function_privilege('anon', 'public.release_rate_limited_mail_slot(uuid, timestamptz)', 'execute') a,
+              has_function_privilege('authenticated', 'public.release_rate_limited_mail_slot(uuid, timestamptz)', 'execute') u,
+              has_function_privilege('service_role', 'public.release_rate_limited_mail_slot(uuid, timestamptz)', 'execute') s`);
+    assert.deepEqual(rows[0], { a: false, u: false, s: true });
+  });
+
+  test('service_role con el claimed_at correcto: baja attempts y deja el turno vencido (reclamable ya)', async () => {
+    const c = await claim(ID.student, 'rel-ok');
+    const r = await asService(db, () => release(c.id, c.claimed_at));
+    assert.equal(r.ok, true);
+    const row = await rowOf(c.id);
+    assert.equal(row.attempts, 0);
+    assert.equal(row.vencido, true);
+    const again = await asService(db, () => claimOrReclaim(db, ID.student, 'course_announcement', 'rel-ok'));
+    assert.equal(again.rows.length, 1, 'tras liberar, el turno se puede reclamar sin esperar los 10 minutos');
+  });
+
+  test('otro claimed_at (fencing): la fila queda intacta', async () => {
+    const c = await claim(ID.student, 'rel-fence');
+    const r = await asService(db, () => release(c.id, '2020-01-01T00:00:00Z'));
+    assert.equal(r.ok, true);
+    const row = await rowOf(c.id);
+    assert.equal(row.attempts, 1);
+    assert.equal(row.vencido, false);
+  });
+
+  test('con sent_at puesto: no se toca', async () => {
+    const c = await claim(ID.student, 'rel-sent');
+    await asService(db, () => markSent(db, ID.student, 'course_announcement', 'rel-sent'));
+    const before = await rowOf(c.id);
+    await asService(db, () => release(c.id, c.claimed_at));
+    const row = await rowOf(c.id);
+    assert.equal(row.attempts, 1);
+    assert.deepEqual(row.claimed_at, before.claimed_at);
+    assert.notEqual(row.sent_at, null);
+  });
+
+  test('attempts nunca baja de 0', async () => {
+    const c = await claim(ID.student, 'rel-floor');
+    await asService(db, () => attempt(db, `update public.mail_log set attempts = 0 where id = $1`, [c.id]));
+    const r = await asService(db, () => release(c.id, c.claimed_at));
+    assert.equal(r.ok, true);
+    assert.equal((await rowOf(c.id)).attempts, 0);
+  });
+});

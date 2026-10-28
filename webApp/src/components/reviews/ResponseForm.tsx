@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { respondReviewAction, type ReviewActionState } from "@/app/(marketing)/cursos/[slug]/actions";
 import ActionFeedback from "@/components/reviews/ActionFeedback";
+import Button from "@/components/atoms/Button";
 
 const INICIAL: ReviewActionState = { error: null, success: null };
 
@@ -26,16 +27,12 @@ export default function ResponseForm({ reviewId, slug }: { reviewId: string; slu
         rows={3}
         maxLength={2000}
         required
-        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta outline-none focus:border-linea"
+        className="w-full rounded-md border border-linea bg-fondo px-3 py-2 font-body text-sm text-tinta"
       />
       <ActionFeedback state={state} />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="btn btn-primary mt-3 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending} className="mt-3">
         {isPending ? "Publicando…" : "Publicar respuesta"}
-      </button>
+      </Button>
     </form>
   );
 }

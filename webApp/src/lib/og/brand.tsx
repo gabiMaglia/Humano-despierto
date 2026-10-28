@@ -70,7 +70,6 @@ export interface CourseOgInput {
   titleEm: string | null;
   discipline: string | null;
   teacherName: string | null;
-  romanNum: string | null;
 }
 
 export function CourseOgCard({ course, cover }: { course: CourseOgInput; cover: ArrayBuffer | null }) {
