@@ -109,12 +109,12 @@
     "intensifica": [
       "{A} y {b} comparten elemento: lo que trae la primera, la segunda lo amplifica.",
       "{Dea} {ab} no hay freno: misma energía, más intensa.",
-      "Con {b} sube el volumen de lo que traía {a}."
+      "Con {b} sube el volumen de lo que viene {dea}."
     ],
     "refuerza": [
       "Lo que viene {dea} alimenta {ab}: una le da pie a la otra.",
       "Entre {a} y {b} hay buena química; el pasaje es natural.",
-      "Lo que deja {a} sigue su curso con {b} y llega más lejos."
+      "Lo que viene {dea} sigue su curso con {b} y llega más lejos."
     ],
     "debilita": [
       "{A} y {b} se contradicen: lo que una enciende, la otra lo enfría. Ahí está la tensión.",

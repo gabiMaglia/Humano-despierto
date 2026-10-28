@@ -87,6 +87,7 @@ describe("renderReading", () => {
               expect(text, ctx).not.toMatch(/\bde (El|La|Los) |\ba (El|La|Los) /);
               expect(text.match(/.{15}(?<!\p{L})(de|a) el(?!\p{L}).{5}/iu)?.[0] ?? "", ctx).toBe("");
               expect(text, ctx).not.toMatch(/límite (del|de la) /i);
+              expect(text, ctx).not.toMatch(/\b(traía|deja|sube|sigue|pone) los enamorados\b/i);
               for (const p of facts.placed) {
                 const n = nombrar(p.card);
                 expect(text.includes(`${n} invertid`), `${ctx}: invertida tras ${n}`).toBe(false);
