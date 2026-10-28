@@ -25,6 +25,11 @@ describe("classifyDomain", () => {
     ["me conviene cambiar de trabajo", "trabajo"],
     ["voy a poder pagar la deuda", "dinero"],
     ["cómo sigue mi salud", "salud"],
+    ["estoy enamorada, ¿es correspondido?", "amor"],
+    ["mis sentimientos están confusos", "amor"],
+    ["¿cómo van mis relaciones?", "amor"],
+    ["tengo un examen difícil", "trabajo"],
+    ["¿me conviene esta pareja?", "amor"],
     ["qué necesito saber hoy", null],
     [null, null],
   ])("%s → %s", (q, expected) => {

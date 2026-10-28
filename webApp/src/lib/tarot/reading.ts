@@ -37,7 +37,7 @@ const SUITS: Suit[] = ["bastos", "copas", "espadas", "oros"];
 const MAX_COMBOS = 2;
 
 const DOMAIN_WORDS: Record<Domain, RegExp> = {
-  amor: /\b(amor|pareja|novi[oa]|ex|relaci[oó]n|casamiento|matrimonio|vínculo|vinculo|enamor|sentimient|coraz[oó]n|volver[aá]?)\b/i,
+  amor: /\b(amor|pareja|novi[oa]|relaci[oó]n|casamiento|matrimonio|vínculo|vinculo|enamor|sentimient|coraz[oó]n|volver[aá]?)|\bex\b/i,
   trabajo: /\b(trabajo|laburo|empleo|jefe|jefa|carrera|profesi[oó]n|estudio|examen|proyecto|negocio|emprend)/i,
   dinero: /\b(dinero|plata|deuda|pagar|cobrar|sueldo|herencia|econ[oó]mic|inversi[oó]n|ahorro|pr[eé]stamo)/i,
   salud: /\b(salud|enferm|m[eé]dic|cuerpo|energ[ií]a|ansiedad|dolor|operaci[oó]n|tratamiento|embarazo)/i,
