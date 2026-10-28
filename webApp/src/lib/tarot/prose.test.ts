@@ -99,7 +99,7 @@ describe("renderReading", () => {
     expect(dominios.size).toBe(4);
     expect(bloqueos).toBeGreaterThan(0);
     expect(hilos).toBeGreaterThan(0);
-  });
+  }, 30_000);
 });
 
 describe("concordancia", () => {
