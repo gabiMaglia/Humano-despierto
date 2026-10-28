@@ -91,6 +91,9 @@ export const RATE_LIMITS = {
   inviteTeacherAction: MAILS_OTHERS,
   resendInvitationAction: MAILS_OTHERS,
   revokeInvitationAction: STAFF,
+  // Tarot: guardar tiradas desde la lectura pública.
+  saveTarotReadingAction: { max: 10, windowSeconds: 3600 },
+  deleteTarotReadingAction: { max: 30, windowSeconds: 600 },
   // Reporte de errores del navegador (T-051, D-50): 10/min, como pide el spec SP-6.
   reportClientErrorAction: { max: 10, windowSeconds: 60 },
   // Route Handler GET /leccion/[id]/recurso/[resourceId] (T-044)

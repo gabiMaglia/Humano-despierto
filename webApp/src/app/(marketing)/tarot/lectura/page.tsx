@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/atoms/Button";
+import SaveReadingButton from "@/components/tarot/SaveReadingButton";
 import ReadingView from "@/components/tarot/ReadingView";
+import { createClient } from "@/lib/supabase/server";
 import { decodeReading, encodeReading, readingSeed } from "@/lib/tarot/codec";
 import { renderReading } from "@/lib/tarot/prose";
 import { sanitizeQuestion } from "@/lib/tarot/question";
@@ -20,7 +22,11 @@ export default async function LecturaPage({ searchParams }: { searchParams: Prom
   const question = sanitizeQuestion(first(sp.q));
   const facts = buildReading(reading, question);
   const text = renderReading(facts, readingSeed(reading));
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const shareHref = `/tarot/lectura?t=${reading.spread}&c=${encodeReading(reading)}`;
+
+  const currentPath = `/tarot/lectura?t=${reading.spread}&c=${encodeReading(reading)}${question ? `&q=${encodeURIComponent(question)}` : ""}`;
 
   return (
     <div className="min-h-screen bg-fondo text-tinta">
@@ -30,6 +36,11 @@ export default async function LecturaPage({ searchParams }: { searchParams: Prom
         <div className="mt-10"><ReadingView facts={facts} text={text} /></div>
         <div className="mt-12 flex flex-wrap items-center gap-3">
           <ButtonLink href={`/tarot/${reading.spread}`} arrow>Tirar de nuevo</ButtonLink>
+          {user ? (
+            <SaveReadingButton t={reading.spread} c={encodeReading(reading)} q={question} inv={facts.spread.allowReversed} />
+          ) : (
+            <ButtonLink href={`/entrar?next=${encodeURIComponent(currentPath)}`} variant="ghost">Creá tu cuenta para guardar tus tiradas</ButtonLink>
+          )}
           <Link href={shareHref} className="text-sm font-semibold text-miel-800 hover:underline" data-testid="compartir">Enlace para compartir (sin tu pregunta)</Link>
         </div>
       </main>
