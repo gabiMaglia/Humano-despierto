@@ -1,5 +1,11 @@
 import { expect, test, assertStackUp } from "./fixtures";
 
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // Sin archivo: el skip de beforeAll lo dice.
+}
+
 // T-053: la portada no inventa nada. Se siembran 3 reseñas de 5 estrellas con texto + 1 oculta
 // sobre un curso sin otros specs encima, y se limpian al terminar.
 const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -10,6 +16,8 @@ const TEXTOS = ["Landing e2e: voz uno", "Landing e2e: voz dos", "Landing e2e: vo
 const OCULTA = "Landing e2e: reseña oculta por admin";
 
 let courseId = "";
+// El stack puede traer reseñas reales (demo) en este curso: se guardan y se reponen al terminar.
+let previas: Record<string, unknown>[] = [];
 
 // D-40 · la portada cachea conteos y testimonios 10 min, también en `next dev` (en disco, entre
 // corridas). Este spec siembra reseñas y tiene que verlas: `no-cache` hace que dev no lea esa caché.
@@ -23,6 +31,7 @@ test.beforeAll(async ({ request }) => {
   const p = await request.get(`${SUPABASE}/rest/v1/profiles?select=id&role=eq.student&limit=4`, { headers: H });
   const ids = (await p.json()).map((r: { id: string }) => r.id) as string[];
   expect(ids.length).toBeGreaterThanOrEqual(4);
+  previas = await (await request.get(`${SUPABASE}/rest/v1/course_reviews?select=*&course_id=eq.${courseId}`, { headers: H })).json();
   await request.delete(`${SUPABASE}/rest/v1/course_reviews?course_id=eq.${courseId}`, { headers: H });
   const rows = [...TEXTOS, OCULTA].map((body, i) => ({ course_id: courseId, user_id: ids[i], rating: 5, body }));
   const res = await request.post(`${SUPABASE}/rest/v1/course_reviews`, { headers: H, data: rows });
@@ -36,7 +45,12 @@ test.beforeAll(async ({ request }) => {
 });
 
 test.afterAll(async ({ request }) => {
-  if (courseId) await request.delete(`${SUPABASE}/rest/v1/course_reviews?course_id=eq.${courseId}`, { headers: H });
+  if (!courseId) return;
+  await request.delete(`${SUPABASE}/rest/v1/course_reviews?course_id=eq.${courseId}`, { headers: H });
+  if (previas.length) {
+    const res = await request.post(`${SUPABASE}/rest/v1/course_reviews`, { headers: H, data: previas });
+    expect(res.ok(), await res.text()).toBe(true);
+  }
 });
 
 test("la portada no trae cifras inventadas y los testimonios son reseñas reales", async ({ page, request }) => {
