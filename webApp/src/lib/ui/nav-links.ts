@@ -9,6 +9,7 @@ const PUBLIC: NavLink[] = [
   { label: "Cursos", href: "/cursos" },
   { label: "Guías", href: "/guias" },
   { label: "Diario", href: "/diario" },
+  { label: "Tarot", href: "/tarot" },
 ];
 
 /** Una sola lista para el header de escritorio y el menú móvil: lo que se ve en uno existe en el

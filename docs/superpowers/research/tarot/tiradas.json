@@ -1,0 +1,271 @@
+[
+  {
+    "id": "carta_del_dia",
+    "nombre": "Carta del día",
+    "nombre_en": "Card of the day",
+    "cartas": 1,
+    "descripcion": "Una sola carta como guía diaria o respuesta simple. Se lee primero la imagen y la primera sensación; se formula como pregunta abierta.",
+    "pregunta_tipo": ["diaria", "abierta", "rapida"],
+    "fuentes": ["https://astrostyle.com/es/tarot/tiradas-de-tarot/", "https://www.astrosofa.com/ar/Esoterismo/Tarot/Carta-del-tarot-del-d%C3%ADa-saca-la-tuya"],
+    "posiciones": [
+      { "n": 1, "nombre": "Mensaje del día", "significado": "Energía, tendencia o aprendizaje del día; respuesta simple a la pregunta.", "x": 0, "y": 0, "rotada": false }
+    ],
+    "variantes": ["+ carta sombra (última del mazo) como influencia inconsciente", "+ carta de consejo"]
+  },
+  {
+    "id": "si_no_1",
+    "nombre": "Sí o no (una carta)",
+    "nombre_en": "Yes/No one-card",
+    "cartas": 1,
+    "descripcion": "Una carta evaluada como sí / no / depende. Regla base: derecha = sí, invertida = no (mazo balanceado); o lista fija de cartas sí/no/quizás.",
+    "pregunta_tipo": ["binaria"],
+    "fuentes": ["https://biddytarot.com/?p=21707", "https://www.que.es/2021/03/11/tarot-si-o-no-lectura-te-ayudara-tomar-decisiones/"],
+    "posiciones": [
+      { "n": 1, "nombre": "Respuesta", "significado": "Sí / no / depende según la carta y su orientación; acompañar con el porqué.", "x": 0, "y": 0, "rotada": false }
+    ],
+    "variantes": ["Sí, si… / No, si… (segunda carta de condición)", "Favorable / desfavorable"]
+  },
+  {
+    "id": "si_no_3",
+    "nombre": "Sí o no (tres cartas, mayoría)",
+    "nombre_en": "Yes/No three-card majority",
+    "cartas": 3,
+    "descripcion": "Tres cartas, cada una vota sí/no/depende; gana la mayoría. Variante: la carta central vale doble para romper empates.",
+    "pregunta_tipo": ["binaria"],
+    "fuentes": ["https://www.selfgazer.com/blog/tarot-yes-or-no-cards-list", "https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/how-to-answer-yes-no-questions-with-tarot-4-yes-or-no-tarot-spreads"],
+    "posiciones": [
+      { "n": 1, "nombre": "Primer voto", "significado": "Voto sí/no/depende. Variante: la respuesta principal.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Voto central", "significado": "Voto sí/no/depende; vale doble en la variante con centro reforzado. Variante: las razones.", "x": 1, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "Tercer voto", "significado": "Voto sí/no/depende. Variante: el consejo.", "x": 2, "y": 0, "rotada": false }
+    ],
+    "variantes": ["Labyrinthos: a favor / en contra / lo que más necesitás saber", "Si sí / Si no / Guía", "5 cartas con centro doble"]
+  },
+  {
+    "id": "pasado_presente_futuro",
+    "nombre": "Pasado, presente y futuro",
+    "nombre_en": "Three-card past/present/future",
+    "cartas": 3,
+    "descripcion": "Línea temporal de izquierda a derecha. La carta anterior alimenta a la siguiente; la última se lee como consecuencia.",
+    "pregunta_tipo": ["abierta", "general", "evolucion"],
+    "fuentes": ["https://benebellwen.com/2014/04/01/your-tarot-spreads-repertoire/", "https://www.univision.com/horoscopos/las-distintas-formas-de-leer-las-cartas-tarot-fotos"],
+    "posiciones": [
+      { "n": 1, "nombre": "Pasado", "significado": "Origen de la situación; influencias que ya actuaron y todavía informan el rumbo.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Presente", "significado": "Estado actual; la energía que se vive ahora o que viene encima.", "x": 1, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "Futuro", "significado": "Hacia dónde tiende si nada cambia.", "x": 2, "y": 0, "rotada": false }
+    ],
+    "variantes": ["mente / cuerpo / espíritu", "pensamientos / sentimientos / acciones", "fortalezas / debilidades / consejo", "cuarta carta por suma (quintaesencia)", "expansión de 9 (tres columnas)"]
+  },
+  {
+    "id": "situacion_obstaculo_consejo",
+    "nombre": "Situación, obstáculo y consejo",
+    "nombre_en": "Situation / challenge / advice",
+    "cartas": 3,
+    "descripcion": "Diagnóstico y acción: qué pasa, qué lo traba, qué hacer. Angelorum la lee con quintaesencia arriba y carta sombra abajo.",
+    "pregunta_tipo": ["problema", "consejo", "accion"],
+    "fuentes": ["https://angelorum.co/tarot-spreads/the-only-tarot-spread-youll-ever-need/", "https://www.univision.com/horoscopos/las-distintas-formas-de-leer-las-cartas-tarot-fotos"],
+    "posiciones": [
+      { "n": 1, "nombre": "Situación", "significado": "Qué está pasando realmente, más allá de cómo lo ve el consultante.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Obstáculo", "significado": "El verdadero bloqueo o desafío.", "x": 1, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "Consejo", "significado": "La acción más alineada para avanzar.", "x": 2, "y": 0, "rotada": false }
+    ],
+    "variantes": ["obstáculo cruzado sobre la situación (Labyrinthos)", "+ quintaesencia arriba y carta sombra abajo"]
+  },
+  {
+    "id": "amor_3",
+    "nombre": "Tirada del amor (tres cartas)",
+    "nombre_en": "Three-card love spread",
+    "cartas": 3,
+    "descripcion": "Tú, la otra persona y el vínculo como tercera entidad. Comparar las figuras: si se miran o se dan la espalda.",
+    "pregunta_tipo": ["amor", "relacion"],
+    "fuentes": ["https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/examining-relationships-with-tarot-3-love-tarot-spreads-to-understand-you-your-partner", "https://astrostyle.com/tarot/tarot-spreads-for-love-and-relationships"],
+    "posiciones": [
+      { "n": 1, "nombre": "Tú", "significado": "Tu rol en el vínculo y cómo te ves.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "La otra persona", "significado": "Su rol y cómo la ves.", "x": 2, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "La relación", "significado": "La dinámica, el carácter del vínculo que se forma entre ambos.", "x": 1, "y": 0, "rotada": false }
+    ],
+    "variantes": ["lo que querés / lo que quiere / el futuro", "lo que une / lo que separa / en qué enfocarse", "interés 1 / interés 2 / cómo decidir"]
+  },
+  {
+    "id": "amor_5",
+    "nombre": "Tirada del amor (cinco cartas, cruz)",
+    "nombre_en": "Five-card cross love spread",
+    "cartas": 5,
+    "descripcion": "Columna central con pasado, presente y futuro del vínculo, flanqueada por cada persona.",
+    "pregunta_tipo": ["amor", "relacion", "evolucion"],
+    "fuentes": ["https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/examining-relationships-with-tarot-3-love-tarot-spreads-to-understand-you-your-partner", "https://astrostyle.com/tarot/tarot-spreads-for-love-and-relationships"],
+    "posiciones": [
+      { "n": 1, "nombre": "Tu rol", "significado": "Tu parte en la relación.", "x": 0, "y": 1, "rotada": false },
+      { "n": 2, "nombre": "Rol de la otra persona", "significado": "Su parte en la relación.", "x": 2, "y": 1, "rotada": false },
+      { "n": 3, "nombre": "Fundamento (pasado)", "significado": "Cómo empezó, qué los unió.", "x": 1, "y": 0, "rotada": false },
+      { "n": 4, "nombre": "Estado presente", "significado": "Dinámica actual.", "x": 1, "y": 1, "rotada": false },
+      { "n": 5, "nombre": "Futuro que asoma", "significado": "Hacia dónde va si sigue por el mismo camino.", "x": 1, "y": 2, "rotada": false }
+    ],
+    "variantes": ["lineal: tú / otro / relación / pasado / futuro (Astrostyle)", "tus deseos / sus deseos / tema / desafíos / potencial", "tu rol / su rol / fortaleza / obstáculos / consejo (Angelorum)"]
+  },
+  {
+    "id": "cruz_simple_5",
+    "nombre": "Cruz simple (cinco cartas)",
+    "nombre_en": "Five-card cross",
+    "cartas": 5,
+    "descripcion": "Línea temporal horizontal más raíz abajo y potencial arriba.",
+    "pregunta_tipo": ["abierta", "problema", "evolucion"],
+    "fuentes": ["https://www.univision.com/horoscopos/las-distintas-formas-de-leer-las-cartas-tarot-fotos", "https://science.howstuffworks.com/science-vs-myth/extrasensory-perceptions/tarot-card-spreads.htm", "https://eldiariony.com/?p=2474150"],
+    "posiciones": [
+      { "n": 1, "nombre": "Pasado", "significado": "Lo que originó la situación.", "x": 0, "y": 1, "rotada": false },
+      { "n": 2, "nombre": "Presente", "significado": "La situación actual.", "x": 1, "y": 1, "rotada": false },
+      { "n": 3, "nombre": "Futuro", "significado": "Hacia dónde se dirige.", "x": 2, "y": 1, "rotada": false },
+      { "n": 4, "nombre": "Razón", "significado": "La causa de fondo, por qué ocurren las cosas.", "x": 1, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Potencial", "significado": "Lo que puede manifestarse, el mejor desarrollo posible.", "x": 1, "y": 0, "rotada": false }
+    ],
+    "variantes": ["cruz de 4: situación / entorno / pensamientos / desenlace (El Diario NY)", "extensión a 7 hacia abajo: premisa / evolución / consejo", "rectángulo: tema al centro y 4 alrededor"]
+  },
+  {
+    "id": "herradura_7",
+    "nombre": "Herradura",
+    "nombre_en": "Horseshoe spread",
+    "cartas": 7,
+    "descripcion": "Siete cartas en V abierta hacia arriba, leídas en sentido horario desde abajo a la izquierda. Mirar cartas opuestas y diagonales; notar hacia dónde miran las cortesanas.",
+    "pregunta_tipo": ["problema", "general", "evolucion"],
+    "fuentes": ["https://laopinion.com/2020/07/05/como-es-la-tirada-de-la-herradura-en-el-tarot/", "https://teachmetarot.com/spreads/the-horse-shoe-spread"],
+    "posiciones": [
+      { "n": 1, "nombre": "Pasado", "significado": "Lo que originó el problema; causa raíz.", "x": 0, "y": 2, "rotada": false },
+      { "n": 2, "nombre": "Presente", "significado": "Situación actual; cortesanas aquí son personas involucradas.", "x": 1, "y": 1, "rotada": false },
+      { "n": 3, "nombre": "Futuro cercano", "significado": "Lo que pasará y lo que conviene hacer; mayores = más difícil de cambiar.", "x": 2, "y": 0, "rotada": false },
+      { "n": 4, "nombre": "Consejo / estrategia", "significado": "Estado actual del problema y estrategias para resolverlo (EN: la respuesta o consejo; leer al final).", "x": 3, "y": 0, "rotada": false },
+      { "n": 5, "nombre": "Entorno", "significado": "Postura de las personas cercanas; energía circundante y agendas ocultas.", "x": 4, "y": 0, "rotada": false },
+      { "n": 6, "nombre": "Obstáculos", "significado": "Lo que se interpondrá (EN variante: esperanzas y miedos).", "x": 5, "y": 1, "rotada": false },
+      { "n": 7, "nombre": "Resultado final", "significado": "Desenlace probable si todo sigue igual; nunca certeza.", "x": 6, "y": 2, "rotada": false }
+    ],
+    "variantes": ["TeachMeTarot: pasado / presente / futuro cercano / respuesta / energía circundante / esperanzas y miedos / resultado", "estándar EN: pasado / presente / influencias ocultas / obstáculos / actitud de otros / qué hacer / resultado", "leer primero la carta base (última del mazo)"]
+  },
+  {
+    "id": "cruz_celta_waite",
+    "nombre": "Cruz celta (versión original de Waite, 1911)",
+    "nombre_en": "Celtic Cross (Waite)",
+    "cartas": 10,
+    "descripcion": "Significador elegido de antemano; seis cartas en cruz alrededor y cuatro en bastón a la derecha, leído de abajo hacia arriba. Si el Significador mira a la izquierda, 5 y 6 se intercambian. Si la 10 es cortesana, el asunto depende de esa persona: nueva tirada con esa carta como Significador. Si la 10 es ambigua, repetir con la 10 como Significador.",
+    "pregunta_tipo": ["general", "profunda", "sin_pregunta"],
+    "fuentes": ["https://neonvagabond.xyz/mirrors/sacred-texts/tarot/pkt/pkt0307.htm", "https://teachmetarot.com/celtic-cross-spread/how-to-read-the-celtic-cross-spread"],
+    "significador": { "nombre": "Significador", "significado": "Cortesana por edad/género/colorido o Triunfo afín al asunto; queda bajo la carta 1.", "x": 1, "y": 1 },
+    "posiciones": [
+      { "n": 1, "nombre": "Lo que lo cubre", "significado": "La influencia general que afecta el asunto; la atmósfera en que operan las otras corrientes.", "x": 1, "y": 1, "rotada": false },
+      { "n": 2, "nombre": "Lo que lo cruza", "significado": "La naturaleza de los obstáculos; si la carta es favorable, son menores.", "x": 1, "y": 1, "rotada": true },
+      { "n": 3, "nombre": "Lo que lo corona", "significado": "El objetivo o ideal del consultante; lo mejor alcanzable en las circunstancias.", "x": 1, "y": 0, "rotada": false },
+      { "n": 4, "nombre": "Lo que está debajo", "significado": "El fundamento; lo que ya pasó y el consultante hizo suyo.", "x": 1, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Lo que queda atrás", "significado": "La influencia que acaba de pasar o está pasando.", "x": 0, "y": 1, "rotada": false },
+      { "n": 6, "nombre": "Lo que viene", "significado": "La influencia que entrará en acción en el futuro cercano.", "x": 2, "y": 1, "rotada": false },
+      { "n": 7, "nombre": "Él mismo", "significado": "La posición o actitud del propio consultante.", "x": 3, "y": 3, "rotada": false },
+      { "n": 8, "nombre": "Su casa", "significado": "Entorno y tendencias que afectan el asunto: posición en la vida, amigos.", "x": 3, "y": 2, "rotada": false },
+      { "n": 9, "nombre": "Esperanzas y temores", "significado": "Esperanzas y temores en el asunto.", "x": 3, "y": 1, "rotada": false },
+      { "n": 10, "nombre": "Lo que vendrá", "significado": "El resultado final, culminación de las influencias de las otras cartas.", "x": 3, "y": 0, "rotada": false }
+    ],
+    "variantes": ["5 y 6 invertidas si el Significador mira a la izquierda", "sin Significador (uso moderno)"]
+  },
+  {
+    "id": "cruz_celta_moderna",
+    "nombre": "Cruz celta (versión moderna)",
+    "nombre_en": "Celtic Cross (modern)",
+    "cartas": 10,
+    "descripcion": "Mismo layout que Waite, sin significador, con pasado siempre a la izquierda. Cruz pequeña (1+2) = la escena; cruz grande (1-6) = situación interna y externa; bastón (7-10) = el mundo exterior y cómo cambiar el curso. Eje horizontal = tiempo (5→2→6); eje vertical = conciencia (4→1→3). Pares a comparar: 1-2, 3-4, 3-10, 2-8, 2-10, 6-7, 4-9, 5-6, 7-9-10.",
+    "pregunta_tipo": ["general", "profunda", "sin_pregunta", "problema"],
+    "fuentes": ["https://tarotelements.com/?p=1288", "https://teachmetarot.com/celtic-cross-spread/how-to-read-the-celtic-cross-spread", "https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/the-celtic-cross-tarot-spread-exploring-the-classic-10-card-tarot-spread"],
+    "posiciones": [
+      { "n": 1, "nombre": "Corazón del asunto", "significado": "La situación presente y cómo la ve el consultante.", "x": 1, "y": 1, "rotada": false },
+      { "n": 2, "nombre": "Lo que cruza", "significado": "Desafío o apoyo inmediato; se lee siempre derecha; confirma o contradice a la 1.", "x": 1, "y": 1, "rotada": true },
+      { "n": 3, "nombre": "Lo que corona", "significado": "Objetivo consciente, ideal, mejor resultado posible.", "x": 1, "y": 0, "rotada": false },
+      { "n": 4, "nombre": "Raíz", "significado": "Causa profunda, condicionamiento subconsciente; invertida = no la ve.", "x": 1, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Pasado reciente", "significado": "Lo que originó la situación y se está yendo.", "x": 0, "y": 1, "rotada": false },
+      { "n": 6, "nombre": "Futuro cercano", "significado": "Lo que llega en semanas o meses; responder, no reaccionar.", "x": 2, "y": 1, "rotada": false },
+      { "n": 7, "nombre": "El consultante / consejo", "significado": "Actitud del consultante; en lectura moderna, la carta de acción.", "x": 3, "y": 3, "rotada": false },
+      { "n": 8, "nombre": "Entorno", "significado": "Influencias externas: gente, opiniones, tendencias; ¿apoyan o estorban?", "x": 3, "y": 2, "rotada": false },
+      { "n": 9, "nombre": "Esperanzas y temores", "significado": "Lo que se desea y lo que se teme; a veces es lo mismo; chequear si es realista.", "x": 3, "y": 1, "rotada": false },
+      { "n": 10, "nombre": "Resultado probable", "significado": "Si se sigue el curso actual; resumen de las anteriores; idealmente armoniza con la 3.", "x": 3, "y": 0, "rotada": false }
+    ],
+    "variantes": ["Labyrinthos: 3 pasado (izq), 4 futuro (der), 5 consciente (arriba), 6 inconsciente (abajo)", "Univision ES: 3 meta, 4 pasado, 5 influencia futura, 6 deseos conscientes"]
+  },
+  {
+    "id": "arbol_de_la_vida",
+    "nombre": "Árbol de la Vida",
+    "nombre_en": "Tree of Life spread",
+    "cartas": 10,
+    "descripcion": "Una carta por sefirá en tres pilares. Pilar derecho (visto de frente) = fuerza/activo; izquierdo = forma/receptivo; medio = integración. Triángulos: 1-2-3 espiritual, 4-5-6 moral, 7-8-9 psicológico, 10 físico.",
+    "pregunta_tipo": ["profunda", "espiritual", "panorama_vida"],
+    "fuentes": ["https://mysticryst.com/blogs/the-mystic-journal/tree-of-life-spread-10-card-kabbalah-layout", "https://corax.com/tarot/tree-of-life.html"],
+    "posiciones": [
+      { "n": 1, "nombre": "Kéter (Corona)", "significado": "Propósito espiritual; lo más alto del asunto.", "x": 1, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Jojmá (Sabiduría)", "significado": "Fuerza creativa, impulso, iniciativa.", "x": 2, "y": 1, "rotada": false },
+      { "n": 3, "nombre": "Biná (Entendimiento)", "significado": "Comprensión, forma, límites.", "x": 0, "y": 1, "rotada": false },
+      { "n": 4, "nombre": "Jésed (Misericordia)", "significado": "Expansión, recursos, generosidad.", "x": 2, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Guevurá (Severidad)", "significado": "Disciplina, conflicto, lo que hay que cortar.", "x": 0, "y": 2, "rotada": false },
+      { "n": 6, "nombre": "Tiféret (Belleza)", "significado": "El centro, el yo verdadero, equilibrio.", "x": 1, "y": 3, "rotada": false },
+      { "n": 7, "nombre": "Nétsaj (Victoria)", "significado": "Emociones, deseo, instinto.", "x": 2, "y": 4, "rotada": false },
+      { "n": 8, "nombre": "Hod (Esplendor)", "significado": "Intelecto, comunicación, estructura.", "x": 0, "y": 4, "rotada": false },
+      { "n": 9, "nombre": "Yesod (Fundamento)", "significado": "Inconsciente, fundamentos, imaginación.", "x": 1, "y": 5, "rotada": false },
+      { "n": 10, "nombre": "Maljut (Reino)", "significado": "Manifestación material; resultado concreto.", "x": 1, "y": 6, "rotada": false }
+    ],
+    "variantes": ["Pollack: mazo completo repartido en 10 montones", "lectura por pilares o por triángulos"]
+  },
+  {
+    "id": "anio_12_meses",
+    "nombre": "Rueda del año (12 meses)",
+    "nombre_en": "Year ahead spread",
+    "cartas": 13,
+    "descripcion": "Doce cartas en círculo tipo reloj (enero a las 12, sentido horario) y una carta de tema en el centro, que se lee antes y después. Cada mes se lee como la pregunta que ese mes plantea, no como pronóstico.",
+    "pregunta_tipo": ["anual", "panorama", "ciclo"],
+    "fuentes": ["https://booktarot.com/blog/year-ahead-tarot-reading-a-13-card-spread-that-actually-holds-up", "https://www.univision.com/horoscopos/las-distintas-formas-de-leer-las-cartas-tarot-fotos"],
+    "posiciones": [
+      { "n": 1, "nombre": "Mes 1", "significado": "Tema o pregunta del primer mes.", "x": 2, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Mes 2", "significado": "Tema del segundo mes.", "x": 3, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "Mes 3", "significado": "Tema del tercer mes.", "x": 4, "y": 1, "rotada": false },
+      { "n": 4, "nombre": "Mes 4", "significado": "Tema del cuarto mes.", "x": 4, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Mes 5", "significado": "Tema del quinto mes.", "x": 4, "y": 3, "rotada": false },
+      { "n": 6, "nombre": "Mes 6", "significado": "Tema del sexto mes.", "x": 3, "y": 4, "rotada": false },
+      { "n": 7, "nombre": "Mes 7", "significado": "Tema del séptimo mes.", "x": 2, "y": 4, "rotada": false },
+      { "n": 8, "nombre": "Mes 8", "significado": "Tema del octavo mes.", "x": 1, "y": 4, "rotada": false },
+      { "n": 9, "nombre": "Mes 9", "significado": "Tema del noveno mes.", "x": 0, "y": 3, "rotada": false },
+      { "n": 10, "nombre": "Mes 10", "significado": "Tema del décimo mes.", "x": 0, "y": 2, "rotada": false },
+      { "n": 11, "nombre": "Mes 11", "significado": "Tema del undécimo mes.", "x": 0, "y": 1, "rotada": false },
+      { "n": 12, "nombre": "Mes 12", "significado": "Tema del duodécimo mes.", "x": 1, "y": 0, "rotada": false },
+      { "n": 13, "nombre": "Tema del año", "significado": "El registro del año; colorea la lectura de cada mes.", "x": 2, "y": 2, "rotada": false }
+    ],
+    "variantes": ["12 casas astrológicas en lugar de meses (empieza a las 9, antihorario)", "14 cartas con una lección abajo", "6 meses"]
+  },
+  {
+    "id": "relacion_7",
+    "nombre": "Tirada de pareja (dos personas, siete cartas)",
+    "nombre_en": "Relationship spread",
+    "cartas": 7,
+    "descripcion": "Una carta por persona arriba, la conexión en el centro, fortaleza y fricción a los lados, consejo y resultado abajo. Comparar las figuras de 1 y 2: si se miran, se dan la espalda o miran en direcciones opuestas.",
+    "pregunta_tipo": ["amor", "relacion", "vinculo"],
+    "fuentes": ["https://jobcannon.io/tarot/spreads/relationship", "https://www.univision.com/horoscopos/las-distintas-formas-de-leer-las-cartas-tarot-fotos", "https://theuncrossedpath.squarespace.com/blog/love-amp-connection-a-relationship-spread"],
+    "posiciones": [
+      { "n": 1, "nombre": "Tú", "significado": "Tu energía y postura en el vínculo.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "La otra persona", "significado": "Su energía y postura.", "x": 2, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "La conexión", "significado": "Lo que hay entre ambos; el campo compartido.", "x": 1, "y": 1, "rotada": false },
+      { "n": 4, "nombre": "Fortaleza", "significado": "Lo que funciona y sostiene el vínculo.", "x": 0, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Fricción", "significado": "Lo que desgasta; la debilidad del vínculo.", "x": 2, "y": 2, "rotada": false },
+      { "n": 6, "nombre": "Consejo", "significado": "Qué hacer con lo anterior.", "x": 1, "y": 3, "rotada": false },
+      { "n": 7, "nombre": "Resultado probable", "significado": "Hacia dónde va si se sigue el consejo o el curso actual.", "x": 1, "y": 4, "rotada": false }
+    ],
+    "variantes": ["Uncrossed Path: dos significadores + arco de 6 (1-3 cómo ves al otro, 4-6 cómo te ve) + factor de unión", "Labyrinthos compatibilidad: deseos de cada uno / diferencias / similitudes / compat. emocional / física / mental", "10 cartas: columna por persona (cómo se ve / cómo ve al otro / cómo ve la relación) + columna central"]
+  },
+  {
+    "id": "decision_2_caminos",
+    "nombre": "Tirada de decisión (dos caminos)",
+    "nombre_en": "Two paths / decision spread",
+    "cartas": 7,
+    "descripcion": "Dónde estás en el centro; cada camino en una columna con lo que ofrece, lo que cuesta y adónde lleva. Nombrar las opciones antes de mezclar; leer cada columna de arriba abajo; si las cartas apuntan más allá de A y B, la pregunta no es binaria.",
+    "pregunta_tipo": ["decision", "eleccion"],
+    "fuentes": ["https://booktarot.com/spreads/decision-spread", "https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/making-tough-choices-a-5-card-tarot-spread-for-decision-making", "https://www.kerykeion.net/content/learn-tarots/readings/Two_Paths"],
+    "posiciones": [
+      { "n": 1, "nombre": "Dónde estás", "significado": "La situación actual, el punto de partida.", "x": 1, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Camino A: lo que ofrece", "significado": "Lo real que da esta opción.", "x": 0, "y": 1, "rotada": false },
+      { "n": 3, "nombre": "Camino A: lo que cuesta", "significado": "Lo real que pide esta opción.", "x": 0, "y": 2, "rotada": false },
+      { "n": 4, "nombre": "Camino A: adónde lleva", "significado": "El próximo capítulo si se elige A.", "x": 0, "y": 3, "rotada": false },
+      { "n": 5, "nombre": "Camino B: lo que ofrece", "significado": "Lo real que da esta opción.", "x": 2, "y": 1, "rotada": false },
+      { "n": 6, "nombre": "Camino B: lo que cuesta", "significado": "Lo real que pide esta opción.", "x": 2, "y": 2, "rotada": false },
+      { "n": 7, "nombre": "Camino B: adónde lleva", "significado": "El próximo capítulo si se elige B.", "x": 2, "y": 3, "rotada": false }
+    ],
+    "variantes": ["Labyrinthos 5: motivación / resultado ideal / valores (centro) + resultado opción 1 / opción 2", "Kerykeion 6: por camino naturaleza / exigencia / potencial", "+ carta 'mejor camino' abajo como recomendación", "tres caminos (tercera columna)"]
+  }
+]

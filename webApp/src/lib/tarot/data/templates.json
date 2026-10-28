@@ -1,0 +1,172 @@
+{
+  "apertura": [
+    "Mezclaste y elegiste; ahora las cartas te devuelven una imagen. Leela como un espejo, no como una sentencia.",
+    "Esto no es una predicción cerrada: es una foto de las energías en juego, para que decidas con más claridad.",
+    "Tomate un momento con cada carta antes de leer su texto. Lo que ya sentiste al verla también cuenta."
+  ],
+  "apertura_pregunta": [
+    "Preguntaste: «{pregunta}». Las cartas responden en el lenguaje de las imágenes; vamos de a una.",
+    "Sobre «{pregunta}», esto es lo que aparece. Leelo como un espejo, no como una sentencia.",
+    "«{pregunta}». Con eso en mente, mirá primero las cartas y después el texto."
+  ],
+  "panorama_mayores": [
+    "Hay más arcanos mayores que menores: lo que se mueve acá es grande, de fondo, y no depende solo de lo cotidiano.",
+    "Predominan los mayores. Las fuerzas en juego son de las que marcan etapas, no las que se arreglan en una semana.",
+    "Casi todo son mayores: la tirada habla de un proceso de vida, no de un detalle."
+  ],
+  "panorama_palo": {
+    "bastos": [
+      "Pesan los bastos: energía, impulso, proyectos. El tema pide acción.",
+      "Mucho fuego de bastos: ganas, movimiento y algo de impaciencia.",
+      "Los bastos dominan: hay deseo de hacer, y conviene encauzarlo."
+    ],
+    "copas": [
+      "Pesan las copas: lo emocional y los vínculos están en el centro.",
+      "Mucha agua de copas: sentimientos, afectos, intuición.",
+      "Las copas dominan: lo que importa acá se siente antes que se piensa."
+    ],
+    "espadas": [
+      "Pesan las espadas: pensamientos, decisiones, conflicto o claridad.",
+      "Mucho aire de espadas: la cabeza está trabajando de más.",
+      "Las espadas dominan: hay algo que resolver con lucidez, no con fuerza."
+    ],
+    "oros": [
+      "Pesan los oros: lo material, el cuerpo, el trabajo y la plata.",
+      "Mucha tierra de oros: el tema es concreto y se construye despacio.",
+      "Los oros dominan: hablamos de bases, recursos y constancia."
+    ]
+  },
+  "panorama_ausente": {
+    "bastos": [
+      "No aparece ningún basto: la acción y el impulso no están en juego hoy.",
+      "Sin bastos en la tirada: falta el fuego, y el tema se mueve más por dentro que por empuje.",
+      "Ningún basto a la vista: no es momento de arrancar proyectos, sino de ver."
+    ],
+    "copas": [
+      "No aparece ninguna copa: lo emocional queda en segundo plano.",
+      "Sin copas en la tirada: los afectos no son el centro de esto.",
+      "Ninguna copa a la vista: el tema se juega más en los hechos que en el sentir."
+    ],
+    "espadas": [
+      "No aparece ninguna espada: el conflicto y la duda no son lo central.",
+      "Sin espadas en la tirada: la cabeza no es el problema acá.",
+      "Ninguna espada a la vista: hay menos tensión mental de la que temés."
+    ],
+    "oros": [
+      "No aparece ningún oro: lo material no está en juego hoy.",
+      "Sin oros en la tirada: el cuerpo y los recursos quedan fuera de foco.",
+      "Ningún oro a la vista: el tema no pasa por lo concreto ni por la plata."
+    ]
+  },
+  "panorama_gente": [
+    "Aparecen varias figuras: hay otras personas con peso real en esto.",
+    "Las figuras de corte se repiten: no estás sola en la situación, y eso cuenta.",
+    "Dos o más figuras: el tema tiene nombres y apellidos."
+  ],
+  "panorama_bloqueo": [
+    "Muchas cartas invertidas: la energía está, pero trabada o mirando hacia adentro. No es un mal augurio, es una pausa.",
+    "La mayoría salió invertida. Leelo como procesos internos y demoras, no como negaciones.",
+    "Predominan las invertidas: algo se está cocinando por dentro antes de salir."
+  ],
+  "panorama_numero": [
+    "Se repite el {numero}: insistí en ese tema, la tirada lo subraya.",
+    "El número {numero} aparece más de una vez: es una lección que vuelve.",
+    "Varias cartas con el {numero}: un mismo ritmo atraviesa toda la tirada."
+  ],
+  "posicion_derecha": [
+    "{Nombre} en «{posicion}». {significado}",
+    "En «{posicion}» aparece {nombre}. {significado}",
+    "{Nombre}, para «{posicion}». {significado}"
+  ],
+  "posicion_invertida": [
+    "{Nombre} al revés en «{posicion}». {significado}",
+    "En «{posicion}», {nombre} al revés: {significado}",
+    "{Nombre}, en posición invertida, para «{posicion}». {significado}"
+  ],
+  "posicion_dominio": {
+    "amor": [
+      "En lo afectivo: {texto}",
+      "Para el vínculo: {texto}",
+      "En el amor: {texto}"
+    ],
+    "trabajo": [
+      "En lo laboral: {texto}",
+      "Para el trabajo: {texto}",
+      "En tu ocupación: {texto}"
+    ],
+    "dinero": [
+      "En lo económico: {texto}",
+      "Para la plata: {texto}",
+      "En lo material: {texto}"
+    ],
+    "salud": [
+      "En el cuerpo: {texto}",
+      "Para la salud: {texto}",
+      "En lo físico: {texto}"
+    ]
+  },
+  "hilo": {
+    "intensifica": [
+      "{A} y {b} comparten elemento: lo que trae la primera, la segunda lo amplifica.",
+      "{Dea} {ab} no hay freno: misma energía, más intensa.",
+      "Con {b} sube el volumen de lo que viene {dea}."
+    ],
+    "refuerza": [
+      "Lo que viene {dea} alimenta {ab}: una le da pie a la otra.",
+      "Entre {a} y {b} hay buena química; el pasaje es natural.",
+      "Lo que viene {dea} sigue su curso con {b} y llega más lejos."
+    ],
+    "debilita": [
+      "{A} y {b} se contradicen: lo que una enciende, la otra lo enfría. Ahí está la tensión.",
+      "{Dea} {ab} hay un choque; no se anulan, pero se frenan.",
+      "Con {b} aparece un límite para {a}."
+    ],
+    "neutral": [
+      "Pasar {dea} {ab} no empuja ni frena: cada una sigue su ritmo.",
+      "{Dea} {ab} el paso es tranquilo.",
+      "Entre {a} y {b} no hay choque ni empuje: cada una sigue su propio camino."
+    ]
+  },
+  "combo": [
+    "Dos cartas de esta tirada tienen una lectura clásica en conjunto: {texto}",
+    "Hay una pareja conocida entre las cartas: {texto}",
+    "Vale mirar {a} y {b} en conjunto: {texto}"
+  ],
+  "quintaesencia": [
+    "Sumando los mayores aparece {nombre} como carta de síntesis: {palabras}.",
+    "La quintaesencia de la tirada es {nombre}: {palabras}.",
+    "Si hubiera que resumir todo en una carta sería {nombre}: {palabras}."
+  ],
+  "sintesis": [
+    "En conjunto, la tirada muestra {claves}. Quedate con lo que resonó; lo que no, dejalo pasar.",
+    "El hilo de todo es {claves}. No hace falta que todo encaje hoy.",
+    "Si una frase resume la tirada: {claves}."
+  ],
+  "sino": {
+    "sí": [
+      "La respuesta se inclina al sí. {detalle}",
+      "Las cartas dicen que sí, con lo que eso implica. {detalle}",
+      "Sí. {detalle}"
+    ],
+    "no": [
+      "La respuesta se inclina al no, al menos por ahora. {detalle}",
+      "Las cartas dicen que no, o que no así. {detalle}",
+      "No por este camino. {detalle}"
+    ],
+    "depende": [
+      "No hay un sí ni un no claros: depende de lo que hagas con esto. {detalle}",
+      "La respuesta es «depende»: hay condiciones. {detalle}",
+      "Ni sí ni no: mirá la carta y lo que te pide. {detalle}"
+    ]
+  },
+  "sino_desempate": [
+    "Los votos se repartieron y decidió la carta del centro.",
+    "No hubo mayoría; pesó la carta central.",
+    "Con los votos divididos, la carta del centro dio el desempate."
+  ],
+  "consejo": [
+    "Consejo de la tirada: {consejo}",
+    "Para llevarte: {consejo}",
+    "Si te quedás con una sola cosa: {consejo}"
+  ]
+}

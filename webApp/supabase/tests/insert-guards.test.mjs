@@ -177,6 +177,10 @@ const INSERT_ESPERADO = {
   // el WITH CHECK de `course_wishlist_insert_own` (duena + curso publicado).
   course_wishlist: ['user_id', 'course_id'],
 
+  // Tarot · `user_id` NO viaja: lo fija `tarot_readings_guard` desde auth.uid(). La integridad de
+  // `cards` la decide ese mismo guard.
+  tarot_readings: ['spread_id', 'question', 'cards', 'reversed_enabled'],
+
   courses: ['slug', 'title', 'title_em', 'subtitle', 'intro', 'discipline', 'level', 'price_cents',
             'currency', 'moon_glyph', 'includes', 'teacher_id',
             'learning_objectives', 'prerequisites', 'description', 'language', 'promo_video_id'],

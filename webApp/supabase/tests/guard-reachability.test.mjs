@@ -84,6 +84,8 @@ const CASOS = {
   campus_posts_locator_guard: 'la moderadora borra un mensaje del Campus con un motivo en prosa normal',
   // --- moderacion de resenas (T-037)
   course_review_reports_guard: 'la guia duena reporta con prosa normal y la cuenta de quien resolvio se puede borrar',
+  // --- tarot
+  tarot_readings_guard: 'la alumna guarda una tirada valida y user_id lo fija el guard',
   // --- anuncios (T-031)
   course_announcements_guard: 'la duena escribe un borrador, lo corrige y retira otro con motivo; el admin modera uno publicado',
   course_announcements_freeze_published: 'service_role publica un borrador y el publicado se puede retirar',
@@ -346,6 +348,18 @@ describe('ADR-011 · ningun guard hace inalcanzable la operacion legitima', () =
 
   // ---------------------------------------------------------------- moderacion
   describe('moderacion', () => {
+    test(`tarot_readings_guard · ${CASOS.tarot_readings_guard}`, async () => {
+      const r = await asUser(db, { sub: ID.student, userRole: 'student' }, () =>
+        attempt(
+          db,
+          `insert into public.tarot_readings (spread_id, question, cards, reversed_enabled)
+           values ('carta-del-dia', 'Que necesito hoy', '[{"i":3,"r":false}]'::jsonb, false) returning user_id`,
+        ),
+      );
+      assert.equal(r.ok, true, `el guard bloqueo la tirada legitima: ${r.message}`);
+      assert.equal(r.rows[0].user_id, ID.student);
+    });
+
     test(`campus_posts_guard · ${CASOS.campus_posts_guard}`, async () => {
       await db.exec(`reset role;`);
       const post = (

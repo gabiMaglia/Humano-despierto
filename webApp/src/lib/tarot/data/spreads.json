@@ -1,0 +1,55 @@
+[
+  {
+    "slug": "carta-del-dia",
+    "nombre": "Carta del día",
+    "descripcion": "Una sola carta como mensaje para hoy. Sin invertidas: es una invitación, no un pronóstico.",
+    "cartas": [1],
+    "allowReversed": false,
+    "posiciones": [
+      { "n": 1, "nombre": "Mensaje del día", "significado": "La energía que conviene tener presente hoy.", "x": 0, "y": 0, "rotada": false }
+    ]
+  },
+  {
+    "slug": "si-o-no",
+    "nombre": "Sí o no",
+    "descripcion": "Una pregunta cerrada. Con una carta o con tres; la del centro desempata.",
+    "cartas": [1, 3],
+    "allowReversed": true,
+    "posiciones": [
+      { "n": 1, "nombre": "Primer voto", "significado": "Lo que empuja a favor o en contra.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Respuesta", "significado": "El peso central de la respuesta.", "x": 1, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "Tercer voto", "significado": "Lo que termina de inclinar la balanza.", "x": 2, "y": 0, "rotada": false }
+    ]
+  },
+  {
+    "slug": "pasado-presente-futuro",
+    "nombre": "Pasado, presente y futuro",
+    "descripcion": "Tres cartas para ver de dónde viene la situación, dónde está y hacia dónde tiende.",
+    "cartas": [3],
+    "allowReversed": true,
+    "posiciones": [
+      { "n": 1, "nombre": "Pasado", "significado": "Lo que trajo la situación hasta acá.", "x": 0, "y": 0, "rotada": false },
+      { "n": 2, "nombre": "Presente", "significado": "Lo que está pasando ahora.", "x": 1, "y": 0, "rotada": false },
+      { "n": 3, "nombre": "Futuro", "significado": "Hacia dónde tiende si nada cambia.", "x": 2, "y": 0, "rotada": false }
+    ]
+  },
+  {
+    "slug": "cruz-celta",
+    "nombre": "Cruz celta",
+    "descripcion": "La tirada clásica de diez cartas, tal como la describió Waite en 1911.",
+    "cartas": [10],
+    "allowReversed": true,
+    "posiciones": [
+      { "n": 1, "nombre": "Lo que te cubre", "significado": "La atmósfera general de la pregunta.", "x": 1, "y": 1, "rotada": false },
+      { "n": 2, "nombre": "Lo que te cruza", "significado": "La fuerza que se opone o que complica.", "x": 1, "y": 1, "rotada": true },
+      { "n": 3, "nombre": "Lo que te corona", "significado": "Lo mejor que puede salir, o lo que está en tu conciencia.", "x": 1, "y": 0, "rotada": false },
+      { "n": 4, "nombre": "Lo que está debajo", "significado": "La raíz, lo que ya es parte de la experiencia.", "x": 1, "y": 2, "rotada": false },
+      { "n": 5, "nombre": "Lo que queda atrás", "significado": "La influencia que se está yendo.", "x": 0, "y": 1, "rotada": false },
+      { "n": 6, "nombre": "Lo que viene", "significado": "La influencia que se acerca.", "x": 2, "y": 1, "rotada": false },
+      { "n": 7, "nombre": "Vos", "significado": "Tu actitud frente a la situación.", "x": 3, "y": 3, "rotada": false },
+      { "n": 8, "nombre": "Tu entorno", "significado": "Las personas y circunstancias alrededor.", "x": 3, "y": 2, "rotada": false },
+      { "n": 9, "nombre": "Esperanzas y temores", "significado": "Lo que deseás y lo que te asusta, a menudo lo mismo.", "x": 3, "y": 1, "rotada": false },
+      { "n": 10, "nombre": "Lo que vendrá", "significado": "El resultado si todo sigue su curso.", "x": 3, "y": 0, "rotada": false }
+    ]
+  }
+]

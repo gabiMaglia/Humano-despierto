@@ -22,6 +22,8 @@ const DUENA = { sub: ID.teacherA, userRole: 'teacher' };
 
 // Unica excepcion admitida, y se justifica por entrada.
 const EXENTAS = {
+  'tarot_readings.spread_id':
+    'enum cerrado por CHECK (carta-del-dia, si-o-no, pasado-presente-futuro, cruz-celta): no admite texto libre y la unica lectora es la duena.',
   'lesson_notes.body':
     'la unica lectora es la autora (lesson_notes_read_own, 0004): no hay a quien filtrarle nada.',
 };
@@ -84,6 +86,13 @@ const resenaSinReporteDeLaDuena = async (db) => {
 };
 
 const ATAQUES = {
+  // La tirada se inserta (no hay UPDATE): $1 es un testigo que la fila fresca devuelve.
+  'tarot_readings.question': {
+    actor: ALUMNA,
+    fila: async () => 'x',
+    sql: `insert into public.tarot_readings (spread_id, question, cards, reversed_enabled)
+          select 'carta-del-dia', $2, '[{"i":3,"r":false}]'::jsonb, false where $1::text = 'x' returning id`,
+  },
   // E1 de la estampa de T-037: la guia duena reporta con el video_id real en el motivo.
   'course_review_reports.reason': {
     actor: DUENA,
