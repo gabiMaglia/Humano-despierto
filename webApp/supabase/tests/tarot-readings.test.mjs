@@ -44,12 +44,16 @@ describe('tarot_readings', () => {
   test('anon no inserta ni lee', async () => {
     const ins = await save(db, asAnon);
     assert.equal(ins.ok, false);
+    assert.equal(ins.code, '42501');
     const read = await asAnon(db, () => attempt(db, `select * from public.tarot_readings`));
     assert.equal(read.ok, false);
   });
 
   test('la tirada ajena se lee como 0 filas y no se borra', async () => {
-    await save(db, asOutsider);
+    const ins = await save(db, asOutsider);
+    assert.equal(ins.ok, true, ins.message);
+    const propia = await asOutsider(db, () => attempt(db, `select id from public.tarot_readings where user_id = $1`, [ID.otro]));
+    assert.ok(propia.rows.length >= 1);
     const read = await asStudent(db, () => attempt(db, `select id from public.tarot_readings where user_id = $1`, [ID.otro]));
     assert.equal(read.rows.length, 0);
     const del = await asStudent(db, () => attempt(db, `delete from public.tarot_readings where user_id = $1 returning id`, [ID.otro]));
@@ -77,10 +81,17 @@ describe('tarot_readings', () => {
     ['tirada desconocida', { spread: 'herradura', cards: JSON.stringify([{ i: 1, r: false }]) }],
     ['pregunta con salto de línea', { question: 'hola\nchau' }],
     ['pregunta de 141', { question: 'a'.repeat(141) }],
+    ['elementos vacíos', { cards: '[{},{},{}]' }],
+    ['sin r', { cards: '[{"i":1},{"i":2},{"i":3}]' }],
+    ['sin i', { cards: '[{"r":false},{"r":false},{"r":false}]' }],
+    ['elementos no objeto', { cards: '[1,2,3]' }],
+    ['índice no entero', { cards: '[{"i":1.5,"r":false},{"i":2,"r":false},{"i":3,"r":false}]' }],
+    ['cards no array', { cards: '{"i":1}' }],
   ]) {
     test(`rechaza ${nombre}`, async () => {
       const r = await save(db, asStudent, args);
       assert.equal(r.ok, false, nombre);
+      assert.equal(r.code, '23514', `${nombre}: ${r.message}`);
     });
   }
 

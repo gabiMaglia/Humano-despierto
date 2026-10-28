@@ -59,7 +59,11 @@ begin
     when 'si-o-no' then array[1, 3]
     when 'pasado-presente-futuro' then array[3]
     when 'cruz-celta' then array[10]
+    else null
   end;
+  if expected is null then
+    raise exception 'tirada desconocida' using errcode = '23514';
+  end if;
 
   if jsonb_typeof(new.cards) <> 'array' then
     raise exception 'cards debe ser un array' using errcode = '23514';
@@ -70,11 +74,17 @@ begin
   end if;
 
   for elem in select * from jsonb_array_elements(new.cards) loop
-    if jsonb_typeof(elem -> 'i') <> 'number' or jsonb_typeof(elem -> 'r') <> 'boolean' then
+    if jsonb_typeof(elem) <> 'object' then
       raise exception 'carta mal formada' using errcode = '23514';
     end if;
+    if coalesce(jsonb_typeof(elem -> 'i'), '') <> 'number' or coalesce(jsonb_typeof(elem -> 'r'), '') <> 'boolean' then
+      raise exception 'carta mal formada' using errcode = '23514';
+    end if;
+    if (elem ->> 'i') !~ '^[0-9]{1,2}$' then
+      raise exception 'índice de carta inválido' using errcode = '23514';
+    end if;
     idx := (elem ->> 'i')::int;
-    if idx < 0 or idx > 77 or (elem ->> 'i') <> idx::text then
+    if idx > 77 then
       raise exception 'índice de carta fuera de rango' using errcode = '23514';
     end if;
     if idx = any (seen) then
