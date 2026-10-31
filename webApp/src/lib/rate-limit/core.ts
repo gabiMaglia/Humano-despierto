@@ -79,13 +79,20 @@ export function rateLimitKey(action: string, subject: RateLimitSubject): string 
 const IP = /^[0-9A-Fa-f:.]{2,45}$/;
 
 /**
- * IP para las claves sin sesión: primer valor de `x-forwarded-for`, si no `x-real-ip`. Lo que no
- * tiene forma de IP cae en `unknown`. Sin proxy delante (local) todos comparten ese bucket. Detrás
- * de un proxy que AGREGA a `x-forwarded-for` en vez de reemplazarlo, el primer valor lo elige el
- * cliente: el proxy del despliegue (D4) tiene que reemplazarlo.
+ * IP para las claves sin sesión. Primero `x-nf-client-connection-ip`: en Netlify (T-091) es la IP
+ * de la conexión que pone su CDN, mientras que `x-forwarded-for` puede traer valores del cliente.
+ * Después el primer valor de `x-forwarded-for`, si no `x-real-ip`. Lo que no tiene forma de IP cae
+ * en `unknown`. Sin proxy delante (local) todos comparten ese bucket. Fuera de Netlify el cliente
+ * podría mandar la cabecera `x-nf-` a mano: otro despliegue tiene que borrarla o reemplazarla,
+ * igual que `x-forwarded-for`.
  */
 export function clientIpFrom(headers: Pick<Headers, "get">): string {
-  for (const raw of [headers.get("x-forwarded-for")?.split(",")[0], headers.get("x-real-ip")]) {
+  const candidates = [
+    headers.get("x-nf-client-connection-ip"),
+    headers.get("x-forwarded-for")?.split(",")[0],
+    headers.get("x-real-ip"),
+  ];
+  for (const raw of candidates) {
     const ip = raw?.trim();
     if (ip && IP.test(ip)) return ip;
   }

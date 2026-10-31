@@ -5,6 +5,10 @@ import { getSiteUrl } from "@/lib/server/site-url";
 import { jakarta } from "@/styles/fonts";
 import "@/styles/globals.css";
 
+// T-091 · el connection() de abajo no alcanza: Next renderiza las páginas en paralelo al layout
+// y sus consultas salían igual en el build. Esto saca del prerender a todo el árbol, incluidas
+// las páginas futuras (guard en layout.test.ts).
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
