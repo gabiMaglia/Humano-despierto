@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Hero, { type HeroQuote } from "@/components/landing/Hero";
@@ -16,6 +17,9 @@ import { getPublishedCourses, signCatalogCovers } from "@/lib/server/courses";
 import { getFeaturedTeacher, getPublicTeachers, signTeacherAvatars } from "@/lib/server/guias";
 
 export default async function LandingPage() {
+  // T-091 · el connection() del layout no frena esta página: se renderizan en paralelo y sus
+  // consultas salían igual en el build, contra una base que ahí no existe.
+  await connection();
   const [{ stats, disciplines, testimonials }, courses, guias, maestra] = await Promise.all([
     getLandingData(),
     getPublishedCourses(),

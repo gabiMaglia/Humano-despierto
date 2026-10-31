@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { getSiteUrl } from "@/lib/server/site-url";
 import { getPublishedCourses } from "@/lib/server/courses";
 import { getPublishedPosts } from "@/lib/server/diario";
@@ -10,6 +11,9 @@ import { SPREADS } from "@/lib/tarot/spreads";
  * desactualiza el día que alguien despublica un curso. Misma doctrina que los conteos de T-019:
  * un sitemap que promete URLs que dan 404 es peor que no tener sitemap. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // T-091 · sin esto el build lo prerenderiza y necesita la base (asi fallaba el deploy). Se arma
+  // por request: el build no depende de Supabase y el sitemap nunca queda viejo.
+  await connection();
   const site = getSiteUrl();
 
   const estaticas: MetadataRoute.Sitemap = [

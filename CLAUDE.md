@@ -242,8 +242,8 @@ covered by mutation tests that fail loudly if you regress them.
     with a limit in `src/lib/rate-limit/limits.ts`, or sits in `RATE_LIMIT_EXEMPT` with a written
     reason; `src/lib/rate-limit/coverage.test.ts` fails otherwise (and on `export default`/`{ }`/`*`
     in those files). Counters live in `rate_limit_buckets` (`check_rate_limit`, `service_role`
-    only, fixed window). The quota is per `getClaims().sub`, else per IP from `x-forwarded-for`
-    (the production proxy must REPLACE that header). If the limiter is down or mute the action
+    only, fixed window). The quota is per `getClaims().sub`, else per IP: `x-nf-client-connection-ip` (set by Netlify, T-091), then
+    `x-forwarded-for` (a non-Netlify proxy must REPLACE both). If the limiter is down or mute the action
     proceeds and logs `rate_limit_backend_down` (fail-open, on purpose). `sendMail` has its own
     global and per-recipient cap. Auth flows are limited by GoTrue, not here.
 

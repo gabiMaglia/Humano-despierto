@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/lib/**/*.test.ts", "src/content/**/*.test.ts", "src/app/**/*actions.test.ts", "src/app/**/route.test.ts", "src/app/**/layout.test.ts", "src/components/**/*.test.tsx"],
+    include: ["src/lib/**/*.test.ts", "src/content/**/*.test.ts", "src/app/**/*actions.test.ts", "src/app/**/route.test.ts", "src/app/**/layout.test.ts", "src/app/sitemap.test.ts", "src/app/page.test.ts", "src/components/**/*.test.tsx"],
     exclude: ["e2e/**", "node_modules/**", ".next/**"],
     passWithNoTests: false,
     reporters: ["default"],

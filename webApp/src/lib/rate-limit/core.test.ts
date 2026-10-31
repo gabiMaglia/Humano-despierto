@@ -63,6 +63,10 @@ describe("rateLimitKey", () => {
 describe("clientIpFrom", () => {
   const h = (entries: Record<string, string>) => new Headers(entries);
   it.each([
+    // T-091 · en Netlify la IP de la conexión la pone la plataforma; el XFF lo puede traer el cliente.
+    [{ "x-nf-client-connection-ip": "198.51.100.9", "x-forwarded-for": "203.0.113.7" }, "198.51.100.9"],
+    [{ "x-nf-client-connection-ip": "2001:db8::9" }, "2001:db8::9"],
+    [{ "x-nf-client-connection-ip": "nope", "x-forwarded-for": "203.0.113.7" }, "203.0.113.7"],
     [{ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }, "203.0.113.7"],
     [{ "x-forwarded-for": " 2001:db8::1 " }, "2001:db8::1"],
     [{ "x-real-ip": "198.51.100.2" }, "198.51.100.2"],
