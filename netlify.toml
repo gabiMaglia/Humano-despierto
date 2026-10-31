@@ -1,0 +1,18 @@
+# T-091 · Netlify, plan gratuito. En la raíz con `base`: el repo no tiene package.json arriba y así
+# el directorio base queda versionado en vez de depender de un campo de la UI. Las rutas de abajo
+# son relativas a `base`. Sin secretos: las variables viven en Site configuration > Environment
+# variables (ver docs/deploy-netlify.md).
+[build]
+  base = "webApp"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Igual que .nvmrc. Netlify busca .nvmrc en `base`, y el nuestro está en la raíz.
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Sin [[plugins]]: Netlify instala solo @netlify/plugin-nextjs (OpenNext) al detectar Next.
+# Verificado contra la 5.16.5. Para fijar versión: `npm i -D @netlify/plugin-nextjs` y
+#   [[plugins]]
+#     package = "@netlify/plugin-nextjs"
