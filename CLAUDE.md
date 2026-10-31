@@ -131,13 +131,20 @@ under `(app)/`, which re-read `profiles.role`.
 - **Google OAuth is wired but unproven against Google** (T-041): it needs the PO's OAuth client
   credentials (see "External dependencies"); e2e only intercepts `/auth/v1/authorize`.
 - **Profiles are not editable** and there is no Storage usage (T-042).
-- **Mail transport is chosen by `MAIL_TRANSPORT`** (T-054, ADR-014): `smtp` (default) is a bare
-  client for Mailpit only (no AUTH, no TLS; with `NODE_ENV=production` a non-loopback
-  `SMTP_HOST` refuses to boot); `resend` posts to Resend's HTTP API. `src/instrumentation.ts`
+- **Mail transport is chosen by `MAIL_TRANSPORT`** (T-054, ADR-014, T-090): `smtp` (default) is a
+  hand-rolled client on `node:net`/`node:tls`. Against loopback (Mailpit) it needs no AUTH and no
+  TLS. Against any other host it needs `SMTP_USER` + `SMTP_PASS` **and** TLS (`SMTP_SECURE=true`
+  for 465, or `SMTP_REQUIRE_TLS=true` for 587/STARTTLS), otherwise `register()` refuses to boot
+  (credentials never travel in clear, in any `NODE_ENV`). `resend` posts to Resend's HTTP API.
+  **Gmail option** (no domain yet): `SMTP_HOST=smtp.gmail.com`, an App Password as `SMTP_PASS`,
+  and `MAIL_FROM_ADDRESS` = the Gmail address itself (Gmail rewrites any other From). Limit
+  about 500 recipients/day; 550/554 `5.4.5` (daily quota) is classified transient and retried,
+  535/534/530 (bad credentials) and other 5xx are permanent. `SMTP_PASS` is redacted from logs
+  and error messages. `src/instrumentation.ts`
   validates the mail config in `register()` and the server does not start if it is invalid.
-  A permanent provider failure retires the `mail_log` slot with `last_error`
+  A permanent provider failure (Resend or SMTP) retires the `mail_log` slot with `last_error`
   (`permanent:<status>/<name>`, migration 0036). After fixing a bad key or domain, recover with
-  `delete from mail_log where sent_at is null and last_error ~ '^permanent:(401|403)/'` —
+  `delete from mail_log where sent_at is null and last_error ~ '^permanent:(401|403|535)/'` —
   never delete the `409` rows: that mail may already have gone out.
 - **No error capture** (SP-6). The CSP ships Report-Only (T-052) until its enforce criterion is met.
 
@@ -308,7 +315,7 @@ visual reference: `design_handoff_humano_humano/reference/brote/b4-brote2.html`.
 - There are no mocks left (T-053 removed the last one). Do not add mocks.
 
 ## External dependencies not yet provisioned
-Four things block work and require the repo owner's accounts:
+Several things block work and require the repo owner's accounts:
 - **Supabase cloud project** does not exist. The schema has only run on PGlite (`npm test`,
   no PostgREST) and on the local Supabase stack (`supabase start`, where
   `harness/b1-postgrest-attacks.sh` exercises the HTTP surface). Re-run b1 against the cloud
@@ -320,7 +327,11 @@ Four things block work and require the repo owner's accounts:
   `webApp/.env.local`; read by the Supabase CLI on `supabase start`, not by Next). Local
   authorised redirect URI: `http://127.0.0.1:54321/auth/v1/callback`. Without them the Google
   button ends in a Google error page.
-- **Resend** (ADR-014): account, `RESEND_API_KEY`, and the domain of `MAIL_FROM_ADDRESS` verified
+- **Gmail App Password** (T-090, stopgap until a domain exists): 2-step verification on
+  `despiertohumano@gmail.com`, an App Password, then `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`,
+  `SMTP_SECURE=true`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM_ADDRESS=despiertohumano@gmail.com`.
+  About 500 mails/day; no SPF/DKIM work needed. Replaces Resend until a domain is bought.
+- **Resend** (ADR-014, needs a domain): account, `RESEND_API_KEY`, and the domain of `MAIL_FROM_ADDRESS` verified
   with SPF (`TXT` + `MX`, or `CNAME`, on `send.<domain>`) and DKIM (`TXT` on
   `resend._domainkey.<domain>`), checkable with `nslookup -type=TXT resend._domainkey.<domain>`.
   Without it every real send is a `403`, which retires the slot (see recovery above).

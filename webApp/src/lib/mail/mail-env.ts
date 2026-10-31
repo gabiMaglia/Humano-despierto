@@ -7,8 +7,18 @@ export interface MailFrom {
   name: string;
 }
 
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  /** TLS implícito desde la conexión (465). */
+  secure: boolean;
+  /** STARTTLS obligatorio (587): si el servidor no lo ofrece, no se manda nada. */
+  requireTLS: boolean;
+  auth?: { user: string; pass: string };
+}
+
 export type MailConfig =
-  | { transport: "smtp"; smtp: { host: string; port: number } | null; from: MailFrom }
+  | { transport: "smtp"; smtp: SmtpConfig | null; from: MailFrom }
   | { transport: "resend"; resend: { apiKey: string }; from: MailFrom };
 
 export class MailEnvError extends Error {
@@ -29,17 +39,38 @@ const filled = (value: string | undefined): string | undefined => {
   return trimmed ? trimmed : undefined;
 };
 
-function parseSmtp(env: Env): { host: string; port: number } | null {
+const isTrue = (value: string | undefined): boolean => filled(value)?.toLowerCase() === "true";
+
+function parseSmtp(env: Env): SmtpConfig | null {
   const host = filled(env.SMTP_HOST);
   const port = Number(env.SMTP_PORT);
   if (!host || !Number.isInteger(port) || port <= 0) return null;
-  // El SMTP casero no tiene AUTH ni STARTTLS: contra un MTA real mandaría en claro.
-  if (env.NODE_ENV === "production" && !LOOPBACK.has(host.toLowerCase())) {
-    throw new MailEnvError(
-      `SMTP_HOST fuera de loopback con NODE_ENV=production: el SMTP casero es solo para Mailpit local; en producción MAIL_TRANSPORT=resend (ADR-014) ${ENV_FILE}`,
-    );
+
+  const user = filled(env.SMTP_USER);
+  // La contraseña no se recorta: un espacio al final es parte del secreto.
+  const pass = env.SMTP_PASS ? env.SMTP_PASS : undefined;
+  if (Boolean(user) !== Boolean(pass)) {
+    throw new MailEnvError(`SMTP_USER y SMTP_PASS van juntas: falta una de las dos ${ENV_FILE}`);
   }
-  return { host, port };
+  const secure = isTrue(env.SMTP_SECURE);
+  // Con SECURE ya es TLS desde el primer byte; STARTTLS obligatorio sería redundante.
+  const requireTLS = !secure && isTrue(env.SMTP_REQUIRE_TLS);
+  const loopback = LOOPBACK.has(host.toLowerCase());
+
+  if (!loopback) {
+    // Credenciales o mails en claro contra un MTA real: ni en producción ni en desarrollo.
+    if (!user || !pass) {
+      throw new MailEnvError(
+        `SMTP_HOST fuera de loopback exige SMTP_USER y SMTP_PASS (Gmail: contraseña de aplicación); el SMTP sin AUTH es solo para Mailpit local ${ENV_FILE}`,
+      );
+    }
+    if (!secure && !requireTLS) {
+      throw new MailEnvError(
+        `SMTP_HOST fuera de loopback exige TLS: SMTP_SECURE=true (puerto 465) o SMTP_REQUIRE_TLS=true (587, STARTTLS); nunca credenciales en claro ${ENV_FILE}`,
+      );
+    }
+  }
+  return { host, port, secure, requireTLS, ...(user && pass ? { auth: { user, pass } } : {}) };
 }
 
 export function parseMailEnv(env: Env): MailConfig {

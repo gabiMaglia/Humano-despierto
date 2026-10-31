@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 type Level = "info" | "warn" | "error";
 
 // Claves cuyo valor jamas debe llegar a un log, sea cual sea el nivel de anidado.
-const SENSITIVE = /(api_?key|token|secret|password|passwd|authorization|cookie|^code$|^jwt$|service_role)/i;
+const SENSITIVE = /(api_?key|token|secret|password|passwd|^pass$|smtp_pass|authorization|cookie|^code$|^jwt$|service_role)/i;
 
 // D-48 · Redaccion por VALOR, no solo por clave: un JWT o el mail de la alumna llegan adentro de
 // `err.message`/`stack` (SMTP y Resend repiten el destinatario), bajo claves inocentes.
