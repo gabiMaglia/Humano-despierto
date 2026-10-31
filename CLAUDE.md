@@ -39,6 +39,10 @@ weekly drip. Active enrollment grants access to the whole curriculum at once.
   `despiertohumano-oss/Humano-despierto` (private, the school's account). Both must end on the
   same `main`; nobody commits on GitHub directly, so the push never needs `--force`.
 - Push to `main` only for a release, and only from here.
+- **Production deploys only from GitHub `main` (CD).** Netlify site `humano-despierto`
+  (account `despiertohumano@gmail.com`) is linked to `escuela` `main` and builds on every push;
+  `netlify.toml` is the build config. No `netlify deploy --prod` from a laptop, no branch deploys
+  or deploy previews (they would share production's database). Runbook: `docs/deploy-netlify.md`.
 
 ## Commands
 
