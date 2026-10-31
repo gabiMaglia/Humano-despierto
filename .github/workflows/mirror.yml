@@ -1,0 +1,32 @@
+# Copia main (y los tags) al repo de la cuenta de la escuela cada vez que main cambia,
+# sea por push o por merge de un PR. El repo de destino es un espejo: no se trabaja ahí.
+# Secreto MIRROR_TOKEN: token fine-grained de despiertohumano-oss, sólo ese repo, Contents: read and write.
+name: Espejo a despiertohumano-oss
+
+on:
+  push:
+    branches: [main]
+    tags: ["*"]
+  workflow_dispatch:
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Sin esto el header de GITHUB_TOKEN se manda también al otro repo y el push da 403.
+          persist-credentials: false
+      - name: Push al espejo
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          test -n "$MIRROR_TOKEN" || { echo "Falta el secreto MIRROR_TOKEN"; exit 1; }
+          dest="https://x-access-token:${MIRROR_TOKEN}@github.com/despiertohumano-oss/Humano-despierto.git"
+          git push --force "$dest" "origin/main:refs/heads/main" 2>/dev/null || git push --force "$dest" HEAD:refs/heads/main
+          git push --force "$dest" --tags
