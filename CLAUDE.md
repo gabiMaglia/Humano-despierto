@@ -27,6 +27,19 @@ weekly drip. Active enrollment grants access to the whole curriculum at once.
 `04_api_contracts.md` · `05_handoff_log.md` · `06_retro.md`.
 **Read `engram/_state.md` first.** This file describes the terrain; the engram describes the work.
 
+## Git workflow (PO rule, 2026-10-31)
+- **Work happens on `dev`, locally.** Feature and ticket branches merge into `dev` on this
+  machine; `dev` is not pushed and no PRs are opened.
+- **A release is a local merge `dev` → `main`, then `main` is pushed to both remotes:**
+  ```bash
+  git checkout main && git merge --no-ff dev
+  git push origin main && git push escuela main
+  ```
+  `origin` = `gabiMaglia/Humano-despierto` (personal), `escuela` =
+  `despiertohumano-oss/Humano-despierto` (private, the school's account). Both must end on the
+  same `main`; nobody commits on GitHub directly, so the push never needs `--force`.
+- Push to `main` only for a release, and only from here.
+
 ## Commands
 
 ### Setup
