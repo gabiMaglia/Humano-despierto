@@ -12,7 +12,7 @@
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
 
-# Sin [[plugins]]: Netlify instala solo @netlify/plugin-nextjs (OpenNext) al detectar Next.
-# Verificado contra la 5.16.5. Para fijar versión: `npm i -D @netlify/plugin-nextjs` y
-#   [[plugins]]
-#     package = "@netlify/plugin-nextjs"
+# Adaptador de Next declarado y fijado (devDependency 5.16.5): la autoinstalación del runtime no
+# corrió en el primer build desde Git (deploy sin funciones, todo 404).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
